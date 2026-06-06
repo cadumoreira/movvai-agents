@@ -36,6 +36,9 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   o host baixa o repo via tarball da GitHub API e injeta no sandbox, e o commit/PR são feitos no host
   via Git Data API. Egress controlado por `allowInternetAccess` (allowlist por domínio = template E2B).
   - _Pendente:_ MCP no perímetro (envolver as ferramentas como MCP servers).
+- **Conselho multi-modelo** (`deliberate`): em decisões de alto valor (veredito de QA, arquitetura do
+  Tech Lead), vários modelos dão parecer em paralelo e um sintetiza — "modelos conversando entre si".
+  Liga só com `COUNCIL_MODELS` (≥2 modelos); use com parcimônia (multi-modelo custa mais tokens).
 
 ## Como funciona (estrutura)
 

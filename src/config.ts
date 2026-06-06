@@ -28,6 +28,14 @@ export const config = {
   },
   // Orçamento de tokens por execução de agente (guarda de custo). 0 = sem limite.
   tokenBudget: Number(optional("AGENT_TOKEN_BUDGET", "400000")),
+  // Conselho multi-modelo (debate/MoA) para decisões de alto valor. Vazio/1 modelo = desligado.
+  council: {
+    models: optional("COUNCIL_MODELS")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    synthModel: optional("COUNCIL_SYNTH_MODEL"),
+  },
   redisUrl: optional("REDIS_URL"),
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),

@@ -1,6 +1,7 @@
 import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import { qaTools, type QaToolContext } from "../tools/qa-tools.js";
+import { councilTools } from "../tools/council.js";
 import { REPO_DIR } from "../sandbox/e2b.js";
 
 const SYSTEM = `Você é a **Bia**, QA de um time de produto autônomo. Você revisa Pull Requests com
@@ -14,7 +15,9 @@ O PR já está com a branch correspondente em \`${REPO_DIR}\` no sandbox.
    O resultado dos testes é o sinal mais forte — não aprove com testes vermelhos.
 3. **Avalie**: a mudança resolve o que foi pedido? Tem teste cobrindo? Há risco óbvio (regressão,
    segurança, caso de borda não tratado)?
-4. **Registre a revisão** com \`comment_on_pr\`: veredito (aprovado / mudanças necessárias), resumo
+4. **Caso de borda / alto risco:** se o veredito for difícil ou o risco de errar for alto, convoque
+   o conselho com \`deliberate\` (vários modelos dão parecer) antes de decidir. Use com parcimônia.
+5. **Registre a revisão** com \`comment_on_pr\`: veredito (aprovado / mudanças necessárias), resumo
    e os pontos encontrados. Seja específico e construtivo.
 5. Ao final, responda na thread com o veredito em 1-2 linhas.
 
@@ -29,7 +32,7 @@ export function createQaAgent(ctx: QaToolContext, model?: string): Agent {
     name: "Bia (QA)",
     system: SYSTEM,
     model: model ?? config.models.qa,
-    tools: qaTools(ctx),
+    tools: { ...qaTools(ctx), ...councilTools() },
     maxSteps: 20,
     tokenBudget: config.tokenBudget,
   };
