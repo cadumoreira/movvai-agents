@@ -7,6 +7,7 @@ import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
+import { startDashboard } from "./web/server.js";
 import { config } from "./config.js";
 
 /**
@@ -32,6 +33,8 @@ async function main() {
   startDevWorker(app.client);
   startQaWorker(app.client);
   startDeliveryWorker(app.client);
+
+  startDashboard(config.dashboard.port);
 
   await app.start();
   console.log(

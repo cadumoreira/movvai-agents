@@ -1,4 +1,5 @@
 import type { LanguageModelUsage } from "ai";
+import { record } from "./activity.js";
 
 /**
  * Preço por 1M tokens (input/output), USD. Snapshot jun/2026 — re-validar.
@@ -49,6 +50,14 @@ export function logUsage(
   usage: LanguageModelUsage | undefined,
 ): void {
   const s = summarizeUsage(model, usage);
+  record({
+    time: new Date().toISOString(),
+    kind: "agent_run",
+    agent: agentId,
+    model,
+    cost: s.estimatedCostUSD,
+    cacheHitRate: s.cacheHitRate,
+  });
   console.log(
     JSON.stringify({
       level: "info",

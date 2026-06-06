@@ -44,6 +44,9 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   agnóstico, ligado por `LANGFUSE_*` ou `OTEL_EXPORTER_OTLP_ENDPOINT`.
 - **Provedores:** Anthropic, OpenAI, Google e **Ollama** (modelos locais — `ollama:modelo`) via o
   gateway; **Manus** integrado como **agente externo** (tarefa assíncrona), não como modelo de chat.
+- **Painel web** (`http://localhost:3000`, `DASHBOARD_PORT`): vê a atividade do time (custo/cache por
+  execução) e as **aprovações pendentes** — você pode **aprovar/recusar fora do Slack**. Mesma fonte de
+  verdade dos botões do Slack (registro central), então aprovar em qualquer lugar destrava o agente.
 
 ## Como funciona (estrutura)
 

@@ -1,42 +1,30 @@
-import { randomUUID } from "node:crypto";
 import type { App } from "@slack/bolt";
 import type { WebClient } from "@slack/web-api";
+import { register, resolvePending, type ApprovalDecision } from "./registry.js";
 
-export interface ApprovalDecision {
-  approved: boolean;
-  feedback?: string;
-}
+export type { ApprovalDecision } from "./registry.js";
 
 /**
  * Abstração de aprovação: o agente pede um OK e recebe a decisão, sem saber se veio
  * do Slack (produção) ou do terminal (smoke test). Permite testar local sem Slack.
  */
-export type Approver = (opts: { text: string }) => Promise<ApprovalDecision>
+export type Approver = (opts: { text: string }) => Promise<ApprovalDecision>;
 
 /** Aprovação via Slack (botões), amarrada a uma thread. */
 export function slackApprover(client: WebClient, channel: string, threadTs: string): Approver {
   return ({ text }) => requestApproval(client, { channel, threadTs, text });
 }
 
-interface PendingApproval {
-  resolve: (d: ApprovalDecision) => void;
-}
-
 /**
- * Portão de aprovação: posta uma mensagem no Slack com botões e PAUSA até o humano
- * decidir. É a "interrupção durável" da arquitetura — o agente só age em pontos-chave
- * (abrir PR) depois do seu OK.
- *
- * MVP: estado em memória (Map). Em produção, persistir o pendente (Redis/DB) para
- * sobreviver a restart enquanto espera a decisão.
+ * Portão de aprovação: registra a pendência no registro central, posta uma mensagem no
+ * Slack com botões e PAUSA até o humano decidir (no Slack OU no painel web). É a
+ * "interrupção durável" — o agente só age em pontos-chave (abrir PR) depois do seu OK.
  */
-const pending = new Map<string, PendingApproval>();
-
 export async function requestApproval(
   client: WebClient,
   opts: { channel: string; threadTs: string; text: string },
 ): Promise<ApprovalDecision> {
-  const id = randomUUID();
+  const { id, promise } = register(opts.text);
 
   await client.chat.postMessage({
     channel: opts.channel,
@@ -66,9 +54,7 @@ export async function requestApproval(
     ],
   });
 
-  return new Promise<ApprovalDecision>((resolve) => {
-    pending.set(id, { resolve });
-  });
+  return promise;
 }
 
 /** Registra o handler dos botões de aprovação no app do Slack. */
@@ -76,17 +62,9 @@ export function registerApprovalHandlers(app: App): void {
   app.action(/^pr_decision:(approve|reject)$/, async ({ ack, action, body, client }) => {
     await ack();
 
-    // action é um ButtonAction; body é um BlockAction. Acesso pontual via any
-    // para evitar verbosidade de tipos do Bolt.
     const a = action as { action_id: string; value?: string };
     const decision = a.action_id.endsWith("approve") ? "approve" : "reject";
-    const id = a.value ?? "";
-
-    const entry = pending.get(id);
-    if (entry) {
-      pending.delete(id);
-      entry.resolve({ approved: decision === "approve" });
-    }
+    resolvePending(a.value ?? "", { approved: decision === "approve" });
 
     // Atualiza a mensagem para registrar quem decidiu o quê.
     const b = body as { channel?: { id: string }; message?: { ts: string }; user?: { id: string } };

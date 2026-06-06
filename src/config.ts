@@ -37,6 +37,9 @@ export const config = {
     synthModel: optional("COUNCIL_SYNTH_MODEL"),
   },
   redisUrl: optional("REDIS_URL"),
+  dashboard: {
+    port: Number(optional("DASHBOARD_PORT", "3000")),
+  },
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
   embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),
