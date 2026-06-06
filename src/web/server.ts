@@ -1,6 +1,10 @@
 import http from "node:http";
 import { listActivity } from "../observability/activity.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
+import { config } from "../config.js";
+import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
+
+export type InboundHandler = (source: "github" | "linear", task: InboundTask) => Promise<void>;
 
 /**
  * Painel web leve (HTTP nativo, sem dependências). Mostra atividade recente do time e
@@ -20,10 +24,44 @@ function json(res: http.ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-export function startDashboard(port: number): void {
+function safeParse(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw || "{}") as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+export function startDashboard(port: number, onInbound?: InboundHandler): void {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://localhost:${port}`);
     const path = url.pathname;
+
+    // ── Webhooks de entrada (event-driven: issue dispara o time) ──────────────
+    if (req.method === "POST" && path === "/webhooks/github" && onInbound) {
+      const raw = await readBody(req);
+      const sig = String(req.headers["x-hub-signature-256"] ?? "");
+      if (!verifyHmacSha256(config.github.webhookSecret, raw, sig)) {
+        return json(res, 401, { error: "assinatura inválida" });
+      }
+      const task = parseGithubIssue(
+        String(req.headers["x-github-event"] ?? ""),
+        safeParse(raw),
+        config.webhooks.triggerLabel,
+      );
+      if (task) await onInbound("github", task);
+      return json(res, 202, { ok: true, triggered: Boolean(task) });
+    }
+    if (req.method === "POST" && path === "/webhooks/linear" && onInbound) {
+      const raw = await readBody(req);
+      const sig = String(req.headers["linear-signature"] ?? "");
+      if (!verifyHmacSha256(config.webhooks.linearSecret, raw, sig)) {
+        return json(res, 401, { error: "assinatura inválida" });
+      }
+      const task = parseLinearIssue(safeParse(raw), config.webhooks.triggerLabel);
+      if (task) await onInbound("linear", task);
+      return json(res, 202, { ok: true, triggered: Boolean(task) });
+    }
 
     if (req.method === "GET" && path === "/") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });

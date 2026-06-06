@@ -7,7 +7,8 @@ import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
-import { startDashboard } from "./web/server.js";
+import { startDashboard, type InboundHandler } from "./web/server.js";
+import { queue } from "./queue/index.js";
 import { config } from "./config.js";
 
 /**
@@ -34,7 +35,28 @@ async function main() {
   startQaWorker(app.client);
   startDeliveryWorker(app.client);
 
-  startDashboard(config.dashboard.port);
+  // Webhooks de entrada (GitHub/Linear) → posta no canal padrão e aciona o Tech Lead.
+  const handleInbound: InboundHandler = async (source, task) => {
+    const channel = config.slack.defaultChannel;
+    if (!channel) {
+      console.warn(`Webhook do ${source} ignorado: defina SLACK_DEFAULT_CHANNEL para rotear.`);
+      return;
+    }
+    const posted = await app.client.chat.postMessage({
+      channel,
+      text: `:inbox_tray: Recebi do ${source}: *${task.title}* — passando pro time.`,
+    });
+    const threadTs = String(posted.ts);
+    await queue.enqueue("techlead-task", {
+      channel,
+      threadTs,
+      threadKey: `${channel}:${threadTs}`,
+      ticket: { title: task.title, url: task.url, identifier: task.identifier },
+      instructions: task.instructions,
+    });
+  };
+
+  startDashboard(config.dashboard.port, handleInbound);
 
   await app.start();
   console.log(

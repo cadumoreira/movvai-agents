@@ -75,6 +75,8 @@ export const config = {
     get signingSecret() {
       return required("SLACK_SIGNING_SECRET");
     },
+    // Canal para onde o time reporta quando o trabalho vem de webhook (sem thread do Slack).
+    defaultChannel: optional("SLACK_DEFAULT_CHANNEL"),
   },
   linear: {
     get apiKey() {
@@ -90,6 +92,16 @@ export const config = {
     },
     get defaultRepo() {
       return optional("GITHUB_DEFAULT_REPO");
+    },
+    get webhookSecret() {
+      return optional("GITHUB_WEBHOOK_SECRET");
+    },
+  },
+  // Webhooks de entrada: label que aciona o time, e segredo do Linear.
+  webhooks: {
+    triggerLabel: optional("AGENT_TRIGGER_LABEL", "agent"),
+    get linearSecret() {
+      return optional("LINEAR_WEBHOOK_SECRET");
     },
   },
 };
