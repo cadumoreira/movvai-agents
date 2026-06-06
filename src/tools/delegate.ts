@@ -1,7 +1,7 @@
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import type { AgentContext } from "../agents/context.js";
-import { bus } from "../events/bus.js";
+import { queue } from "../queue/index.js";
 
 /**
  * Ferramenta do PM para passar uma demanda ao Dev. A delegação é visível: dispara
@@ -24,7 +24,7 @@ export function delegateTools(ctx: AgentContext): ToolSet {
         repo: z.string().optional().describe('Repositório "owner/repo" (se diferente do padrão).'),
       }),
       execute: async ({ ticket_title, ticket_url, ticket_identifier, instructions, repo }) => {
-        bus.emit("dev.task.requested", {
+        await queue.enqueue("dev-task", {
           channel: ctx.channel,
           threadTs: ctx.threadTs,
           threadKey: ctx.threadKey,

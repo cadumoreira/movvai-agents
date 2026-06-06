@@ -6,7 +6,7 @@ import type { RepoTarget } from "../sandbox/e2b.js";
 export async function openPullRequest(
   target: RepoTarget,
   opts: { head: string; title: string; body: string },
-): Promise<string> {
+): Promise<{ url: string; number: number }> {
   if (!config.github.token) throw new Error("GITHUB_TOKEN não configurado.");
   const octokit = new Octokit({ auth: config.github.token });
 
@@ -24,5 +24,21 @@ export async function openPullRequest(
     body: opts.body,
   });
 
-  return pr.html_url;
+  return { url: pr.html_url, number: pr.number };
+}
+
+/** Comenta num PR (usado pelo QA para registrar a revisão). */
+export async function commentOnPullRequest(
+  target: RepoTarget,
+  prNumber: number,
+  body: string,
+): Promise<void> {
+  if (!config.github.token) throw new Error("GITHUB_TOKEN não configurado.");
+  const octokit = new Octokit({ auth: config.github.token });
+  await octokit.rest.issues.createComment({
+    owner: target.owner,
+    repo: target.repo,
+    issue_number: prNumber,
+    body,
+  });
 }

@@ -24,13 +24,14 @@ repositório já está clonado em \`${REPO_DIR}\`.
 - Nunca invente caminhos, comandos de teste ou resultados — descubra com as ferramentas.
 - Ao terminar (PR aberto ou impasse), responda na thread com um resumo curto do que fez.`;
 
-export function createDevAgent(ctx: DevToolContext): Agent {
+export function createDevAgent(ctx: DevToolContext, model?: string): Agent {
   return {
     id: "dev",
     name: "Téo (Dev)",
     system: SYSTEM,
-    model: config.models.dev,
+    model: model ?? config.models.dev,
     tools: devTools(ctx),
     maxSteps: 30,
+    tokenBudget: config.tokenBudget,
   };
 }

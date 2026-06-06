@@ -5,12 +5,15 @@ import { config } from "../config.js";
 import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
 import type { Approver } from "../approvals/gate.js";
 import { openPullRequest } from "./github-write.js";
+import { queue } from "../queue/index.js";
 
 export interface DevToolContext {
   sandbox: Sandbox;
   target: RepoTarget;
   /** Como pedir aprovação (Slack em produção, terminal em smoke test). */
   approve: Approver;
+  /** Thread onde o trabalho acontece (para acionar o QA depois do PR). */
+  thread?: { channel: string; threadTs: string; threadKey: string };
 }
 
 function slugify(s: string): string {
@@ -29,7 +32,7 @@ function clip(s: string, max = 8_000): string {
 }
 
 export function devTools(ctx: DevToolContext): ToolSet {
-  const { sandbox, target, approve } = ctx;
+  const { sandbox, target, approve, thread } = ctx;
 
   return {
     sandbox_run: tool({
@@ -108,8 +111,23 @@ export function devTools(ctx: DevToolContext): ToolSet {
           return { approved: true, pushed: false, error: clip(push.stderr) };
         }
 
-        const prUrl = await openPullRequest(target, { head: branch, title, body });
-        return { approved: true, pushed: true, branch, prUrl };
+        const pr = await openPullRequest(target, { head: branch, title, body });
+
+        // Aciona o QA para revisar o PR (handoff Dev → QA).
+        if (thread) {
+          await queue.enqueue("qa-review", {
+            channel: thread.channel,
+            threadTs: thread.threadTs,
+            threadKey: thread.threadKey,
+            repo: `${target.owner}/${target.repo}`,
+            branch,
+            prUrl: pr.url,
+            prNumber: pr.number,
+            title,
+          });
+        }
+
+        return { approved: true, pushed: true, branch, prUrl: pr.url };
       },
     }),
   };

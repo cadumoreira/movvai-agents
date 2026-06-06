@@ -20,9 +20,15 @@ export const config = {
   models: {
     pm: optional("PM_MODEL", "anthropic:claude-sonnet-4-6"),
     dev: optional("DEV_MODEL", "anthropic:claude-opus-4-8"),
+    qa: optional("QA_MODEL", "anthropic:claude-sonnet-4-6"),
+    // Modelo barato para tarefas simples (roteamento de custo por tier).
+    cheap: optional("CHEAP_MODEL", "anthropic:claude-haiku-4-5"),
     gatewayBaseUrl: optional("MODEL_GATEWAY_BASE_URL"),
     gatewayApiKey: optional("MODEL_GATEWAY_API_KEY"),
   },
+  // Orçamento de tokens por execução de agente (guarda de custo). 0 = sem limite.
+  tokenBudget: Number(optional("AGENT_TOKEN_BUDGET", "400000")),
+  redisUrl: optional("REDIS_URL"),
   e2b: {
     get apiKey() {
       return optional("E2B_API_KEY");

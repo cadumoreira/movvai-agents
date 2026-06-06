@@ -34,13 +34,14 @@ Quando alguém te traz um problema (um bug, uma ideia, uma melhoria), você:
   pendente, em vez de inventar.
 ${config.github.defaultRepo ? `\nRepositório padrão do time: ${config.github.defaultRepo}` : ""}`;
 
-export function createPMAgent(ctx: AgentContext): Agent {
+export function createPMAgent(ctx: AgentContext, model?: string): Agent {
   return {
     id: "pm",
     name: "Ana (PM)",
     system: SYSTEM,
-    model: config.models.pm,
+    model: model ?? config.models.pm,
     tools: { ...githubTools(), ...linearTools(), ...delegateTools(ctx) },
     maxSteps: 12,
+    tokenBudget: config.tokenBudget,
   };
 }

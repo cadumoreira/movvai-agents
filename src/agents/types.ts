@@ -17,4 +17,6 @@ export interface Agent {
   tools: ToolSet;
   /** Limite de passos do loop de tool-calling (controle de custo). */
   maxSteps: number;
+  /** Orçamento de tokens por execução (guarda de custo). 0/undefined = sem limite. */
+  tokenBudget?: number;
 }

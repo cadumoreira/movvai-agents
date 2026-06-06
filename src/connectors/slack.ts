@@ -19,7 +19,7 @@ function stripMention(text: string): string {
  * contexto da thread) — assim as ferramentas (delegar, aprovar) sabem onde operar.
  */
 export function createSlackApp(
-  agentFactory: (ctx: AgentContext) => Agent,
+  agentFactory: (ctx: AgentContext, userText: string) => Agent,
   memory: ThreadMemory,
 ) {
   const app = new App({
@@ -45,7 +45,7 @@ export function createSlackApp(
     }
 
     try {
-      const agent = agentFactory({ channel, threadTs, threadKey, slack: client });
+      const agent = agentFactory({ channel, threadTs, threadKey, slack: client }, userText);
       memory.append(threadKey, { role: "user", content: userText });
       const { text, newMessages } = await runAgent(agent, memory.get(threadKey));
       memory.append(threadKey, ...(newMessages as ModelMessage[]));

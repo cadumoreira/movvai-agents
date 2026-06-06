@@ -1,18 +1,19 @@
 import type { WebClient } from "@slack/web-api";
 import type { Sandbox } from "e2b";
-import { bus } from "../events/bus.js";
+import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createDevAgent } from "../agents/dev.js";
 import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
 import { slackApprover } from "../approvals/gate.js";
+import { routeModel } from "../models/router.js";
+import { config } from "../config.js";
 
 /**
- * Worker do Dev: reage ao evento de delegação, sobe um sandbox efêmero, roda o
- * agente Dev e, ao final, encerra o sandbox. Toda a comunicação acontece na mesma
- * thread do Slack (handoff observável).
+ * Worker do Dev: consome jobs "dev-task", sobe um sandbox efêmero, roda o agente Dev
+ * e encerra o sandbox. Toda a comunicação acontece na mesma thread do Slack.
  */
 export function startDevWorker(slack: WebClient): void {
-  bus.on("dev.task.requested", async (task) => {
+  queue.process("dev-task", async (task) => {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
@@ -24,11 +25,16 @@ export function startDevWorker(slack: WebClient): void {
       );
 
       sandbox = await createRepoSandbox(target);
-      const dev = createDevAgent({
-        sandbox,
-        target,
-        approve: slackApprover(slack, task.channel, task.threadTs),
-      });
+      const model = routeModel(config.models.dev, { text: task.instructions });
+      const dev = createDevAgent(
+        {
+          sandbox,
+          target,
+          approve: slackApprover(slack, task.channel, task.threadTs),
+          thread: { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey },
+        },
+        model,
+      );
 
       const ticketRef = task.ticket.url ? `\nTicket: ${task.ticket.url}` : "";
       const initial =
@@ -40,7 +46,9 @@ export function startDevWorker(slack: WebClient): void {
       if (text) await post(text);
     } catch (err) {
       console.error("Erro no worker do Dev:", err);
-      await post(`Tive um problema ao trabalhar na demanda: ${err instanceof Error ? err.message : String(err)}`);
+      await post(
+        `Tive um problema ao trabalhar na demanda: ${err instanceof Error ? err.message : String(err)}`,
+      );
     } finally {
       if (sandbox) await sandbox.kill().catch(() => undefined);
     }

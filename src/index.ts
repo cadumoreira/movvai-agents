@@ -2,29 +2,39 @@ import { createPMAgent } from "./agents/pm.js";
 import { createSlackApp } from "./connectors/slack.js";
 import { InMemoryThreadMemory } from "./memory/thread-memory.js";
 import { startDevWorker } from "./workers/dev-worker.js";
+import { startQaWorker } from "./workers/qa-worker.js";
+import { routeModel } from "./models/router.js";
 import { config } from "./config.js";
 
 /**
- * Fases 0 + 1 — Time conversacional no Slack.
+ * Fases 0 → 2 — Time conversacional no Slack.
  *
- * Fase 0: você menciona @Ana (PM) com um bug → ela investiga (GitHub) e cria ticket (Linear).
- * Fase 1: a Ana delega ao Téo (Dev) → ele trabalha num sandbox E2B, implementa, roda testes
- *         e PEDE SUA APROVAÇÃO no Slack antes de abrir o PR.
+ * Fase 0: @Ana (PM) investiga (GitHub) e cria ticket (Linear).
+ * Fase 1: Ana delega ao Téo (Dev) → sandbox E2B, implementa, PEDE APROVAÇÃO antes do PR.
+ * Fase 2: roteamento de custo por modelo, orçamento de tokens, agente Bia (QA) revisa o
+ *         PR (testes + comentário), e fila plugável (BullMQ/Redis se REDIS_URL existir).
  */
 async function main() {
   const memory = new InMemoryThreadMemory();
-  const app = createSlackApp((ctx) => createPMAgent(ctx), memory);
 
-  // Worker do Dev reage à delegação do PM e posta na mesma thread.
+  // O PM é roteado por custo: tarefas simples vão para um modelo barato.
+  const app = createSlackApp(
+    (ctx, userText) => createPMAgent(ctx, routeModel(config.models.pm, { text: userText })),
+    memory,
+  );
+
+  // Workers reagem aos jobs (delegação PM→Dev e Dev→QA) na mesma thread do Slack.
   startDevWorker(app.client);
+  startQaWorker(app.client);
 
   await app.start();
   console.log(
     JSON.stringify({
       level: "info",
       kind: "startup",
-      message: "Dream team online — Ana (PM) e Téo (Dev) escutando o Slack.",
-      models: { pm: config.models.pm, dev: config.models.dev },
+      message: "Dream team online — Ana (PM), Téo (Dev) e Bia (QA) no Slack.",
+      models: { pm: config.models.pm, dev: config.models.dev, qa: config.models.qa, cheap: config.models.cheap },
+      queue: config.redisUrl ? "bullmq" : "in-process",
       at: new Date().toISOString(),
     }),
   );
