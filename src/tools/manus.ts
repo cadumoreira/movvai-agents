@@ -1,6 +1,7 @@
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import { config } from "../config.js";
+import { firstString } from "../util/text.js";
 
 /**
  * Adapter do Manus como AGENTE EXTERNO (não é um modelo de chat — ver pesquisa).
@@ -20,13 +21,7 @@ export function manusTools(): ToolSet {
     API_KEY: config.manus.apiKey,
   };
 
-  function pick(obj: Record<string, unknown>, keys: string[]): string | undefined {
-    for (const k of keys) {
-      const v = obj[k];
-      if (typeof v === "string" && v) return v;
-    }
-    return undefined;
-  }
+  const pick = firstString;
 
   return {
     manus_run_task: tool({

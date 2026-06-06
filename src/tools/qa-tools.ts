@@ -3,15 +3,12 @@ import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
 import { commentOnPullRequest } from "./github-write.js";
+import { clip } from "../util/text.js";
 
 export interface QaToolContext {
   sandbox: Sandbox;
   target: RepoTarget;
   prNumber: number;
-}
-
-function clip(s: string, max = 8_000): string {
-  return s.length > max ? s.slice(0, max) + "\n…(truncado)" : s;
 }
 
 export function qaTools(ctx: QaToolContext): ToolSet {

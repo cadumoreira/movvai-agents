@@ -29,7 +29,7 @@ export interface JobQueue {
   process<K extends keyof JobMap>(name: K, handler: (data: JobMap[K]) => Promise<void>): void;
 }
 
-class InProcessQueue implements JobQueue {
+export class InProcessQueue implements JobQueue {
   private emitter = new EventEmitter();
 
   async enqueue<K extends keyof JobMap>(name: K, data: JobMap[K]): Promise<void> {

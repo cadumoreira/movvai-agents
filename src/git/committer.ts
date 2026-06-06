@@ -99,7 +99,7 @@ interface Change {
 }
 
 /** Parseia a saída de `git diff --cached --name-status` em mudanças (rename = del+add). */
-function parseNameStatus(out: string): Change[] {
+export function parseNameStatus(out: string): Change[] {
   const changes: Change[] = [];
   for (const line of out.split("\n")) {
     const parts = line.trim().split(/\t+/);

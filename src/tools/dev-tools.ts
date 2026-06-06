@@ -5,6 +5,7 @@ import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
 import type { Approver } from "../approvals/gate.js";
 import { commitAndOpenPR } from "../git/committer.js";
 import { queue } from "../queue/index.js";
+import { slugify, clip } from "../util/text.js";
 
 export interface DevToolContext {
   sandbox: Sandbox;
@@ -13,21 +14,6 @@ export interface DevToolContext {
   approve: Approver;
   /** Thread onde o trabalho acontece (para acionar o QA depois do PR). */
   thread?: { channel: string; threadTs: string; threadKey: string };
-}
-
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // remove acentos
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
-
-/** Limita o tamanho de saídas para conter contexto/custo. */
-function clip(s: string, max = 8_000): string {
-  return s.length > max ? s.slice(0, max) + "\n…(truncado)" : s;
 }
 
 export function devTools(ctx: DevToolContext): ToolSet {

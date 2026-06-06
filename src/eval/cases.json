@@ -1,0 +1,14 @@
+[
+  {
+    "name": "prefere a menor mudança que resolve",
+    "question": "Para corrigir um bug pontual numa função, devo reescrever o módulo inteiro ou fazer um patch focado?",
+    "context": "O bug está numa única função; o resto do módulo está estável e coberto por testes.",
+    "expect": ["patch"]
+  },
+  {
+    "name": "exige testes antes de aprovar",
+    "question": "Posso aprovar este PR que altera o fluxo de pagamento sem nenhum teste novo?",
+    "context": "PR muda lógica de cobrança; nenhum teste foi adicionado; suíte existente não cobre o caminho alterado.",
+    "expect": ["test"]
+  }
+]

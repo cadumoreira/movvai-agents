@@ -8,6 +8,8 @@
     "start": "tsx src/index.ts",
     "try:pm": "tsx src/scripts/try-pm.ts",
     "try:dev": "tsx src/scripts/try-dev.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "eval": "tsx src/eval/run.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

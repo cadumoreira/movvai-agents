@@ -101,10 +101,16 @@ roteamento/caching/custo, aponte `MODEL_GATEWAY_BASE_URL` para um LiteLLM self-h
 ## Rodar
 
 ```bash
-npm run dev     # com reload
-npm start       # uma vez
+npm run dev      # com reload
+npm start        # uma vez
 npm run typecheck
+npm test         # testes unitários (Node test runner + tsx) — sem custo, roda no CI
+npm run eval     # harness de eval do conselho (precisa de COUNCIL_MODELS; gasta tokens)
 ```
+
+**Qualidade:** testes unitários da lógica determinística (router, fila, parsing de diff, custo,
+util) rodam no **CI** (`.github/workflows/ci.yml`: typecheck + test a cada push, sem segredos). O
+`npm run eval` é um scaffold de avaliação dos agentes (golden set), rodado sob demanda.
 
 Depois, no Slack, em um canal onde o bot esteja: `@Ana tem um bug — usuários não conseguem resetar a senha`.
 
