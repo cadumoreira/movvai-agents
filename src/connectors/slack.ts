@@ -2,8 +2,10 @@ import bolt from "@slack/bolt";
 import type { ModelMessage } from "ai";
 import { config } from "../config.js";
 import type { Agent } from "../agents/types.js";
+import type { AgentContext } from "../agents/context.js";
 import type { ThreadMemory } from "../memory/thread-memory.js";
 import { runAgent } from "../agent-runtime/run.js";
+import { registerApprovalHandlers } from "../approvals/gate.js";
 
 const { App } = bolt;
 
@@ -13,16 +15,21 @@ function stripMention(text: string): string {
 }
 
 /**
- * Cria o app do Slack que dá "vida" ao agente: ele escuta menções (@Ana) e responde
- * na própria thread, mantendo a memória da conversa. É a UI primária do dream team.
+ * Cria o app do Slack. Recebe uma FÁBRICA de agente (construída por menção, com o
+ * contexto da thread) — assim as ferramentas (delegar, aprovar) sabem onde operar.
  */
-export function createSlackApp(agent: Agent, memory: ThreadMemory) {
+export function createSlackApp(
+  agentFactory: (ctx: AgentContext) => Agent,
+  memory: ThreadMemory,
+) {
   const app = new App({
     token: config.slack.botToken,
     appToken: config.slack.appToken,
     signingSecret: config.slack.signingSecret,
     socketMode: true,
   });
+
+  registerApprovalHandlers(app);
 
   app.event("app_mention", async ({ event, client }) => {
     const channel = event.channel;
@@ -31,7 +38,6 @@ export function createSlackApp(agent: Agent, memory: ThreadMemory) {
     const userText = stripMention(event.text ?? "");
     if (!userText) return;
 
-    // Feedback imediato de "estou olhando".
     try {
       await client.reactions.add({ channel, timestamp: event.ts, name: "eyes" });
     } catch {
@@ -39,6 +45,7 @@ export function createSlackApp(agent: Agent, memory: ThreadMemory) {
     }
 
     try {
+      const agent = agentFactory({ channel, threadTs, threadKey, slack: client });
       memory.append(threadKey, { role: "user", content: userText });
       const { text, newMessages } = await runAgent(agent, memory.get(threadKey));
       memory.append(threadKey, ...(newMessages as ModelMessage[]));

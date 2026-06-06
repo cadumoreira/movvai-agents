@@ -14,8 +14,12 @@ function optional(name: string, fallback = ""): string {
 export const config = {
   models: {
     pm: optional("PM_MODEL", "anthropic:claude-sonnet-4-6"),
+    dev: optional("DEV_MODEL", "anthropic:claude-opus-4-8"),
     gatewayBaseUrl: optional("MODEL_GATEWAY_BASE_URL"),
     gatewayApiKey: optional("MODEL_GATEWAY_API_KEY"),
+  },
+  e2b: {
+    apiKey: optional("E2B_API_KEY"),
   },
   slack: {
     botToken: required("SLACK_BOT_TOKEN"),
