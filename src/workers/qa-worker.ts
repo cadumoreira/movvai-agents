@@ -20,13 +20,14 @@ export function startQaWorker(slack: WebClient): void {
       await post(`:mag: Bia (QA) aqui — revisando o PR de *${job.title}* (${job.prUrl})…`);
 
       sandbox = await createRepoSandbox(target);
-      // Coloca a branch do PR em foco no sandbox.
-      const checkout = await sandbox.commands.run(
-        `git fetch origin ${job.branch} && git checkout ${job.branch}`,
-        { cwd: REPO_DIR, timeoutMs: 120_000 },
-      );
+      // A branch do PR já veio no clone (o host criou a ref antes). Checkout offline,
+      // sem precisar de token para fetch.
+      const checkout = await sandbox.commands.run(`git checkout ${job.branch}`, {
+        cwd: REPO_DIR,
+        timeoutMs: 60_000,
+      });
       if (checkout.exitCode !== 0) {
-        await post(`Não consegui buscar a branch \`${job.branch}\` para revisar: ${checkout.stderr}`);
+        await post(`Não consegui acessar a branch \`${job.branch}\` para revisar: ${checkout.stderr}`);
         return;
       }
 
@@ -37,6 +38,16 @@ export function startQaWorker(slack: WebClient): void {
 
       const { text } = await runAgent(qa, [{ role: "user", content: initial }]);
       if (text) await post(text);
+
+      // Handoff QA → Delivery: resume a entrega.
+      await queue.enqueue("delivery-summary", {
+        channel: job.channel,
+        threadTs: job.threadTs,
+        threadKey: job.threadKey,
+        title: job.title,
+        prUrl: job.prUrl,
+        prNumber: job.prNumber,
+      });
     } catch (err) {
       console.error("Erro no worker do QA:", err);
       await post(`Tive um problema ao revisar o PR: ${err instanceof Error ? err.message : String(err)}`);

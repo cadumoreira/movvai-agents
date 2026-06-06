@@ -36,9 +36,14 @@ export async function createRepoSandbox(target: RepoTarget): Promise<Sandbox> {
     await sbx.kill();
     throw new Error(`Falha ao clonar o repositório: ${clone.stderr}`);
   }
-  // Identidade para os commits do agente.
+
+  // HARDENING (Fase 3): remove o token do remote logo após o clone, para que ele não
+  // fique persistido na config do git dentro do sandbox. A escrita (commit/push) é feita
+  // no host (ver src/git/committer.ts), então o sandbox não precisa mais de credencial.
+  // (O clone ainda usa o token transitoriamente — eliminá-lo de vez exige um git proxy,
+  // a próxima sub-etapa de hardening.)
   await sbx.commands.run(
-    `git config user.email "dev-agent@movvai.local" && git config user.name "Dev Agent"`,
+    `git remote set-url origin https://github.com/${target.owner}/${target.repo}.git`,
     { cwd: REPO_DIR },
   );
   return sbx;

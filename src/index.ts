@@ -3,6 +3,8 @@ import { createSlackApp } from "./connectors/slack.js";
 import { InMemoryThreadMemory } from "./memory/thread-memory.js";
 import { startDevWorker } from "./workers/dev-worker.js";
 import { startQaWorker } from "./workers/qa-worker.js";
+import { startTechLeadWorker } from "./workers/techlead-worker.js";
+import { startDeliveryWorker } from "./workers/delivery-worker.js";
 import { routeModel } from "./models/router.js";
 import { config } from "./config.js";
 
@@ -23,18 +25,21 @@ async function main() {
     memory,
   );
 
-  // Workers reagem aos jobs (delegação PM→Dev e Dev→QA) na mesma thread do Slack.
+  // Workers reagem aos jobs (PM→Tech Lead→Dev→QA→Delivery) na mesma thread do Slack.
+  startTechLeadWorker(app.client);
   startDevWorker(app.client);
   startQaWorker(app.client);
+  startDeliveryWorker(app.client);
 
   await app.start();
   console.log(
     JSON.stringify({
       level: "info",
       kind: "startup",
-      message: "Dream team online — Ana (PM), Téo (Dev) e Bia (QA) no Slack.",
+      message: "Dream team online — Ana (PM), Rui (Tech Lead), Téo (Dev), Bia (QA) e Dani (Delivery) no Slack.",
       models: { pm: config.models.pm, dev: config.models.dev, qa: config.models.qa, cheap: config.models.cheap },
       queue: config.redisUrl ? "bullmq" : "in-process",
+      memory: config.databaseUrl ? "pgvector" : "off",
       at: new Date().toISOString(),
     }),
   );

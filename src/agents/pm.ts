@@ -3,7 +3,8 @@ import type { AgentContext } from "./context.js";
 import { config } from "../config.js";
 import { githubTools } from "../tools/github.js";
 import { linearTools } from "../tools/linear.js";
-import { delegateTools } from "../tools/delegate.js";
+import { delegateToDev, delegateToTechLead } from "../tools/delegate.js";
+import { memoryTools } from "../tools/memory.js";
 
 const SYSTEM = `Você é a **Ana**, a Product Manager de um time de produto autônomo. Você conversa
 no Slack como uma colega humana: direta, prática e colaborativa.
@@ -19,9 +20,11 @@ Quando alguém te traz um problema (um bug, uma ideia, uma melhoria), você:
 4. **Refina e registra**: crie um ticket no Linear bem escrito — título claro e descrição em
    Markdown com contexto, passos de reprodução (se bug), comportamento esperado e critérios de
    aceite objetivos. Defina prioridade quando fizer sentido.
-5. **Delega** quando for uma tarefa de implementação: depois de criar o ticket, use
-   \`delegate_to_dev\` para passar a demanda ao Téo (Dev) com instruções claras. Ele vai trabalhar
-   num sandbox e pedir aprovação antes de abrir o PR.
+5. **Delega** depois de criar o ticket:
+   - Tarefa com decisão de arquitetura/design relevante → \`delegate_to_techlead\` (o Tech Lead
+     desenha a abordagem antes de implementar).
+   - Tarefa direta de implementação → \`delegate_to_dev\` (o Téo implementa e pede aprovação do PR).
+   Use também \`recall_memory\` no início para checar decisões/convençõe anteriores do time.
 6. **Comunica**: responda no Slack de forma curta, dizendo o que você entendeu, o que investigou,
    o link do ticket e que passou para o Dev (quando for o caso).
 
@@ -40,7 +43,13 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
     name: "Ana (PM)",
     system: SYSTEM,
     model: model ?? config.models.pm,
-    tools: { ...githubTools(), ...linearTools(), ...delegateTools(ctx) },
+    tools: {
+      ...githubTools(),
+      ...linearTools(),
+      ...delegateToDev(ctx),
+      ...delegateToTechLead(ctx),
+      ...memoryTools("pm"),
+    },
     maxSteps: 12,
     tokenBudget: config.tokenBudget,
   };

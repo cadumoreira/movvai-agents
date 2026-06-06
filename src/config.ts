@@ -29,6 +29,9 @@ export const config = {
   // Orçamento de tokens por execução de agente (guarda de custo). 0 = sem limite.
   tokenBudget: Number(optional("AGENT_TOKEN_BUDGET", "400000")),
   redisUrl: optional("REDIS_URL"),
+  // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
+  databaseUrl: optional("DATABASE_URL"),
+  embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),
   e2b: {
     get apiKey() {
       return optional("E2B_API_KEY");

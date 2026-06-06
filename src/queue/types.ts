@@ -20,7 +20,20 @@ export interface QaReviewRequested {
   title: string;
 }
 
+export interface DeliverySummaryRequested {
+  channel: string;
+  threadTs: string;
+  threadKey: string;
+  title: string;
+  prUrl: string;
+  prNumber: number;
+  qaApproved?: boolean;
+  ticketIdentifier?: string;
+}
+
 export interface JobMap {
+  "techlead-task": DevTaskRequested;
   "dev-task": DevTaskRequested;
   "qa-review": QaReviewRequested;
+  "delivery-summary": DeliverySummaryRequested;
 }

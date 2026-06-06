@@ -1,10 +1,9 @@
 import type { Sandbox } from "e2b";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { config } from "../config.js";
 import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
 import type { Approver } from "../approvals/gate.js";
-import { openPullRequest } from "./github-write.js";
+import { commitAndOpenPR } from "../git/committer.js";
 import { queue } from "../queue/index.js";
 
 export interface DevToolContext {
@@ -95,23 +94,15 @@ export function devTools(ctx: DevToolContext): ToolSet {
         }
 
         const branch = `agent/${slugify(title)}-${Date.now().toString(36)}`;
-        const token = config.github.token;
-        const remote = `https://x-access-token:${token}@github.com/${target.owner}/${target.repo}.git`;
 
-        const script = [
-          `git checkout -b ${branch}`,
-          `git add -A`,
-          `git commit -m ${JSON.stringify(title)}`,
-          `git remote set-url origin ${remote}`,
-          `git push -u origin ${branch}`,
-        ].join(" && ");
-
-        const push = await sandbox.commands.run(script, { cwd: REPO_DIR, timeoutMs: 180_000 });
-        if (push.exitCode !== 0) {
-          return { approved: true, pushed: false, error: clip(push.stderr) };
+        // O commit + PR são feitos no HOST a partir do diff do sandbox (token nunca entra
+        // no sandbox para escrita). Ver src/git/committer.ts.
+        let pr: { url: string; number: number };
+        try {
+          pr = await commitAndOpenPR({ sandbox, target, branch, title, body });
+        } catch (err) {
+          return { approved: true, pushed: false, error: err instanceof Error ? err.message : String(err) };
         }
-
-        const pr = await openPullRequest(target, { head: branch, title, body });
 
         // Aciona o QA para revisar o PR (handoff Dev → QA).
         if (thread) {

@@ -2,7 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import type { LanguageModel } from "ai";
+import type { EmbeddingModel, LanguageModel } from "ai";
 import { config } from "../config.js";
 
 /**
@@ -50,6 +50,22 @@ export function resolveModel(ref: string): LanguageModel {
       throw new Error(
         `Provedor desconhecido: "${provider}". Suportados: anthropic, openai, google, gateway.`,
       );
+  }
+}
+
+/** Resolve um modelo de embedding ("provedor:modelo") para a memória de longo prazo. */
+export function resolveEmbeddingModel(ref: string): EmbeddingModel<string> {
+  const [provider, ...rest] = ref.split(":");
+  const modelId = rest.join(":");
+  switch (provider) {
+    case "openai":
+      return createOpenAI({ apiKey: env("OPENAI_API_KEY") }).textEmbeddingModel(modelId);
+    case "google":
+      return createGoogleGenerativeAI({
+        apiKey: env("GOOGLE_GENERATIVE_AI_API_KEY"),
+      }).textEmbeddingModel(modelId);
+    default:
+      throw new Error(`Provedor de embedding não suportado: "${provider}". Use openai ou google.`);
   }
 }
 

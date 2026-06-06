@@ -51,6 +51,21 @@ export function linearTools(): ToolSet {
       },
     }),
 
+    linear_comment: tool({
+      description: "Adiciona um comentário a um ticket existente (por identificador, ex.: LIN-123).",
+      inputSchema: z.object({
+        identifier: z.string().describe("Identificador do ticket, ex.: LIN-123."),
+        body: z.string().describe("Comentário em Markdown."),
+      }),
+      execute: async ({ identifier, body }) => {
+        const res = await linear.searchIssues(identifier, { first: 1 });
+        const issue = res.nodes[0];
+        if (!issue) return { ok: false, error: `Ticket ${identifier} não encontrado.` };
+        await linear.createComment({ issueId: issue.id, body });
+        return { ok: true, identifier };
+      },
+    }),
+
     linear_search_issues: tool({
       description: "Busca tickets existentes no Linear por texto, para evitar duplicar demanda.",
       inputSchema: z.object({

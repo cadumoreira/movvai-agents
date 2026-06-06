@@ -8,27 +8,33 @@ Arquitetura **agnóstica de provedor** (Claude, OpenAI, Gemini, open-source) e d
 com custo baixo. Veja o racional completo em [`docs/PESQUISA-ARQUITETURA.md`](./docs/PESQUISA-ARQUITETURA.md)
 e o desenho em [`docs/ARQUITETURA.md`](./docs/ARQUITETURA.md).
 
-## Status: Fases 0 → 2
+## Status: Fases 0 → 3
 
-Time conversacional com **três agentes**, roteamento de custo e aprovação humana nos pontos-chave:
-
-> Você menciona `@Ana` (PM) no Slack com um bug → ela investiga (GitHub) e **cria o ticket** (Linear)
-> → **delega ao Téo (Dev)** → o Téo sobe um **sandbox E2B**, implementa, roda os testes e **pede sua
-> aprovação** antes de **abrir o PR** → a **Bia (QA)** revisa o PR (roda os testes + comenta).
+Time autônomo de **cinco agentes** (PM → Tech Lead → Dev → QA → Delivery), roteamento de custo,
+memória de longo prazo e aprovação humana nos pontos-chave:
 
 ```
-Você (Slack) ─"bug no reset de senha"─▶ @Ana (PM)
-                                          │ investiga + cria ticket (Linear)
-                                          │ delega ──(fila)──▶ Téo (Dev)  ── sandbox E2B
-                                          ▼                       │ implementa + testa
-                                   responde na thread             ▼
-                                            "abro o PR? ✅/❌" ─▶ [aprova] ─▶ abre PR
+Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
+                                          │ investiga + cria ticket (Linear) + consulta memória
+                                          │ delega ──(fila)──▶ Rui (Tech Lead)   [se for arquitetural]
+                                          │                       │ desenha abordagem + comenta ticket
+                                          ▼                       ▼ delega ──▶ Téo (Dev) ── sandbox E2B
+                                   responde na thread                            │ implementa + testa
+                                            "abro o PR? ✅/❌" ─▶ [aprova] ─▶ commit+PR no HOST
+                                                                    │ (token nunca entra no sandbox)
+                                                          (fila) ──▶ Bia (QA) ── testa + comenta no PR
                                                                     │
-                                                          (fila) ──▶ Bia (QA) ── revisa + comenta no PR
+                                                          (fila) ──▶ Dani (Delivery) ── resumo da entrega
 ```
 
-**Fase 2 também traz:** roteamento de custo (tarefa simples → modelo barato), orçamento de tokens
-por execução, e **fila plugável** (em processo por padrão; BullMQ/Redis se `REDIS_URL` existir).
+**Por fase:**
+- **Fase 2:** roteamento de custo (tarefa simples → modelo barato), orçamento de tokens, **fila
+  plugável** (em processo por padrão; BullMQ/Redis se `REDIS_URL`).
+- **Fase 3:** agentes **Tech Lead** e **Delivery Manager**; **memória de longo prazo** (pgvector,
+  se `DATABASE_URL`); **hardening de segurança** — o commit/PR são feitos no **host** via GitHub Git
+  Data API, então o **token nunca entra no sandbox** para escrita.
+  - _Sub-etapa pendente:_ MCP no perímetro (envolver as ferramentas como MCP servers) e git proxy
+    para eliminar o token também do clone (read).
 
 ## Como funciona (estrutura)
 
@@ -44,12 +50,13 @@ src/
 │   └── router.ts         # roteamento de custo (barato p/ tarefa simples)
 ├── queue/                # fila de jobs plugável (in-process | BullMQ/Redis)
 ├── approvals/gate.ts     # aprovação (Slack botões | terminal) com espera durável
-├── sandbox/e2b.ts        # sandbox E2B efêmero + clone do repo
-├── workers/              # dev-worker e qa-worker (reagem aos jobs)
-├── tools/                # github(-write), linear, delegate, dev-tools, qa-tools
+├── sandbox/e2b.ts        # sandbox E2B efêmero + clone (token removido após clone)
+├── git/committer.ts      # commit + PR no HOST via Git Data API (token fora do sandbox)
+├── workers/              # techlead, dev, qa, delivery (reagem aos jobs)
+├── tools/                # github(-write), linear, delegate, dev-tools, qa-tools, memory
 ├── connectors/slack.ts   # bot do Slack (Socket Mode): menções + aprovações
 ├── scripts/              # try-pm e try-dev (smoke tests por terminal)
-├── memory/thread-memory.ts # memória da conversa por thread
+├── memory/               # thread-memory (curto prazo) + long-term (pgvector)
 └── observability/logger.ts # custo/tokens por execução
 ```
 
@@ -97,7 +104,9 @@ Depois, no Slack, em um canal onde o bot esteja: `@Ana tem um bug — usuários 
 - ✅ **Fase 0:** PM conversacional (Slack → investiga GitHub → ticket no Linear).
 - ✅ **Fase 1:** delegação PM → Dev (sandbox E2B, implementa, **pede aprovação** antes de abrir PR).
 - ✅ **Fase 2:** roteamento de custo + orçamento de tokens + agente **QA** + fila plugável (BullMQ/Redis).
-- **Fase 3+:** Tech Lead, Delivery Manager, memória de longo prazo (pgvector), MCP no perímetro,
-  credential proxy + egress allowlist, Manus/Ollama, A2A.
+- ✅ **Fase 3:** **Tech Lead** + **Delivery Manager**, memória de longo prazo (pgvector), commit/PR no
+  host (token fora do sandbox).
+- **Fase 3.x / 4:** MCP no perímetro + git proxy (token fora do clone), egress allowlist no sandbox,
+  Manus/Ollama, A2A, painel web + billing por consumo.
 
 Roadmap completo em [`docs/ARQUITETURA.md`](./docs/ARQUITETURA.md).
