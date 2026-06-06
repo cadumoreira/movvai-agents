@@ -1,20 +1,28 @@
 {
   "name": "movvai-agents",
   "version": "0.1.0",
-  "description": "Squads autônomas de agentes que se conectam a repositórios — do PO ao delivery.",
+  "description": "Dream team autônomo de agentes de IA que conversam no Slack e trabalham em Linear/GitHub.",
   "type": "module",
   "scripts": {
-    "setup": "tsx src/setup.ts",
-    "squad": "tsx src/orchestrator.ts",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.69.0",
-    "dotenv": "^17.0.0"
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "@ai-sdk/openai-compatible": "^1.0.0",
+    "@linear/sdk": "^39.0.0",
+    "@octokit/rest": "^21.0.0",
+    "@slack/bolt": "^4.2.0",
+    "ai": "^5.0.0",
+    "dotenv": "^17.0.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.7.0"
   }
 }
