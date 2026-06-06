@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-/** Lê uma env var obrigatória; lança erro claro se faltar. */
+/** Lê uma env var obrigatória; lança erro claro se faltar (só quando acessada). */
 function required(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Variável de ambiente obrigatória ausente: ${name}`);
@@ -11,6 +11,11 @@ function optional(name: string, fallback = ""): string {
   return process.env[name] ?? fallback;
 }
 
+/**
+ * Config com acesso preguiçoso (getters) para as chaves obrigatórias: importar a
+ * config não lança erro — só lança quando você de fato usa aquela integração. Isso
+ * permite, por exemplo, rodar o smoke test do PM sem ter as chaves do Slack.
+ */
 export const config = {
   models: {
     pm: optional("PM_MODEL", "anthropic:claude-sonnet-4-6"),
@@ -19,21 +24,37 @@ export const config = {
     gatewayApiKey: optional("MODEL_GATEWAY_API_KEY"),
   },
   e2b: {
-    apiKey: optional("E2B_API_KEY"),
+    get apiKey() {
+      return optional("E2B_API_KEY");
+    },
   },
   slack: {
-    botToken: required("SLACK_BOT_TOKEN"),
-    appToken: required("SLACK_APP_TOKEN"),
-    signingSecret: required("SLACK_SIGNING_SECRET"),
+    get botToken() {
+      return required("SLACK_BOT_TOKEN");
+    },
+    get appToken() {
+      return required("SLACK_APP_TOKEN");
+    },
+    get signingSecret() {
+      return required("SLACK_SIGNING_SECRET");
+    },
   },
   linear: {
-    apiKey: required("LINEAR_API_KEY"),
-    teamKey: optional("LINEAR_TEAM_KEY"),
+    get apiKey() {
+      return required("LINEAR_API_KEY");
+    },
+    get teamKey() {
+      return optional("LINEAR_TEAM_KEY");
+    },
   },
   github: {
-    token: optional("GITHUB_TOKEN"),
-    defaultRepo: optional("GITHUB_DEFAULT_REPO"),
+    get token() {
+      return optional("GITHUB_TOKEN");
+    },
+    get defaultRepo() {
+      return optional("GITHUB_DEFAULT_REPO");
+    },
   },
-} as const;
+};
 
 export type Config = typeof config;

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
+    "try:pm": "tsx src/scripts/try-pm.ts",
+    "try:dev": "tsx src/scripts/try-dev.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

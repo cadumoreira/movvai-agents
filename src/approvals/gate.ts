@@ -7,6 +7,17 @@ export interface ApprovalDecision {
   feedback?: string;
 }
 
+/**
+ * Abstração de aprovação: o agente pede um OK e recebe a decisão, sem saber se veio
+ * do Slack (produção) ou do terminal (smoke test). Permite testar local sem Slack.
+ */
+export type Approver = (opts: { text: string }) => Promise<ApprovalDecision>
+
+/** Aprovação via Slack (botões), amarrada a uma thread. */
+export function slackApprover(client: WebClient, channel: string, threadTs: string): Approver {
+  return ({ text }) => requestApproval(client, { channel, threadTs, text });
+}
+
 interface PendingApproval {
   resolve: (d: ApprovalDecision) => void;
 }

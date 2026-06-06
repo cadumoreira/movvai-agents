@@ -2,15 +2,15 @@ import type { Sandbox } from "e2b";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import { config } from "../config.js";
-import type { AgentContext } from "../agents/context.js";
 import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
-import { requestApproval } from "../approvals/gate.js";
+import type { Approver } from "../approvals/gate.js";
 import { openPullRequest } from "./github-write.js";
 
 export interface DevToolContext {
   sandbox: Sandbox;
   target: RepoTarget;
-  agent: AgentContext;
+  /** Como pedir aprovação (Slack em produção, terminal em smoke test). */
+  approve: Approver;
 }
 
 function slugify(s: string): string {
@@ -29,7 +29,7 @@ function clip(s: string, max = 8_000): string {
 }
 
 export function devTools(ctx: DevToolContext): ToolSet {
-  const { sandbox, target, agent } = ctx;
+  const { sandbox, target, approve } = ctx;
 
   return {
     sandbox_run: tool({
@@ -80,9 +80,7 @@ export function devTools(ctx: DevToolContext): ToolSet {
           .describe("Resumo curto (1-3 linhas) para a mensagem de aprovação no Slack."),
       }),
       execute: async ({ title, body, summary }) => {
-        const decision = await requestApproval(agent.slack, {
-          channel: agent.channel,
-          threadTs: agent.threadTs,
+        const decision = await approve({
           text: `*Pronto para abrir PR* — ${summary}\n\n*${title}*\n\nPosso abrir o Pull Request?`,
         });
 

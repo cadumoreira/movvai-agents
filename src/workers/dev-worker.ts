@@ -4,6 +4,7 @@ import { bus } from "../events/bus.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createDevAgent } from "../agents/dev.js";
 import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
+import { slackApprover } from "../approvals/gate.js";
 
 /**
  * Worker do Dev: reage ao evento de delegação, sobe um sandbox efêmero, roda o
@@ -26,12 +27,7 @@ export function startDevWorker(slack: WebClient): void {
       const dev = createDevAgent({
         sandbox,
         target,
-        agent: {
-          channel: task.channel,
-          threadTs: task.threadTs,
-          threadKey: task.threadKey,
-          slack,
-        },
+        approve: slackApprover(slack, task.channel, task.threadTs),
       });
 
       const ticketRef = task.ticket.url ? `\nTicket: ${task.ticket.url}` : "";
