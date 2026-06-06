@@ -46,9 +46,16 @@ export function resolveModel(ref: string): LanguageModel {
       return createGoogleGenerativeAI({
         apiKey: env("GOOGLE_GENERATIVE_AI_API_KEY"),
       })(modelId);
+    case "ollama":
+      // Ollama expõe API OpenAI-compatible; não exige chave real.
+      return createOpenAICompatible({
+        name: "ollama",
+        baseURL: config.ollama.baseUrl,
+        apiKey: "ollama",
+      })(modelId);
     default:
       throw new Error(
-        `Provedor desconhecido: "${provider}". Suportados: anthropic, openai, google, gateway.`,
+        `Provedor desconhecido: "${provider}". Suportados: anthropic, openai, google, ollama, gateway.`,
       );
   }
 }

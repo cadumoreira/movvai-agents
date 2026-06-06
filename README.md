@@ -42,6 +42,8 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Custo & observabilidade:** prompt caching (system+tools reusados, ~90% mais barato na leitura) +
   log de `cacheHitRate`/custo por execução; tracing **OpenTelemetry → Langfuse** (ou qualquer OTLP),
   agnóstico, ligado por `LANGFUSE_*` ou `OTEL_EXPORTER_OTLP_ENDPOINT`.
+- **Provedores:** Anthropic, OpenAI, Google e **Ollama** (modelos locais — `ollama:modelo`) via o
+  gateway; **Manus** integrado como **agente externo** (tarefa assíncrona), não como modelo de chat.
 
 ## Como funciona (estrutura)
 

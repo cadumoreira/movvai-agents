@@ -45,6 +45,17 @@ export const config = {
       return optional("E2B_API_KEY");
     },
   },
+  // Modelos locais via Ollama (API OpenAI-compatible). Use "ollama:llama3.1" como modelo.
+  ollama: {
+    baseUrl: optional("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
+  },
+  // Manus: agente externo de tarefas assíncronas (NÃO é um modelo de chat).
+  manus: {
+    get apiKey() {
+      return optional("MANUS_API_KEY");
+    },
+    baseUrl: optional("MANUS_BASE_URL", "https://api.manus.ai/v1"),
+  },
   sandbox: {
     // Liga/desliga internet no sandbox (controle real do E2B). O allowlist por domínio
     // (github/npm/pypi) é configurado no template/firewall do E2B. Default: ligado, pois

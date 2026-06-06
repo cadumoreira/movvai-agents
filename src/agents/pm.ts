@@ -5,6 +5,7 @@ import { githubTools } from "../tools/github.js";
 import { linearTools } from "../tools/linear.js";
 import { delegateToDev, delegateToTechLead } from "../tools/delegate.js";
 import { memoryTools } from "../tools/memory.js";
+import { manusTools } from "../tools/manus.js";
 
 const SYSTEM = `Você é a **Ana**, a Product Manager de um time de produto autônomo. Você conversa
 no Slack como uma colega humana: direta, prática e colaborativa.
@@ -49,6 +50,7 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
       ...delegateToDev(ctx),
       ...delegateToTechLead(ctx),
       ...memoryTools("pm"),
+      ...manusTools(),
     },
     maxSteps: 12,
     tokenBudget: config.tokenBudget,
