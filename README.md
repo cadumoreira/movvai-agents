@@ -39,6 +39,9 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Conselho multi-modelo** (`deliberate`): em decisões de alto valor (veredito de QA, arquitetura do
   Tech Lead), vários modelos dão parecer em paralelo e um sintetiza — "modelos conversando entre si".
   Liga só com `COUNCIL_MODELS` (≥2 modelos); use com parcimônia (multi-modelo custa mais tokens).
+- **Custo & observabilidade:** prompt caching (system+tools reusados, ~90% mais barato na leitura) +
+  log de `cacheHitRate`/custo por execução; tracing **OpenTelemetry → Langfuse** (ou qualquer OTLP),
+  agnóstico, ligado por `LANGFUSE_*` ou `OTEL_EXPORTER_OTLP_ENDPOINT`.
 
 ## Como funciona (estrutura)
 

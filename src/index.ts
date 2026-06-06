@@ -6,6 +6,7 @@ import { startQaWorker } from "./workers/qa-worker.js";
 import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
 import { routeModel } from "./models/router.js";
+import { initTelemetry } from "./observability/otel.js";
 import { config } from "./config.js";
 
 /**
@@ -17,6 +18,7 @@ import { config } from "./config.js";
  *         PR (testes + comentário), e fila plugável (BullMQ/Redis se REDIS_URL existir).
  */
 async function main() {
+  initTelemetry(); // antes de qualquer chamada de modelo
   const memory = new InMemoryThreadMemory();
 
   // O PM é roteado por custo: tarefas simples vão para um modelo barato.

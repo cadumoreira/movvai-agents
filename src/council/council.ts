@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { config } from "../config.js";
 import { resolveModel } from "../models/gateway.js";
+import { telemetryEnabled } from "../observability/otel.js";
 
 export interface CouncilResult {
   recommendation: string;
@@ -32,6 +33,7 @@ export async function deliberate(question: string, context: string): Promise<Cou
         model: resolveModel(m),
         system: PROPOSER_SYSTEM,
         prompt: `Contexto:\n${context}\n\nQuestão: ${question}`,
+        experimental_telemetry: { isEnabled: telemetryEnabled(), functionId: "council:proposer" },
       });
       return { model: m, answer: r.text };
     }),
@@ -44,6 +46,7 @@ export async function deliberate(question: string, context: string): Promise<Cou
     model: resolveModel(synthModel),
     system: SYNTH_SYSTEM,
     prompt: `Questão: ${question}\n\nPareceres do conselho:\n${dossier}\n\nProduza a recomendação final.`,
+    experimental_telemetry: { isEnabled: telemetryEnabled(), functionId: "council:synth" },
   });
 
   console.log(

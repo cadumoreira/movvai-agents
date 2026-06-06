@@ -2,6 +2,7 @@ import "dotenv/config";
 import type { WebClient } from "@slack/web-api";
 import { createPMAgent } from "../agents/pm.js";
 import { runAgent } from "../agent-runtime/run.js";
+import { initTelemetry } from "../observability/otel.js";
 
 /**
  * Smoke test do PM, no terminal — SEM Slack.
@@ -21,6 +22,7 @@ const stubSlack = {
 } as unknown as WebClient;
 
 async function main() {
+  initTelemetry();
   const pm = createPMAgent({ channel: "cli", threadTs: "cli", threadKey: "cli", slack: stubSlack });
   console.log(`\n> Você: ${input}\n`);
   console.log("…Ana trabalhando (investigando e criando ticket)…\n");

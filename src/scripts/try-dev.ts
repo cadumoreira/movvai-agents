@@ -4,6 +4,7 @@ import { stdin, stdout } from "node:process";
 import { createDevAgent } from "../agents/dev.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
+import { initTelemetry } from "../observability/otel.js";
 import type { Approver } from "../approvals/gate.js";
 
 /**
@@ -27,6 +28,7 @@ const terminalApprover: Approver = async ({ text }) => {
 };
 
 async function main() {
+  initTelemetry();
   const target = parseRepo(process.env.GITHUB_DEFAULT_REPO);
   console.log(`Subindo sandbox e clonando ${target.owner}/${target.repo}…`);
   const sandbox = await createRepoSandbox(target);

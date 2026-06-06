@@ -8,6 +8,7 @@ import {
 import type { Agent } from "../agents/types.js";
 import { resolveModel } from "../models/gateway.js";
 import { logUsage } from "../observability/logger.js";
+import { telemetryEnabled } from "../observability/otel.js";
 
 /** Para o loop quando o total de tokens consumidos atinge o orçamento. */
 function tokenBudgetReached(budget: number): StopCondition<ToolSet> {
@@ -49,6 +50,11 @@ export async function runAgent(
     messages,
     tools: agent.tools,
     stopWhen: [stepCountIs(agent.maxSteps), tokenBudgetReached(agent.tokenBudget ?? 0)],
+    experimental_telemetry: {
+      isEnabled: telemetryEnabled(),
+      functionId: `agent:${agent.id}`,
+      metadata: { model: agent.model },
+    },
   });
 
   logUsage(agent.id, agent.model, result.totalUsage ?? result.usage);
