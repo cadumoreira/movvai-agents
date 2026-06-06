@@ -31,10 +31,11 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Fase 2:** roteamento de custo (tarefa simples → modelo barato), orçamento de tokens, **fila
   plugável** (em processo por padrão; BullMQ/Redis se `REDIS_URL`).
 - **Fase 3:** agentes **Tech Lead** e **Delivery Manager**; **memória de longo prazo** (pgvector,
-  se `DATABASE_URL`); **hardening de segurança** — o commit/PR são feitos no **host** via GitHub Git
-  Data API, então o **token nunca entra no sandbox** para escrita.
-  - _Sub-etapa pendente:_ MCP no perímetro (envolver as ferramentas como MCP servers) e git proxy
-    para eliminar o token também do clone (read).
+  se `DATABASE_URL`).
+- **Fase 3.x:** **hardening completo** — o **token NUNCA entra no sandbox** (nem leitura nem escrita):
+  o host baixa o repo via tarball da GitHub API e injeta no sandbox, e o commit/PR são feitos no host
+  via Git Data API. Egress controlado por `allowInternetAccess` (allowlist por domínio = template E2B).
+  - _Pendente:_ MCP no perímetro (envolver as ferramentas como MCP servers).
 
 ## Como funciona (estrutura)
 
@@ -50,8 +51,8 @@ src/
 │   └── router.ts         # roteamento de custo (barato p/ tarefa simples)
 ├── queue/                # fila de jobs plugável (in-process | BullMQ/Redis)
 ├── approvals/gate.ts     # aprovação (Slack botões | terminal) com espera durável
-├── sandbox/e2b.ts        # sandbox E2B efêmero + clone (token removido após clone)
-├── git/committer.ts      # commit + PR no HOST via Git Data API (token fora do sandbox)
+├── sandbox/              # e2b (sandbox efêmero) + repo (helpers) — token nunca entra
+├── git/                  # fetch (tarball→sandbox) + committer (commit/PR no host)
 ├── workers/              # techlead, dev, qa, delivery (reagem aos jobs)
 ├── tools/                # github(-write), linear, delegate, dev-tools, qa-tools, memory
 ├── connectors/slack.ts   # bot do Slack (Socket Mode): menções + aprovações

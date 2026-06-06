@@ -27,6 +27,27 @@ export async function openPullRequest(
   return { url: pr.html_url, number: pr.number };
 }
 
+/** Lista os arquivos alterados de um PR (resumo do diff para o QA). */
+export async function getPullRequestFiles(
+  target: RepoTarget,
+  prNumber: number,
+): Promise<Array<{ filename: string; status: string; additions: number; deletions: number }>> {
+  if (!config.github.token) throw new Error("GITHUB_TOKEN não configurado.");
+  const octokit = new Octokit({ auth: config.github.token });
+  const { data } = await octokit.rest.pulls.listFiles({
+    owner: target.owner,
+    repo: target.repo,
+    pull_number: prNumber,
+    per_page: 100,
+  });
+  return data.map((f) => ({
+    filename: f.filename,
+    status: f.status,
+    additions: f.additions,
+    deletions: f.deletions,
+  }));
+}
+
 /** Comenta num PR (usado pelo QA para registrar a revisão). */
 export async function commentOnPullRequest(
   target: RepoTarget,

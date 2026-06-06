@@ -37,6 +37,12 @@ export const config = {
       return optional("E2B_API_KEY");
     },
   },
+  sandbox: {
+    // Liga/desliga internet no sandbox (controle real do E2B). O allowlist por domínio
+    // (github/npm/pypi) é configurado no template/firewall do E2B. Default: ligado, pois
+    // package managers/testes precisam de rede (o GitHub já é acessado pelo host).
+    allowInternet: optional("SANDBOX_ALLOW_INTERNET", "true") !== "false",
+  },
   slack: {
     get botToken() {
       return required("SLACK_BOT_TOKEN");

@@ -4,6 +4,7 @@ import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createQaAgent } from "../agents/qa.js";
 import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
+import { getPullRequestFiles } from "../tools/github-write.js";
 
 /**
  * Worker do QA: consome jobs "qa-review" (acionados quando o Dev abre um PR), sobe um
@@ -19,22 +20,20 @@ export function startQaWorker(slack: WebClient): void {
       const target = parseRepo(job.repo);
       await post(`:mag: Bia (QA) aqui — revisando o PR de *${job.title}* (${job.prUrl})…`);
 
-      sandbox = await createRepoSandbox(target);
-      // A branch do PR já veio no clone (o host criou a ref antes). Checkout offline,
-      // sem precisar de token para fetch.
-      const checkout = await sandbox.commands.run(`git checkout ${job.branch}`, {
-        cwd: REPO_DIR,
-        timeoutMs: 60_000,
-      });
-      if (checkout.exitCode !== 0) {
-        await post(`Não consegui acessar a branch \`${job.branch}\` para revisar: ${checkout.stderr}`);
-        return;
-      }
+      // O host traz a branch do PR via tarball (sem token no sandbox).
+      sandbox = await createRepoSandbox(target, { ref: job.branch });
+
+      // Resumo do diff (host-side, via API) para orientar a revisão.
+      const files = await getPullRequestFiles(target, job.prNumber).catch(() => []);
+      const fileList = files
+        .map((f) => `- ${f.status} ${f.filename} (+${f.additions}/-${f.deletions})`)
+        .join("\n");
 
       const qa = createQaAgent({ sandbox, target, prNumber: job.prNumber });
       const initial =
-        `Revise o PR "#${job.prNumber}: ${job.title}" (${job.prUrl}). A branch \`${job.branch}\` ` +
-        `está em ${REPO_DIR}. Veja o diff, rode os testes/lint, avalie e registre a revisão com comment_on_pr.`;
+        `Revise o PR "#${job.prNumber}: ${job.title}" (${job.prUrl}). O conteúdo da branch \`${job.branch}\` ` +
+        `está em ${REPO_DIR}.\n\nArquivos alterados:\n${fileList || "(não foi possível obter a lista)"}\n\n` +
+        `Leia os arquivos relevantes, rode os testes/lint, avalie e registre a revisão com comment_on_pr.`;
 
       const { text } = await runAgent(qa, [{ role: "user", content: initial }]);
       if (text) await post(text);
