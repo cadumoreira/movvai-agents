@@ -32,10 +32,21 @@ export async function runAgent(
   agent: Agent,
   history: ModelMessage[],
 ): Promise<{ text: string; newMessages: ModelMessage[] }> {
+  // Prompt caching: marca o system prompt como cacheável. No Anthropic isso cacheia
+  // tools+system (prefixo reusado a cada turn → até ~90% mais barato na leitura). Outros
+  // provedores ignoram o providerOptions.anthropic (OpenAI cacheia sozinho).
+  const messages: ModelMessage[] = [
+    {
+      role: "system",
+      content: agent.system,
+      providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+    },
+    ...history,
+  ];
+
   const result = await generateText({
     model: resolveModel(agent.model),
-    system: agent.system,
-    messages: history,
+    messages,
     tools: agent.tools,
     stopWhen: [stepCountIs(agent.maxSteps), tokenBudgetReached(agent.tokenBudget ?? 0)],
   });
