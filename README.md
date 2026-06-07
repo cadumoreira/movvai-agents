@@ -109,6 +109,15 @@ roteamento/caching/custo, aponte `MODEL_GATEWAY_BASE_URL` para um LiteLLM self-h
 
 6. **E2B:** crie uma conta em e2b.dev e coloque a chave em `E2B_API_KEY` (sandbox do Dev).
 
+## Configurar as chaves (front)
+
+Em vez de editar o `.env` na mão:
+```bash
+npm install
+npm run setup     # abra http://localhost:4000 e cole as chaves → Salvar
+```
+Ele grava no `.env` local (✓ = já definido; campos em branco não apagam o que existe).
+
 ## Rodar
 
 ```bash
