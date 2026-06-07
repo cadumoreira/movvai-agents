@@ -48,6 +48,9 @@ export async function runAgent(
   const result = await generateText({
     model: resolveModel(agent.model),
     messages,
+    // O system aqui é a persona do agente (conteúdo nosso e confiável), posto em
+    // messages de propósito para habilitar o prompt caching do Anthropic.
+    allowSystemInMessages: true,
     tools: agent.tools,
     stopWhen: [stepCountIs(agent.maxSteps), tokenBudgetReached(agent.tokenBudget ?? 0)],
     experimental_telemetry: {
