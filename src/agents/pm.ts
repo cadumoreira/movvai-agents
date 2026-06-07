@@ -3,6 +3,7 @@ import type { AgentContext } from "./context.js";
 import { config } from "../config.js";
 import { githubTools } from "../tools/github.js";
 import { linearTools } from "../tools/linear.js";
+import { jiraTools } from "../tools/jira.js";
 import { delegateToDev, delegateToTechLead } from "../tools/delegate.js";
 import { memoryTools } from "../tools/memory.js";
 import { manusTools } from "../tools/manus.js";
@@ -47,6 +48,7 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
     tools: {
       ...githubTools(),
       ...linearTools(),
+      ...jiraTools(),
       ...delegateToDev(ctx),
       ...delegateToTechLead(ctx),
       ...memoryTools("pm"),

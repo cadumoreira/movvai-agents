@@ -120,6 +120,17 @@ export const config = {
       return optional("GITHUB_WEBHOOK_SECRET");
     },
   },
+  // Jira (alternativa/adicional ao Linear). Ativo só com base/email/token/projeto.
+  jira: {
+    baseUrl: optional("JIRA_BASE_URL"), // ex.: https://suaorg.atlassian.net
+    get email() {
+      return optional("JIRA_EMAIL");
+    },
+    get apiToken() {
+      return optional("JIRA_API_TOKEN");
+    },
+    projectKey: optional("JIRA_PROJECT_KEY"),
+  },
   // Webhooks de entrada: label que aciona o time, e segredo do Linear.
   webhooks: {
     triggerLabel: optional("AGENT_TRIGGER_LABEL", "agent"),
