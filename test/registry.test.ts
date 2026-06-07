@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { register, listPending, resolvePending } from "../src/approvals/registry.js";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// Evita poluir o repo: aprovações resolvidas geram log de auditoria.
+process.env.AUDIT_LOG_PATH = join(tmpdir(), `audit-registry-${Date.now()}.log`);
+
+const { register, listPending, resolvePending } = await import("../src/approvals/registry.js");
 
 test("register cria pendência listável e a promise resolve ao decidir", async () => {
   const { id, promise } = register("Abro o PR?");

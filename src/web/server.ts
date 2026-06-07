@@ -1,6 +1,7 @@
 import http from "node:http";
 import { listActivity } from "../observability/activity.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
+import { listAudit } from "../audit/log.js";
 import { config } from "../config.js";
 import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
 
@@ -74,6 +75,9 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
     if (req.method === "GET" && path === "/api/approvals") {
       return json(res, 200, listPending());
     }
+    if (req.method === "GET" && path === "/api/audit") {
+      return json(res, 200, listAudit());
+    }
     if (req.method === "POST" && path.startsWith("/api/approvals/")) {
       const id = decodeURIComponent(path.slice("/api/approvals/".length));
       const body = await readBody(req);
@@ -123,11 +127,14 @@ const PAGE = `<!doctype html>
   <div id="approvals"></div>
   <h2>Atividade recente</h2>
   <div id="activity"></div>
+  <h2>Auditoria</h2>
+  <div id="audit"></div>
 <script>
 async function refresh() {
-  const [aps, act] = await Promise.all([
+  const [aps, act, aud] = await Promise.all([
     fetch('/api/approvals').then(r => r.json()),
     fetch('/api/activity').then(r => r.json()),
+    fetch('/api/audit').then(r => r.json()),
   ]);
   const ap = document.getElementById('approvals');
   ap.innerHTML = aps.length ? '' : '<div class="empty">Nada pendente.</div>';
@@ -150,6 +157,15 @@ async function refresh() {
       '<span class="muted">' + new Date(e.time).toLocaleTimeString() + '</span></div>' +
       '<div class="muted">' + escapeHtml(e.model || '') + cost + cache + '</div>';
     ac.append(el);
+  }
+  const au = document.getElementById('audit');
+  au.innerHTML = aud.length ? '' : '<div class="empty">Sem registros.</div>';
+  for (const e of aud) {
+    const el = document.createElement('div'); el.className = 'card';
+    el.innerHTML = '<div class="row"><strong>' + escapeHtml(e.kind) + '</strong>' +
+      '<span class="muted">' + new Date(e.time).toLocaleTimeString() + '</span></div>' +
+      '<div class="muted">' + escapeHtml(e.actor) + ' · ' + escapeHtml(e.detail || '') + '</div>';
+    au.append(el);
   }
 }
 async function decide(id, approved) {

@@ -2,6 +2,7 @@ import { Octokit } from "@octokit/rest";
 import type { Sandbox } from "e2b";
 import { config } from "../config.js";
 import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
+import { audit } from "../audit/log.js";
 
 /**
  * HARDENING (Fase 3): o token NUNCA entra no sandbox para escrita.
@@ -83,6 +84,13 @@ export async function commitAndOpenPR(opts: {
     title,
     body,
   });
+  audit({
+    kind: "pr_opened",
+    actor: "dev",
+    detail: pr.html_url,
+    meta: { branch, repo: `${owner}/${repo}`, number: pr.number },
+  });
+
   return { url: pr.html_url, number: pr.number };
 }
 

@@ -40,6 +40,11 @@ export const config = {
   dashboard: {
     port: Number(optional("DASHBOARD_PORT", "3000")),
   },
+  audit: {
+    get path() {
+      return optional("AUDIT_LOG_PATH", "audit.log");
+    },
+  },
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
   embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),

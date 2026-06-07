@@ -3,4 +3,5 @@ node_modules/
 .squad-ids.json
 dist/
 *.log
+audit.log
 .DS_Store

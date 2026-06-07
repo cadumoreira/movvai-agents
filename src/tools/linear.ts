@@ -2,6 +2,7 @@ import { LinearClient } from "@linear/sdk";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import { config } from "../config.js";
+import { audit } from "../audit/log.js";
 
 /**
  * Ferramentas do Linear para o PM organizar a demanda.
@@ -47,6 +48,7 @@ export function linearTools(): ToolSet {
         const payload = await linear.createIssue({ teamId, title, description, priority });
         const issue = await payload.issue;
         if (!issue) return { ok: false, error: "Falha ao criar o ticket." };
+        audit({ kind: "ticket_created", actor: "pm", detail: issue.identifier, meta: { url: issue.url, title } });
         return { ok: true, identifier: issue.identifier, url: issue.url, title };
       },
     }),

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { audit } from "../audit/log.js";
 
 export interface ApprovalDecision {
   approved: boolean;
@@ -38,6 +39,12 @@ export function resolvePending(id: string, decision: ApprovalDecision): boolean 
   const entry = pending.get(id);
   if (!entry) return false;
   pending.delete(id);
+  audit({
+    kind: "approval",
+    actor: "human",
+    detail: decision.approved ? "aprovado" : "recusado",
+    meta: { id, text: entry.text },
+  });
   entry.resolve(decision);
   return true;
 }
