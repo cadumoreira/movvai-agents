@@ -131,11 +131,31 @@ function health() {
   const sandboxOk = (getValue("SANDBOX_PROVIDER") || "local") !== "e2b" || isSet("E2B_API_KEY");
   const slackOk = isSet("SLACK_BOT_TOKEN") && isSet("SLACK_APP_TOKEN") && isSet("SLACK_SIGNING_SECRET");
   return [
-    { name: "PM cria tickets", ready: hasModel && hasTickets },
-    { name: "Dev abre PR no repo", ready: hasModel && isSet("GITHUB_TOKEN") && sandboxOk },
-    { name: "Time completo no Slack", ready: slackOk && hasModel },
-    { name: "Conselho multi-modelo", ready: getValue("COUNCIL_MODELS").split(",").filter(Boolean).length >= 2 },
-    { name: "Observabilidade", ready: (isSet("LANGFUSE_PUBLIC_KEY") && isSet("LANGFUSE_SECRET_KEY")) || isSet("OTEL_EXPORTER_OTLP_ENDPOINT") },
+    {
+      name: "PM cria tickets",
+      ready: hasModel && hasTickets,
+      hint: !hasModel ? "Falta uma chave de modelo (Anthropic/OpenAI/Google)" : !hasTickets ? "Falta o Linear (ou Jira)" : "",
+    },
+    {
+      name: "Dev abre PR",
+      ready: hasModel && isSet("GITHUB_TOKEN") && sandboxOk,
+      hint: !isSet("GITHUB_TOKEN") ? "Falta o GitHub Token" : !sandboxOk ? "Sandbox e2b sem E2B_API_KEY" : "",
+    },
+    {
+      name: "Time no Slack",
+      ready: slackOk && hasModel,
+      hint: !slackOk ? "Faltam os 3 tokens do Slack" : "",
+    },
+    {
+      name: "Conselho",
+      ready: getValue("COUNCIL_MODELS").split(",").filter(Boolean).length >= 2,
+      hint: "Opcional — ≥2 modelos em COUNCIL_MODELS",
+    },
+    {
+      name: "Observabilidade",
+      ready: (isSet("LANGFUSE_PUBLIC_KEY") && isSet("LANGFUSE_SECRET_KEY")) || isSet("OTEL_EXPORTER_OTLP_ENDPOINT"),
+      hint: "Opcional — Langfuse ou OTLP",
+    },
   ];
 }
 
@@ -200,75 +220,116 @@ function page(): string {
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Dream Team — Backoffice</title>
 <style>
-  :root { color-scheme: light dark; }
-  body { font: 15px/1.6 system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 24px 80px; }
-  h1 { font-size: 22px; } h2 { font-size: 14px; text-transform: uppercase; color: #888; margin-top: 30px; }
-  .hint { color: #888; font-size: 13px; margin: 2px 0 12px; }
-  label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 14px; }
-  .set { color: #16a34a; font-weight: 400; font-size: 12px; }
-  input, select { width: 100%; padding: 9px 11px; border: 1px solid #8884; border-radius: 8px; font: inherit; box-sizing: border-box; background: transparent; }
-  .health { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-  .pill { padding: 6px 12px; border-radius: 999px; font-size: 13px; border: 1px solid #8884; }
-  .ok { background: #16a34a22; border-color: #16a34a; }
-  .no { background: #80808011; }
-  .bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 24px; background: Canvas; border-top: 1px solid #8883; display: flex; gap: 16px; align-items: center; }
-  button { padding: 10px 22px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  :root { color-scheme: light dark; --line:#8884; --muted:#888; --accent:#2563eb; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.55 system-ui, sans-serif; margin: 0; padding-bottom: 72px; }
+  header { padding: 20px 28px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 20px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .health { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .pill { padding: 6px 12px; border-radius: 999px; font-size: 13px; border: 1px solid var(--line); cursor: default; }
+  .pill.ok { background: #16a34a22; border-color: #16a34a88; }
+  .pill .h { color: var(--muted); font-size: 12px; }
+  .layout { display: grid; grid-template-columns: 230px 1fr; gap: 0; }
+  nav { border-right: 1px solid var(--line); padding: 14px 10px; position: sticky; top: 0; align-self: start; }
+  nav button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  nav button:hover { background: #80808018; }
+  nav button.active { background: var(--accent); color: #fff; }
+  main { padding: 24px 28px; max-width: 640px; }
+  .sec-title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+  .sec-hint { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  label { display: block; margin: 14px 0 5px; font-weight: 600; font-size: 14px; }
+  .set { color: #16a34a; font-weight: 600; font-size: 12px; }
+  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: transparent; color: inherit; }
+  .secret { display: flex; gap: 8px; }
+  .secret button { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 0 12px; cursor: pointer; color: inherit; }
+  .bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 28px; background: Canvas; border-top: 1px solid var(--line); display: flex; gap: 16px; align-items: center; }
+  .bar button { padding: 10px 24px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
   #msg { font-weight: 600; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } nav { position: static; border-right: 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px; } nav button { width: auto; } }
 </style></head><body>
-  <h1>🛠️ Backoffice — Dream Team</h1>
-  <p class="hint">Configure tudo aqui. Grava no <code>.env</code> local (✓ = já definido; segredos não são exibidos; campos em branco não apagam o que existe).</p>
-  <div class="health" id="health"></div>
-  <form id="f"></form>
-  <div class="bar"><button onclick="save()">Salvar tudo</button><span id="msg"></span></div>
+  <header>
+    <h1>🛠️ Backoffice — Dream Team</h1>
+    <p>Configure tudo pela web. Grava no <code>.env</code> local · ✓ = definido · segredos não são exibidos · campos em branco não apagam o que existe.</p>
+    <div class="health" id="health"></div>
+  </header>
+  <div class="layout">
+    <nav id="nav"></nav>
+    <main id="main"></main>
+  </div>
+  <div class="bar"><button onclick="save()">💾 Salvar tudo</button><span id="msg"></span></div>
 <script>
 const groups = ${groupsJson};
+const ESSENTIAL = ["Modelos por papel","Chaves de provedor","Sandbox (Dev executa código)","Linear","GitHub"];
+const ICON = { "Modelos por papel":"🧠","Chaves de provedor":"🔑","Conselho multi-modelo (opcional)":"⚖️","Sandbox (Dev executa código)":"📦","Linear":"📋","Jira (alternativa ao Linear)":"📋","GitHub":"🐙","Slack":"💬","Automação (webhooks de entrada)":"⚡","Acesso (RBAC) & organização":"🔒","Infra & custo":"⚙️","Observabilidade (OpenTelemetry → Langfuse)":"📈" };
 let cfg = { fields: {}, health: [] };
+let active = 0;
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
 function renderHealth() {
   const h = document.getElementById('health'); h.innerHTML = '';
   for (const c of cfg.health) {
     const el = document.createElement('span');
-    el.className = 'pill ' + (c.ready ? 'ok' : 'no');
-    el.textContent = (c.ready ? '✓ ' : '○ ') + c.name;
+    el.className = 'pill ' + (c.ready ? 'ok' : '');
+    el.innerHTML = (c.ready ? '✓ ' : '○ ') + esc(c.name) + (!c.ready && c.hint ? ' <span class="h">· ' + esc(c.hint) + '</span>' : '');
     h.append(el);
+  }
+}
+function renderNav() {
+  const nav = document.getElementById('nav'); nav.innerHTML = '';
+  groups.forEach((g, i) => {
+    const b = document.createElement('button');
+    b.className = i === active ? 'active' : '';
+    const star = ESSENTIAL.includes(g.title) ? ' ⭐' : '';
+    b.innerHTML = (ICON[g.title] || '•') + ' ' + esc(g.title) + star;
+    b.onclick = () => { active = i; render(); };
+    nav.append(b);
+  });
+}
+function render() {
+  renderNav();
+  const g = groups[active];
+  const m = document.getElementById('main'); m.innerHTML = '';
+  const t = document.createElement('div'); t.className = 'sec-title'; t.textContent = (ICON[g.title]||'') + ' ' + g.title; m.append(t);
+  if (g.hint) { const p = document.createElement('div'); p.className='sec-hint'; p.textContent = g.hint; m.append(p); }
+  for (const field of g.fields) {
+    const meta = cfg.fields[field.key] || { set:false, value:'' };
+    const lab = document.createElement('label');
+    lab.innerHTML = esc(field.label) + ' ' + (meta.set ? '<span class="set">✓ definido</span>' : '');
+    m.append(lab);
+    if (field.type === 'select') {
+      const sel = document.createElement('select'); sel.id = 'k_' + field.key;
+      for (const opt of (field.options||[])) { const o = document.createElement('option'); o.value=opt; o.textContent=opt; sel.append(o); }
+      sel.value = meta.value || (field.options && field.options[0]) || '';
+      m.append(sel);
+    } else if (field.type === 'secret') {
+      const wrap = document.createElement('div'); wrap.className = 'secret';
+      const inp = document.createElement('input'); inp.id = 'k_' + field.key; inp.type = 'password';
+      inp.placeholder = meta.set ? '•••••••• (em branco = manter)' : (field.placeholder || '');
+      const tog = document.createElement('button'); tog.type='button'; tog.textContent='👁';
+      tog.onclick = () => { inp.type = inp.type === 'password' ? 'text' : 'password'; };
+      wrap.append(inp, tog); m.append(wrap);
+    } else {
+      const inp = document.createElement('input'); inp.id = 'k_' + field.key; inp.type = 'text';
+      inp.value = meta.value || ''; inp.placeholder = field.placeholder || '';
+      m.append(inp);
+    }
   }
 }
 async function load() {
   cfg = await fetch('/api/config').then(r => r.json());
-  renderHealth();
-  const f = document.getElementById('f'); f.innerHTML = '';
-  for (const g of groups) {
-    const h = document.createElement('h2'); h.textContent = g.title; f.append(h);
-    if (g.hint) { const p = document.createElement('div'); p.className='hint'; p.textContent = g.hint; f.append(p); }
-    for (const field of g.fields) {
-      const meta = cfg.fields[field.key] || { set:false, value:'' };
-      const lab = document.createElement('label');
-      lab.textContent = field.label + ' ';
-      if (meta.set) { const s = document.createElement('span'); s.className='set'; s.textContent='✓'; lab.append(s); }
-      let inp;
-      if (field.type === 'select') {
-        inp = document.createElement('select');
-        for (const opt of (field.options||[])) { const o = document.createElement('option'); o.value=opt; o.textContent=opt; inp.append(o); }
-        inp.value = meta.value || (field.options && field.options[0]) || '';
-      } else {
-        inp = document.createElement('input');
-        inp.type = field.type === 'secret' ? 'password' : 'text';
-        inp.value = field.type === 'secret' ? '' : (meta.value || '');
-        inp.placeholder = (field.type === 'secret' && meta.set) ? '•••••••• (em branco = manter)' : (field.placeholder || '');
-      }
-      inp.id = 'k_' + field.key;
-      f.append(lab, inp);
-    }
-  }
+  renderHealth(); render();
 }
 async function save() {
   const updates = {};
   for (const g of groups) for (const field of g.fields) {
-    const v = document.getElementById('k_' + field.key).value.trim();
-    if (v) updates[field.key] = v;
+    const el = document.getElementById('k_' + field.key);
+    if (el && el.value.trim()) updates[field.key] = el.value.trim();
   }
   const r = await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(updates) }).then(r => r.json());
   const msg = document.getElementById('msg');
-  if (r.ok) { msg.style.color = '#16a34a'; msg.textContent = '✅ Salvo'; cfg.health = r.health; renderHealth(); load(); setTimeout(()=>msg.textContent='',3000); }
+  if (r.ok) { msg.style.color = '#16a34a'; msg.textContent = '✅ Salvo (' + r.saved.length + ' campos)'; cfg.health = r.health; cfg = await fetch('/api/config').then(x=>x.json()); renderHealth(); render(); setTimeout(()=>msg.textContent='', 3000); }
   else { msg.style.color = '#dc2626'; msg.textContent = '❌ ' + (r.error || 'erro'); }
 }
 load();
