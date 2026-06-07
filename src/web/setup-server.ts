@@ -209,7 +209,7 @@ export function startSetupServer(port: number): void {
   });
 
   server.listen(port, () => {
-    console.log(`\n  🛠️  Backoffice: abra http://localhost:${port} no navegador\n`);
+    console.log(`\n  Backoffice: abra http://localhost:${port} no navegador\n`);
   });
 }
 
@@ -221,62 +221,67 @@ function page(): string {
 <title>Dream Team — Backoffice</title>
 <style>
   :root { color-scheme: light dark;
-    --bg:#f5f6f8; --surface:#fff; --text:#0f172a; --muted:#64748b; --line:#e6e8ec;
-    --input:#fff; --accent:#6366f1; --weak:#6366f114; --ok:#16a34a; }
+    --bg:#ffffff; --panel:#fafafa; --text:#18181b; --muted:#71717a; --line:#e4e4e7;
+    --field:#fff; --accent:#18181b; --accent-fg:#fff; --ring:rgba(0,0,0,.10);
+    --ok:#15803d; --ok-bg:#15803d12;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   @media (prefers-color-scheme: dark) { :root {
-    --bg:#0b0e14; --surface:#141925; --text:#e6e9ef; --muted:#8b95a7; --line:#222a38;
-    --input:#0f141d; --accent:#818cf8; --weak:#818cf81f; --ok:#34d399; } }
+    --bg:#0c0c0d; --panel:#141416; --text:#ededed; --muted:#8d8d94; --line:#27272a;
+    --field:#121214; --accent:#ededed; --accent-fg:#0c0c0d; --ring:rgba(255,255,255,.14);
+    --ok:#4ade80; --ok-bg:#4ade8016; } }
   * { box-sizing: border-box; }
-  body { font: 14.5px/1.55 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: var(--text); padding-bottom: 78px; }
-  .topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 13px 28px; background: var(--surface); border-bottom: 1px solid var(--line); }
-  .brand { display: flex; align-items: center; gap: 10px; font-size: 22px; }
-  .brand b { font-size: 15px; display: block; line-height: 1.1; } .brand small { color: var(--muted); font-size: 12px; }
-  .ready { min-width: 230px; }
-  .ready .t { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-  .progress { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
-  .progress > div { height: 100%; background: var(--accent); width: 0; transition: width .35s ease; }
-  .health { display: flex; flex-wrap: wrap; gap: 8px; padding: 13px 28px; background: var(--surface); border-bottom: 1px solid var(--line); }
-  .pill { padding: 6px 11px; border-radius: 999px; font-size: 12.5px; border: 1px solid var(--line); color: var(--muted); }
-  .pill.ok { background: var(--weak); border-color: transparent; color: var(--text); }
-  .pill .h { opacity: .75; }
-  .layout { display: grid; grid-template-columns: 250px 1fr; align-items: start; }
-  nav { padding: 16px 12px; position: sticky; top: 118px; }
-  nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; margin-bottom: 2px; border: 0; border-radius: 9px; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; cursor: pointer; transition: background .12s; }
-  nav button:hover { background: var(--weak); }
-  nav button.active { background: var(--accent); color: #fff; }
-  nav .ic { width: 18px; text-align: center; }
-  main { padding: 22px 28px; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px 26px; max-width: 600px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
-  .sec-title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
-  .sec-hint { color: var(--muted); font-size: 13px; margin: 0 0 6px; }
-  label { display: flex; align-items: center; gap: 8px; margin: 18px 0 6px; font-weight: 600; font-size: 13.5px; }
-  .set { color: var(--ok); font-weight: 600; font-size: 11px; background: var(--weak); padding: 1px 8px; border-radius: 999px; }
+  body { font: 14px/1.55 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: var(--text); padding-bottom: 76px; }
+  .topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 28px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .brand b { font-size: 15px; font-weight: 650; }
+  .brand small { display: block; color: var(--muted); font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  .ready { min-width: 240px; }
+  .ready .t { font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 7px; text-transform: uppercase; letter-spacing: .05em; }
+  .progress { height: 4px; background: var(--line); overflow: hidden; }
+  .progress > div { height: 100%; background: var(--text); width: 0; transition: width .35s ease; }
+  .health { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 28px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 6px; font-size: 12.5px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); }
+  .pill.ok { color: var(--text); }
+  .pill .h { opacity: .7; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--muted); flex: none; }
+  .dot.on { background: var(--ok); border-color: var(--ok); }
+  .layout { display: grid; grid-template-columns: 256px 1fr; align-items: start; }
+  nav { padding: 16px 14px; position: sticky; top: 0; }
+  nav button { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; padding: 8px 11px; margin-bottom: 1px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; cursor: pointer; transition: background .1s; }
+  nav button:hover { background: var(--panel); }
+  nav button.active { background: var(--accent); color: var(--accent-fg); }
+  nav .tag { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; opacity: .55; }
+  main { padding: 26px 28px; }
+  .card { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 26px 28px; max-width: 580px; }
+  .sec-title { font-size: 16px; font-weight: 650; margin: 0; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .sec-hint { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
+  label { display: flex; align-items: center; gap: 8px; margin: 20px 0 7px; font-weight: 600; font-size: 13px; }
+  .set { color: var(--ok); font-weight: 600; font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: .04em; }
   .field { position: relative; }
-  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: var(--input); color: inherit; outline: none; transition: border-color .12s, box-shadow .12s; }
-  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--weak); }
-  .field.secret input { padding-right: 42px; }
-  .eye { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; font-size: 15px; padding: 6px; opacity: .65; }
-  .eye:hover { opacity: 1; }
-  .bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 28px; background: var(--surface); border-top: 1px solid var(--line); display: flex; gap: 16px; align-items: center; }
-  .bar button { padding: 10px 22px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-  .bar button:hover { filter: brightness(1.06); }
-  #msg { font-weight: 600; font-size: 14px; }
-  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav { position: static; top: auto; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); } nav button { width: auto; } .topbar { flex-direction: column; align-items: flex-start; gap: 12px; } }
+  input, select { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13.5px; background: var(--field); color: inherit; outline: none; transition: border-color .12s, box-shadow .12s; }
+  input::placeholder { color: var(--muted); opacity: .6; }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+  .field.secret input { padding-right: 78px; }
+  .reveal { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 6px; }
+  .reveal:hover { color: var(--text); }
+  .bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 28px; background: var(--bg); border-top: 1px solid var(--line); display: flex; gap: 16px; align-items: center; }
+  .bar button { padding: 9px 20px; border: 0; border-radius: 6px; background: var(--accent); color: var(--accent-fg); font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; }
+  .bar button:hover { opacity: .9; }
+  #msg { font-size: 13px; color: var(--muted); }
+  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav { position: static; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); } nav button { width: auto; } .topbar { flex-direction: column; align-items: flex-start; gap: 12px; } }
 </style></head><body>
   <div class="topbar">
-    <div class="brand">🤖 <span><b>Dream Team</b><small>Backoffice de configuração</small></span></div>
-    <div class="ready"><div class="t" id="readyText">Carregando…</div><div class="progress"><div id="bar"></div></div></div>
+    <div class="brand"><b>Dream Team</b><small>Backoffice</small></div>
+    <div class="ready"><div class="t" id="readyText">Carregando</div><div class="progress"><div id="bar"></div></div></div>
   </div>
   <div class="health" id="health"></div>
   <div class="layout">
     <nav id="nav"></nav>
     <main><div class="card" id="main"></div></main>
   </div>
-  <div class="bar"><button onclick="save()">💾 Salvar tudo</button><span id="msg"></span></div>
+  <div class="bar"><button onclick="save()">Salvar alterações</button><span id="msg"></span></div>
 <script>
 const groups = ${groupsJson};
 const ESSENTIAL = ["Modelos por papel","Chaves de provedor","Sandbox (Dev executa código)","Linear","GitHub"];
-const ICON = { "Modelos por papel":"🧠","Chaves de provedor":"🔑","Conselho multi-modelo (opcional)":"⚖️","Sandbox (Dev executa código)":"📦","Linear":"📋","Jira (alternativa ao Linear)":"📋","GitHub":"🐙","Slack":"💬","Automação (webhooks de entrada)":"⚡","Acesso (RBAC) & organização":"🔒","Infra & custo":"⚙️","Observabilidade (OpenTelemetry → Langfuse)":"📈" };
 let cfg = { fields: {}, health: [] };
 let active = 0;
 
@@ -287,7 +292,7 @@ function renderHealth() {
   for (const c of cfg.health) {
     const el = document.createElement('span');
     el.className = 'pill ' + (c.ready ? 'ok' : '');
-    el.innerHTML = (c.ready ? '✓ ' : '○ ') + esc(c.name) + (!c.ready && c.hint ? ' <span class="h">· ' + esc(c.hint) + '</span>' : '');
+    el.innerHTML = '<span class="dot' + (c.ready ? ' on' : '') + '"></span>' + esc(c.name) + (!c.ready && c.hint ? ' <span class="h">· ' + esc(c.hint) + '</span>' : '');
     h.append(el);
   }
   const ready = cfg.health.filter(c => c.ready).length;
@@ -300,8 +305,8 @@ function renderNav() {
   groups.forEach((g, i) => {
     const b = document.createElement('button');
     b.className = i === active ? 'active' : '';
-    const star = ESSENTIAL.includes(g.title) ? ' ⭐' : '';
-    b.innerHTML = '<span class="ic">' + (ICON[g.title] || '•') + '</span><span>' + esc(g.title) + star + '</span>';
+    const tag = ESSENTIAL.includes(g.title) ? '<span class="tag">essencial</span>' : '';
+    b.innerHTML = '<span>' + esc(g.title) + '</span>' + tag;
     b.onclick = () => { active = i; render(); };
     nav.append(b);
   });
@@ -310,12 +315,12 @@ function render() {
   renderNav();
   const g = groups[active];
   const m = document.getElementById('main'); m.innerHTML = '';
-  const t = document.createElement('div'); t.className = 'sec-title'; t.textContent = (ICON[g.title]||'') + ' ' + g.title; m.append(t);
+  const t = document.createElement('div'); t.className = 'sec-title'; t.textContent = g.title; m.append(t);
   if (g.hint) { const p = document.createElement('div'); p.className='sec-hint'; p.textContent = g.hint; m.append(p); }
   for (const field of g.fields) {
     const meta = cfg.fields[field.key] || { set:false, value:'' };
     const lab = document.createElement('label');
-    lab.innerHTML = esc(field.label) + ' ' + (meta.set ? '<span class="set">✓ definido</span>' : '');
+    lab.innerHTML = esc(field.label) + ' ' + (meta.set ? '<span class="set">definido</span>' : '');
     m.append(lab);
     if (field.type === 'select') {
       const wrap = document.createElement('div'); wrap.className = 'field';
@@ -327,8 +332,8 @@ function render() {
       const wrap = document.createElement('div'); wrap.className = 'field secret';
       const inp = document.createElement('input'); inp.id = 'k_' + field.key; inp.type = 'password';
       inp.placeholder = meta.set ? '•••••••• (em branco = manter)' : (field.placeholder || '');
-      const tog = document.createElement('button'); tog.type='button'; tog.className='eye'; tog.textContent='👁';
-      tog.onclick = () => { inp.type = inp.type === 'password' ? 'text' : 'password'; };
+      const tog = document.createElement('button'); tog.type='button'; tog.className='reveal'; tog.textContent='mostrar';
+      tog.onclick = () => { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; tog.textContent = show ? 'ocultar' : 'mostrar'; };
       wrap.append(inp, tog); m.append(wrap);
     } else {
       const wrap = document.createElement('div'); wrap.className = 'field';
@@ -350,8 +355,8 @@ async function save() {
   }
   const r = await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(updates) }).then(r => r.json());
   const msg = document.getElementById('msg');
-  if (r.ok) { msg.style.color = '#16a34a'; msg.textContent = '✅ Salvo (' + r.saved.length + ' campos)'; cfg.health = r.health; cfg = await fetch('/api/config').then(x=>x.json()); renderHealth(); render(); setTimeout(()=>msg.textContent='', 3000); }
-  else { msg.style.color = '#dc2626'; msg.textContent = '❌ ' + (r.error || 'erro'); }
+  if (r.ok) { msg.style.color = 'var(--ok)'; msg.textContent = 'Salvo — ' + r.saved.length + ' campos atualizados'; cfg.health = r.health; cfg = await fetch('/api/config').then(x=>x.json()); renderHealth(); render(); setTimeout(()=>msg.textContent='', 3000); }
+  else { msg.style.color = '#dc2626'; msg.textContent = 'Erro: ' + (r.error || 'falha ao salvar'); }
 }
 load();
 </script></body></html>`;
