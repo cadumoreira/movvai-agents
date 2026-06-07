@@ -1,6 +1,7 @@
 import type { App } from "@slack/bolt";
 import type { WebClient } from "@slack/web-api";
 import { register, resolvePending, type ApprovalDecision } from "./registry.js";
+import { canApprove } from "../auth/rbac.js";
 
 export type { ApprovalDecision } from "./registry.js";
 
@@ -64,10 +65,24 @@ export function registerApprovalHandlers(app: App): void {
 
     const a = action as { action_id: string; value?: string };
     const decision = a.action_id.endsWith("approve") ? "approve" : "reject";
-    resolvePending(a.value ?? "", { approved: decision === "approve" });
+    const b = body as { channel?: { id: string }; message?: { ts: string }; user?: { id: string } };
+    const userId = b.user?.id ?? "?";
+
+    // RBAC: só aprovadores autorizados decidem.
+    if (!canApprove(userId)) {
+      if (b.channel) {
+        await client.chat.postEphemeral({
+          channel: b.channel.id,
+          user: userId,
+          text: "Você não tem permissão para aprovar esta ação.",
+        });
+      }
+      return;
+    }
+
+    resolvePending(a.value ?? "", { approved: decision === "approve" }, `slack:${userId}`);
 
     // Atualiza a mensagem para registrar quem decidiu o quê.
-    const b = body as { channel?: { id: string }; message?: { ts: string }; user?: { id: string } };
     if (b.channel && b.message) {
       const label = decision === "approve" ? "✅ Aprovado" : "❌ Recusado";
       await client.chat.update({

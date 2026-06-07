@@ -2,6 +2,7 @@ import http from "node:http";
 import { listActivity } from "../observability/activity.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
 import { listAudit } from "../audit/log.js";
+import { dashboardAuthorized } from "../auth/rbac.js";
 import { config } from "../config.js";
 import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
 
@@ -79,6 +80,9 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
       return json(res, 200, listAudit());
     }
     if (req.method === "POST" && path.startsWith("/api/approvals/")) {
+      if (!dashboardAuthorized(req.headers.authorization)) {
+        return json(res, 401, { error: "não autorizado" });
+      }
       const id = decodeURIComponent(path.slice("/api/approvals/".length));
       const body = await readBody(req);
       const approved = (() => {
@@ -88,7 +92,7 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
           return false;
         }
       })();
-      const ok = resolvePending(id, { approved });
+      const ok = resolvePending(id, { approved }, "dashboard");
       return json(res, ok ? 200 : 404, { ok });
     }
 
@@ -168,10 +172,18 @@ async function refresh() {
     au.append(el);
   }
 }
+function dashToken() {
+  let t = localStorage.getItem('dashToken');
+  if (t === null) { t = prompt('Token do painel (deixe vazio se não houver):') || ''; localStorage.setItem('dashToken', t); }
+  return t;
+}
 async function decide(id, approved) {
-  await fetch('/api/approvals/' + encodeURIComponent(id), {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approved }),
+  const res = await fetch('/api/approvals/' + encodeURIComponent(id), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + dashToken() },
+    body: JSON.stringify({ approved }),
   });
+  if (res.status === 401) { localStorage.removeItem('dashToken'); alert('Token inválido — tente de novo.'); }
   refresh();
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }

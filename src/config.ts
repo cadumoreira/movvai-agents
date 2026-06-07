@@ -45,6 +45,19 @@ export const config = {
       return optional("AUDIT_LOG_PATH", "audit.log");
     },
   },
+  security: {
+    // Quem pode aprovar via Slack (user IDs). Vazio = qualquer um (compat/local).
+    approverSlackIds: optional("APPROVER_SLACK_IDS")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    // Token exigido para aprovar pelo painel. Vazio = aberto (local).
+    get dashboardToken() {
+      return optional("DASHBOARD_TOKEN");
+    },
+    // Identificador da organização (fundação para multi-org; tagueia a auditoria).
+    orgId: optional("ORG_ID", "default"),
+  },
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
   embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),

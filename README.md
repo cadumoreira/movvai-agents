@@ -50,6 +50,9 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Webhooks de entrada** (`POST /webhooks/github`, `/webhooks/linear`): labelar uma issue com `agent`
   (ou o `AGENT_TRIGGER_LABEL`) **dispara o time automaticamente** — sem precisar de menção no Slack.
   Assinatura HMAC verificada; o trabalho é reportado no `SLACK_DEFAULT_CHANNEL`.
+- **Controle de acesso (RBAC) + auditoria:** allowlist de aprovadores no Slack (`APPROVER_SLACK_IDS`),
+  token para aprovar pelo painel (`DASHBOARD_TOKEN`), e **log de auditoria** append-only (JSONL, pronto
+  p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 
 ## Como funciona (estrutura)
 

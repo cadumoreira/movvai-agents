@@ -13,13 +13,13 @@ export interface AuditEvent {
   meta?: Record<string, unknown>;
 }
 
-export type AuditRecord = AuditEvent & { time: string };
+export type AuditRecord = AuditEvent & { time: string; org: string };
 
 const MAX = 500;
 const ring: AuditRecord[] = [];
 
 export function audit(event: AuditEvent): void {
-  const record: AuditRecord = { time: new Date().toISOString(), ...event };
+  const record: AuditRecord = { time: new Date().toISOString(), org: config.security.orgId, ...event };
   ring.push(record);
   if (ring.length > MAX) ring.shift();
   try {

@@ -35,13 +35,17 @@ export function listPending(): Array<{ id: string; text: string; createdAt: stri
   return [...pending.values()].map(({ id, text, createdAt }) => ({ id, text, createdAt }));
 }
 
-export function resolvePending(id: string, decision: ApprovalDecision): boolean {
+export function resolvePending(
+  id: string,
+  decision: ApprovalDecision,
+  actor = "human",
+): boolean {
   const entry = pending.get(id);
   if (!entry) return false;
   pending.delete(id);
   audit({
     kind: "approval",
-    actor: "human",
+    actor,
     detail: decision.approved ? "aprovado" : "recusado",
     meta: { id, text: entry.text },
   });
