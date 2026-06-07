@@ -46,9 +46,9 @@ export function createSlackApp(
 
     try {
       const agent = agentFactory({ channel, threadTs, threadKey, slack: client }, userText);
-      memory.append(threadKey, { role: "user", content: userText });
-      const { text, newMessages } = await runAgent(agent, memory.get(threadKey));
-      memory.append(threadKey, ...(newMessages as ModelMessage[]));
+      await memory.append(threadKey, { role: "user", content: userText });
+      const { text, newMessages } = await runAgent(agent, await memory.get(threadKey));
+      await memory.append(threadKey, ...(newMessages as ModelMessage[]));
 
       await client.chat.postMessage({
         channel,

@@ -1,6 +1,6 @@
 import { createPMAgent } from "./agents/pm.js";
 import { createSlackApp } from "./connectors/slack.js";
-import { InMemoryThreadMemory } from "./memory/thread-memory.js";
+import { createThreadMemory } from "./memory/thread-memory.js";
 import { startDevWorker } from "./workers/dev-worker.js";
 import { startQaWorker } from "./workers/qa-worker.js";
 import { startTechLeadWorker } from "./workers/techlead-worker.js";
@@ -21,7 +21,7 @@ import { config } from "./config.js";
  */
 async function main() {
   initTelemetry(); // antes de qualquer chamada de modelo
-  const memory = new InMemoryThreadMemory();
+  const memory = createThreadMemory();
 
   // O PM é roteado por custo: tarefas simples vão para um modelo barato.
   const app = createSlackApp(
