@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "setup": "tsx src/scripts/setup.ts",
+    "backoffice": "tsx src/scripts/setup.ts",
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "try:pm": "tsx src/scripts/try-pm.ts",

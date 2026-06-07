@@ -109,14 +109,17 @@ roteamento/caching/custo, aponte `MODEL_GATEWAY_BASE_URL` para um LiteLLM self-h
 
 6. **E2B:** crie uma conta em e2b.dev e coloque a chave em `E2B_API_KEY` (sandbox do Dev).
 
-## Configurar as chaves (front)
+## Backoffice (configurar tudo pela web)
 
 Em vez de editar o `.env` na mão:
 ```bash
 npm install
-npm run setup     # abra http://localhost:4000 e cole as chaves → Salvar
+npm run backoffice    # abra http://localhost:4000
 ```
-Ele grava no `.env` local (✓ = já definido; campos em branco não apagam o que existe).
+Configura **tudo** num formulário: modelos por papel, chaves de provedor, sandbox, Linear/Jira,
+GitHub, Slack, webhooks, RBAC, billing, infra e observabilidade. Mostra o **status de prontidão**
+(PM/Dev/Slack/Conselho/Observabilidade) e grava no `.env` local (✓ = definido; segredos não são
+exibidos; campos em branco não apagam o que existe). (`npm run setup` é o mesmo comando.)
 
 ## Rodar
 

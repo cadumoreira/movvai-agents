@@ -17,10 +17,15 @@ export function readEnvFile(): Record<string, string> {
   return out;
 }
 
+/** Valor atual de uma chave (do `.env` ou do ambiente), ou "" se ausente. */
+export function getValue(key: string): string {
+  const fromFile = readEnvFile()[key];
+  return fromFile ?? process.env[key] ?? "";
+}
+
 /** Uma chave está definida (no `.env` ou no ambiente)? */
 export function isSet(key: string): boolean {
-  const fromFile = readEnvFile()[key];
-  return Boolean((fromFile && fromFile.length > 0) || (process.env[key] && process.env[key]!.length > 0));
+  return getValue(key).length > 0;
 }
 
 /**
