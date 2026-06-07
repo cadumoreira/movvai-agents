@@ -45,6 +45,11 @@ export const config = {
       return optional("AUDIT_LOG_PATH", "audit.log");
     },
   },
+  billing: {
+    get path() {
+      return optional("BILLING_LOG_PATH", "billing.log");
+    },
+  },
   security: {
     // Quem pode aprovar via Slack (user IDs). Vazio = qualquer um (compat/local).
     approverSlackIds: optional("APPROVER_SLACK_IDS")

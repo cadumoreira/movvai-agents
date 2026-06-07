@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import { config } from "../config.js";
 import { resolveModel } from "../models/gateway.js";
 import { telemetryEnabled } from "../observability/otel.js";
+import { meterUsage } from "../billing/meter.js";
 
 export interface CouncilResult {
   recommendation: string;
@@ -35,6 +36,7 @@ export async function deliberate(question: string, context: string): Promise<Cou
         prompt: `Contexto:\n${context}\n\nQuestão: ${question}`,
         experimental_telemetry: { isEnabled: telemetryEnabled(), functionId: "council:proposer" },
       });
+      meterUsage("council", m, r.usage);
       return { model: m, answer: r.text };
     }),
   );
@@ -48,6 +50,7 @@ export async function deliberate(question: string, context: string): Promise<Cou
     prompt: `Questão: ${question}\n\nPareceres do conselho:\n${dossier}\n\nProduza a recomendação final.`,
     experimental_telemetry: { isEnabled: telemetryEnabled(), functionId: "council:synth" },
   });
+  meterUsage("council", synthModel, synth.usage);
 
   console.log(
     JSON.stringify({

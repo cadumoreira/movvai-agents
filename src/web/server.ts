@@ -2,6 +2,7 @@ import http from "node:http";
 import { listActivity } from "../observability/activity.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
 import { listAudit } from "../audit/log.js";
+import { billingSummary } from "../billing/meter.js";
 import { dashboardAuthorized } from "../auth/rbac.js";
 import { config } from "../config.js";
 import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
@@ -79,6 +80,9 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
     if (req.method === "GET" && path === "/api/audit") {
       return json(res, 200, listAudit());
     }
+    if (req.method === "GET" && path === "/api/billing") {
+      return json(res, 200, billingSummary());
+    }
     if (req.method === "POST" && path.startsWith("/api/approvals/")) {
       if (!dashboardAuthorized(req.headers.authorization)) {
         return json(res, 401, { error: "não autorizado" });
@@ -127,6 +131,8 @@ const PAGE = `<!doctype html>
 </head>
 <body>
   <h1>🤖 Dream Team — Painel</h1>
+  <h2>Custo por organização</h2>
+  <div id="billing"></div>
   <h2>Aprovações pendentes</h2>
   <div id="approvals"></div>
   <h2>Atividade recente</h2>
@@ -135,11 +141,21 @@ const PAGE = `<!doctype html>
   <div id="audit"></div>
 <script>
 async function refresh() {
-  const [aps, act, aud] = await Promise.all([
+  const [aps, act, aud, bil] = await Promise.all([
     fetch('/api/approvals').then(r => r.json()),
     fetch('/api/activity').then(r => r.json()),
     fetch('/api/audit').then(r => r.json()),
+    fetch('/api/billing').then(r => r.json()),
   ]);
+  const bi = document.getElementById('billing');
+  bi.innerHTML = bil.length ? '' : '<div class="empty">Sem consumo ainda.</div>';
+  for (const o of bil) {
+    const el = document.createElement('div'); el.className = 'card';
+    el.innerHTML = '<div class="row"><strong>' + escapeHtml(o.org) + '</strong>' +
+      '<span>$' + o.costUSD + '</span></div>' +
+      '<div class="muted">' + o.runs + ' execuções · ' + (o.input + o.output) + ' tokens</div>';
+    bi.append(el);
+  }
   const ap = document.getElementById('approvals');
   ap.innerHTML = aps.length ? '' : '<div class="empty">Nada pendente.</div>';
   for (const a of aps) {

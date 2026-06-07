@@ -53,6 +53,8 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Controle de acesso (RBAC) + auditoria:** allowlist de aprovadores no Slack (`APPROVER_SLACK_IDS`),
   token para aprovar pelo painel (`DASHBOARD_TOKEN`), e **log de auditoria** append-only (JSONL, pronto
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
+- **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
+  persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
 
 ## Como funciona (estrutura)
 
