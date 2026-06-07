@@ -1,9 +1,8 @@
 import type { WebClient } from "@slack/web-api";
-import type { Sandbox } from "e2b";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createQaAgent } from "../agents/qa.js";
-import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
+import { createRepoSandbox, parseRepo, type Sandbox } from "../sandbox/index.js";
 import { getPullRequestFiles } from "../tools/github-write.js";
 
 /**
@@ -32,7 +31,7 @@ export function startQaWorker(slack: WebClient): void {
       const qa = createQaAgent({ sandbox, target, prNumber: job.prNumber });
       const initial =
         `Revise o PR "#${job.prNumber}: ${job.title}" (${job.prUrl}). O conteúdo da branch \`${job.branch}\` ` +
-        `está em ${REPO_DIR}.\n\nArquivos alterados:\n${fileList || "(não foi possível obter a lista)"}\n\n` +
+        `está disponível no sandbox (use caminhos relativos).\n\nArquivos alterados:\n${fileList || "(não foi possível obter a lista)"}\n\n` +
         `Leia os arquivos relevantes, rode os testes/lint, avalie e registre a revisão com comment_on_pr.`;
 
       const { text } = await runAgent(qa, [{ role: "user", content: initial }]);

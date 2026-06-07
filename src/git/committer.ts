@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
-import type { Sandbox } from "e2b";
+import type { Sandbox } from "../sandbox/types.js";
 import { config } from "../config.js";
-import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
+import type { RepoTarget } from "../sandbox/repo.js";
 import { audit } from "../audit/log.js";
 
 /**
@@ -25,8 +25,9 @@ export async function commitAndOpenPR(opts: {
   const { owner, repo } = target;
 
   // 1. Coleta as mudanças dentro do sandbox (sem credencial).
-  await sandbox.commands.run("git add -A", { cwd: REPO_DIR });
-  const status = await sandbox.commands.run("git diff --cached --name-status", { cwd: REPO_DIR });
+  const dir = sandbox.repoDir;
+  await sandbox.run("git add -A", { cwd: dir });
+  const status = await sandbox.run("git diff --cached --name-status", { cwd: dir });
   const entries = parseNameStatus(status.stdout);
   if (entries.length === 0) throw new Error("Nenhuma mudança para commitar.");
 
@@ -43,7 +44,7 @@ export async function commitAndOpenPR(opts: {
     if (e.op === "D") {
       tree.push({ path: e.path, mode: "100644", type: "blob", sha: null });
     } else {
-      const content = await sandbox.files.read(`${REPO_DIR}/${e.path}`);
+      const content = await sandbox.readFile(`${dir}/${e.path}`);
       const blob = await octokit.rest.git.createBlob({
         owner,
         repo,

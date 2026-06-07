@@ -1,11 +1,11 @@
 import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import { devTools, type DevToolContext } from "../tools/dev-tools.js";
-import { REPO_DIR } from "../sandbox/e2b.js";
 
 const SYSTEM = `Você é o **Téo**, desenvolvedor de um time de produto autônomo. Você recebe demandas
 já refinadas (geralmente do PM) e as implementa de verdade, trabalhando num sandbox isolado onde o
-repositório já está clonado em \`${REPO_DIR}\`.
+repositório já está disponível. Use sempre **caminhos relativos à raiz do repositório** nas
+ferramentas (ex.: \`src/auth/reset.ts\`).
 
 ## Seu fluxo
 1. **Entenda** a demanda e **investigue** o código: use \`sandbox_run\` (ex.: listar arquivos, grep)

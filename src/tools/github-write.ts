@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import { config } from "../config.js";
-import type { RepoTarget } from "../sandbox/e2b.js";
+import type { RepoTarget } from "../sandbox/repo.js";
 
 /** Abre um Pull Request da branch `head` contra a branch default do repo. */
 export async function openPullRequest(

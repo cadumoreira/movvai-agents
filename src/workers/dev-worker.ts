@@ -1,9 +1,8 @@
 import type { WebClient } from "@slack/web-api";
-import type { Sandbox } from "e2b";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createDevAgent } from "../agents/dev.js";
-import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
+import { createRepoSandbox, parseRepo, type Sandbox } from "../sandbox/index.js";
 import { slackApprover } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
@@ -39,7 +38,7 @@ export function startDevWorker(slack: WebClient): void {
       const ticketRef = task.ticket.url ? `\nTicket: ${task.ticket.url}` : "";
       const initial =
         `Implemente a seguinte demanda.${ticketRef}\n\n${task.instructions}\n\n` +
-        `O repositório já está clonado em ${REPO_DIR}. Investigue, implemente, rode os testes e, ` +
+        `O repositório já está disponível no sandbox (use caminhos relativos). Investigue, implemente, rode os testes e, ` +
         `quando estiver pronto e verde, chame request_pr_approval para pedir o OK antes de abrir o PR.`;
 
       const { text } = await runAgent(dev, [{ role: "user", content: initial }]);

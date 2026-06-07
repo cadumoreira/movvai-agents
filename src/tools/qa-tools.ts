@@ -1,7 +1,7 @@
-import type { Sandbox } from "e2b";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
+import type { Sandbox } from "../sandbox/types.js";
+import type { RepoTarget } from "../sandbox/repo.js";
 import { commentOnPullRequest } from "./github-write.js";
 import { clip } from "../util/text.js";
 
@@ -19,7 +19,7 @@ export function qaTools(ctx: QaToolContext): ToolSet {
       description: "Executa um comando de shell no repositório (ex.: rodar testes, lint, git diff).",
       inputSchema: z.object({ command: z.string() }),
       execute: async ({ command }) => {
-        const res = await sandbox.commands.run(command, { cwd: REPO_DIR, timeoutMs: 180_000 });
+        const res = await sandbox.run(command, { cwd: sandbox.repoDir, timeoutMs: 180_000 });
         return { exitCode: res.exitCode, stdout: clip(res.stdout), stderr: clip(res.stderr) };
       },
     }),
@@ -29,7 +29,7 @@ export function qaTools(ctx: QaToolContext): ToolSet {
       inputSchema: z.object({ path: z.string() }),
       execute: async ({ path }) => {
         try {
-          const content = await sandbox.files.read(`${REPO_DIR}/${path}`);
+          const content = await sandbox.readFile(`${sandbox.repoDir}/${path}`);
           return { path, content: clip(content, 12_000) };
         } catch (err) {
           return { path, error: err instanceof Error ? err.message : String(err) };

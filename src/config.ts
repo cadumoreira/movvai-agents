@@ -83,9 +83,15 @@ export const config = {
     baseUrl: optional("MANUS_BASE_URL", "https://api.manus.ai/v1"),
   },
   sandbox: {
-    // Liga/desliga internet no sandbox (controle real do E2B). O allowlist por domínio
-    // (github/npm/pypi) é configurado no template/firewall do E2B. Default: ligado, pois
-    // package managers/testes precisam de rede (o GitHub já é acessado pelo host).
+    // Backend: "local" (roda na sua máquina), "docker" (contêiner local) ou "e2b" (microVM
+    // na nuvem). Default: e2b se houver E2B_API_KEY, senão local.
+    get provider() {
+      return optional("SANDBOX_PROVIDER") || (process.env.E2B_API_KEY ? "e2b" : "local");
+    },
+    // Imagem usada pelo backend Docker (precisa ter git + bash + tar; node:22 já tem).
+    dockerImage: optional("SANDBOX_DOCKER_IMAGE", "node:22"),
+    // Liga/desliga internet no sandbox. No Docker, "false" usa --network none. No E2B,
+    // controla allowInternetAccess. Default ligado (package managers/testes precisam).
     allowInternet: optional("SANDBOX_ALLOW_INTERNET", "true") !== "false",
   },
   slack: {

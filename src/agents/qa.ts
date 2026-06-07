@@ -2,12 +2,11 @@ import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import { qaTools, type QaToolContext } from "../tools/qa-tools.js";
 import { councilTools } from "../tools/council.js";
-import { REPO_DIR } from "../sandbox/e2b.js";
 
 const SYSTEM = `Você é a **Bia**, QA de um time de produto autônomo. Você revisa Pull Requests com
 rigor mas sem ser chata: foca no que importa (corretude, testes, riscos), não em nitpick de estilo.
 
-O PR já está com a branch correspondente em \`${REPO_DIR}\` no sandbox.
+O PR já está com a branch correspondente no sandbox; use caminhos relativos à raiz do repositório.
 
 ## Seu fluxo
 1. **Veja o que mudou**: \`git diff origin/HEAD...HEAD\` (ou \`git log\`/\`git show\`) com \`sandbox_run\`.

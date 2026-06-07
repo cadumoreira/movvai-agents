@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/rest";
-import type { Sandbox } from "e2b";
 import { config } from "../config.js";
-import { REPO_DIR, type RepoTarget } from "../sandbox/repo.js";
+import type { RepoTarget } from "../sandbox/repo.js";
+import type { Sandbox } from "../sandbox/types.js";
 
 /**
  * HARDENING (Fase 3.x): coloca o repositório no sandbox SEM token.
@@ -28,24 +28,25 @@ export async function setupRepoInSandbox(
 
   // Baixa o tarball no host (token usado só aqui).
   const archive = await octokit.rest.repos.downloadTarballArchive({ owner, repo, ref: resolvedRef });
-  const buf = Buffer.from(archive.data as ArrayBuffer);
-  const bytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  const bytes = Buffer.from(archive.data as ArrayBuffer);
 
   // Envia para o sandbox e extrai (o tarball do GitHub tem um diretório raiz extra).
-  await sandbox.files.write("/tmp/repo.tgz", bytes);
-  const setup = await sandbox.commands.run(
+  const dir = sandbox.repoDir;
+  const tgz = `${dir}.tgz`;
+  await sandbox.writeBytes(tgz, bytes);
+  const setup = await sandbox.run(
     [
-      `mkdir -p ${REPO_DIR}`,
-      `tar -xzf /tmp/repo.tgz -C ${REPO_DIR} --strip-components=1`,
-      `rm -f /tmp/repo.tgz`,
-      `cd ${REPO_DIR}`,
+      `mkdir -p ${dir}`,
+      `tar -xzf ${tgz} -C ${dir} --strip-components=1`,
+      `rm -f ${tgz}`,
+      `cd ${dir}`,
       `git init -q`,
       `git config user.email "agent@movvai.local"`,
       `git config user.name "Movvai Agent"`,
       `git add -A`,
       `git commit -q -m baseline`,
     ].join(" && "),
-    { cwd: REPO_DIR, timeoutMs: 120_000 },
+    { timeoutMs: 120_000 },
   );
   if (setup.exitCode !== 0) {
     throw new Error(`Falha ao preparar o repositório no sandbox: ${setup.stderr}`);

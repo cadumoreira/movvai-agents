@@ -3,7 +3,7 @@ import * as readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { createDevAgent } from "../agents/dev.js";
 import { runAgent } from "../agent-runtime/run.js";
-import { createRepoSandbox, parseRepo, REPO_DIR } from "../sandbox/e2b.js";
+import { createRepoSandbox, parseRepo } from "../sandbox/index.js";
 import { initTelemetry } from "../observability/otel.js";
 import type { Approver } from "../approvals/gate.js";
 
@@ -36,7 +36,7 @@ async function main() {
     const dev = createDevAgent({ sandbox, target, approve: terminalApprover });
     const initial =
       `Implemente a seguinte demanda: ${instructions}\n\n` +
-      `O repositório está clonado em ${REPO_DIR}. Investigue, implemente, rode os testes ` +
+      `O repositório está disponível no sandbox (use caminhos relativos). Investigue, implemente, rode os testes ` +
       `e chame request_pr_approval quando estiver pronto.`;
     console.log("\n…Téo trabalhando no sandbox…\n");
     const { text } = await runAgent(dev, [{ role: "user", content: initial }]);

@@ -1,7 +1,7 @@
-import type { Sandbox } from "e2b";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { REPO_DIR, type RepoTarget } from "../sandbox/e2b.js";
+import type { Sandbox } from "../sandbox/types.js";
+import type { RepoTarget } from "../sandbox/repo.js";
 import type { Approver } from "../approvals/gate.js";
 import { commitAndOpenPR } from "../git/committer.js";
 import { queue } from "../queue/index.js";
@@ -27,7 +27,7 @@ export function devTools(ctx: DevToolContext): ToolSet {
         command: z.string().describe("Comando de shell (ex.: 'npm test', 'ls src')."),
       }),
       execute: async ({ command }) => {
-        const res = await sandbox.commands.run(command, { cwd: REPO_DIR, timeoutMs: 180_000 });
+        const res = await sandbox.run(command, { cwd: sandbox.repoDir, timeoutMs: 180_000 });
         return { exitCode: res.exitCode, stdout: clip(res.stdout), stderr: clip(res.stderr) };
       },
     }),
@@ -37,7 +37,7 @@ export function devTools(ctx: DevToolContext): ToolSet {
       inputSchema: z.object({ path: z.string() }),
       execute: async ({ path }) => {
         try {
-          const content = await sandbox.files.read(`${REPO_DIR}/${path}`);
+          const content = await sandbox.readFile(`${sandbox.repoDir}/${path}`);
           return { path, content: clip(content, 12_000) };
         } catch (err) {
           return { path, error: err instanceof Error ? err.message : String(err) };
@@ -52,7 +52,7 @@ export function devTools(ctx: DevToolContext): ToolSet {
         content: z.string().describe("Conteúdo completo do arquivo."),
       }),
       execute: async ({ path, content }) => {
-        await sandbox.files.write(`${REPO_DIR}/${path}`, content);
+        await sandbox.writeFile(`${sandbox.repoDir}/${path}`, content);
         return { ok: true, path };
       },
     }),
