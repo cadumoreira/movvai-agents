@@ -6,8 +6,17 @@
 ## Onde estamos
 - Branch `main` = `claude/epic-noether-LF2dW` (sincronizadas).
 - Núcleo do produto **completo e com maturidade de produção** (testes + CI + auditoria + RBAC + billing).
-- **Nunca foi executado contra Slack/E2B/Linear/GitHub reais** — só validado por typecheck + 26 testes.
-  Primeiro teste real é o maior valor pendente.
+- **Primeiro teste real JÁ FOI FEITO e o código está validado:** o agente PM (Ana) rodou de
+  verdade — a requisição chegou na Anthropic e funcionou; o único bloqueio foi **saldo da conta
+  Anthropic** ("credit balance too low"). Ou seja, o pipeline está OK ponta a ponta.
+- **Próximo passo imediato:** adicionar créditos na Anthropic (console → Plans & Billing) OU usar
+  outro provedor com saldo, e rodar `npm run try:pm` para criar o primeiro ticket no Linear.
+
+## Chaves já configuradas pelo usuário (no `.env` local da máquina dele)
+- **Anthropic** (válida, mas conta sem créditos no momento do teste) · **Linear** (válida).
+- **Faltam** (opcionais por nível): **GitHub token** (Dev abrir PR), **Slack** (time completo),
+  **E2B** (só se usar sandbox na nuvem; o default é `local`).
+- Tudo é configurável pelo **backoffice** (`npm run backoffice`, http://localhost:4000).
 
 ## O que já existe
 - **5 agentes**: PM (Ana) → Tech Lead (Rui) → Dev (Téo) → QA (Bia) → Delivery (Dani) + **conselho multi-modelo**.
