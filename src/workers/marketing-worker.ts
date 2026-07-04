@@ -6,6 +6,7 @@ import { slackApprover, type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
+import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
 
 /**
  * Worker das especialistas de marketing: consome "marketing-work", instancia a persona
@@ -54,7 +55,8 @@ export function startMarketingWorker(slack: WebClient): void {
       const initial =
         `Produza o entregável da sua frente para o brief "${task.brief.title}".` +
         `${briefRef ? `\n${briefRef}` : ""}\n\n${task.instructions}\n\n` +
-        `Registre o entregável no Notion e chame request_publish_approval antes de dá-lo como aprovado.`;
+        `Registre o entregável no Notion e chame request_publish_approval antes de dá-lo como aprovado.` +
+        formatPreflight(preflight(task.discipline));
 
       const { text } = await runAgent(specialist, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "entregável finalizado");

@@ -7,6 +7,7 @@ import { slackApprover, type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
+import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
 
 /**
  * Worker do Dev: consome jobs "dev-task", sobe um sandbox efêmero, roda o agente Dev
@@ -18,6 +19,14 @@ export function startDevWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
     const cardKey = `${task.threadKey}:dev`;
+    // Preflight: dependência ESSENCIAL ausente aborta ANTES de subir sandbox/gastar tokens.
+    const checks = preflight("dev");
+    const missing = missingRequired(checks);
+    if (missing.length) {
+      track(cardKey, { title: task.ticket.title, agent: "Téo (Dev)", squad: "produto", column: "concluido", outcome: "falha" }, "dependências essenciais ausentes");
+      await post(`:warning: Não consigo começar *${task.ticket.title}* — falta: ${missing.map((m) => `${m.label} (${m.hint})`).join("; ")}.`);
+      return;
+    }
     let sandbox: Sandbox | undefined;
     try {
       const target = parseRepo(task.repo);
@@ -53,7 +62,8 @@ export function startDevWorker(slack: WebClient): void {
       const initial =
         `Implemente a seguinte demanda.${ticketRef}\n\n${task.instructions}\n\n` +
         `O repositório já está disponível no sandbox (use caminhos relativos). Investigue, implemente, rode os testes e, ` +
-        `quando estiver pronto e verde, chame request_pr_approval para pedir o OK antes de abrir o PR.`;
+        `quando estiver pronto e verde, chame request_pr_approval para pedir o OK antes de abrir o PR.` +
+        formatPreflight(checks);
 
       const { text } = await runAgent(dev, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "frente encerrada");

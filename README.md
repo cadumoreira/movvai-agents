@@ -91,6 +91,12 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Preflight de dependências (todo trabalho, não só marca):** antes de o agente começar, o worker
+  verifica deterministicamente as dependências DAQUELE tipo de trabalho — conhecimento (brand,
+  skills), integrações (Notion, WordPress, webhook, GA4, GitHub, sandbox) — e entrega o **mapa no
+  prompt** com instrução de degradação para cada ausência. Dependência **essencial** ausente (ex.:
+  Dev sem `GITHUB_TOKEN`) **aborta antes de gastar tokens**, com aviso claro na thread. Insumo da
+  tarefa (público? prazo?) continua com o briefing interativo (`ask_clarification`).
 - **Brand Center (contexto da empresa em TODO fluxo):** `brand/perfil.md` (quem somos, produto,
   tom, público) é **injetado no prompt de todos os agentes** — ninguém trabalha sem saber quem é a
   marca. Documentos profundos (`brand/brand-book.md`, `personas.md`, `produto.md`...) são carregados

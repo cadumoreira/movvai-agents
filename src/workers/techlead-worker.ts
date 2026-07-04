@@ -5,6 +5,7 @@ import { createTechLeadAgent } from "../agents/tech-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
+import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
 
 /**
  * Worker do Tech Lead: consome "techlead-task", desenha a abordagem (sem sandbox —
@@ -16,6 +17,13 @@ export function startTechLeadWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
     const cardKey = `${task.threadKey}:techlead`;
+    const checks = preflight("techlead");
+    const missing = missingRequired(checks);
+    if (missing.length) {
+      track(cardKey, { title: task.ticket.title, agent: "Rui (Tech Lead)", squad: "produto", column: "concluido", outcome: "falha" }, "dependências essenciais ausentes");
+      await post(`:warning: Não consigo desenhar *${task.ticket.title}* — falta: ${missing.map((m) => `${m.label} (${m.hint})`).join("; ")}.`);
+      return;
+    }
     try {
       track(
         cardKey,
@@ -35,7 +43,8 @@ export function startTechLeadWorker(slack: WebClient): void {
       const idRef = task.ticket.identifier ? `\nIdentificador: ${task.ticket.identifier}` : "";
       const initial =
         `Defina a abordagem técnica para a demanda a seguir e delegue ao Dev.${ticketRef}${idRef}\n\n` +
-        `${task.instructions}\n\nInvestigue o repositório, registre o design no ticket e chame delegate_to_dev.`;
+        `${task.instructions}\n\nInvestigue o repositório, registre o design no ticket e chame delegate_to_dev.` +
+        formatPreflight(checks);
 
       const { text } = await runAgent(techLead, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "abordagem definida e delegada");
