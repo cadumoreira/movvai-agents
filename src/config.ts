@@ -65,6 +65,8 @@ export const config = {
     // Identificador da organização (fundação para multi-org; tagueia a auditoria).
     orgId: optional("ORG_ID", "default"),
   },
+  // Skills: playbooks em Markdown carregados sob demanda pelos agentes (skills/<papel>/*.md).
+  skillsDir: optional("SKILLS_DIR", "skills"),
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
   embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),

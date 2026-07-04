@@ -2,6 +2,7 @@ import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import { qaTools, type QaToolContext } from "../tools/qa-tools.js";
 import { councilTools } from "../tools/council.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
 
 const SYSTEM = `Você é a **Bia**, QA de um time de produto autônomo. Você revisa Pull Requests com
 rigor mas sem ser chata: foca no que importa (corretude, testes, riscos), não em nitpick de estilo.
@@ -29,9 +30,9 @@ export function createQaAgent(ctx: QaToolContext, model?: string): Agent {
   return {
     id: "qa",
     name: "Bia (QA)",
-    system: SYSTEM,
+    system: SYSTEM + skillsPromptHint("qa"),
     model: model ?? config.models.qa,
-    tools: { ...qaTools(ctx), ...councilTools() },
+    tools: { ...qaTools(ctx), ...councilTools(), ...skillTools("qa") },
     maxSteps: 20,
     tokenBudget: config.tokenBudget,
   };

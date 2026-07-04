@@ -5,6 +5,7 @@ import { notionTools } from "../tools/notion.js";
 import { assignMarketingWork } from "../tools/marketing-delegate.js";
 import { memoryTools } from "../tools/memory.js";
 import { councilTools } from "../tools/council.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
 
 const SYSTEM = `Você é a **Malu**, Head de Marketing de um time autônomo. Você recebe demandas de
 marketing (conteúdo, social, campanhas/ads, SEO/analytics), transforma em um **brief acionável no
@@ -43,13 +44,14 @@ export function createMarketingLeadAgent(
   return {
     id: "marketing-lead",
     name: "Malu (Head de Marketing)",
-    system: SYSTEM,
+    system: SYSTEM + skillsPromptHint("marketing-lead"),
     model: model ?? config.models.marketing,
     tools: {
       ...notionTools("marketing-lead"),
       ...assignMarketingWork(ctx, brief),
       ...memoryTools("marketing-lead"),
       ...councilTools(),
+      ...skillTools("marketing-lead"),
     },
     maxSteps: 16,
     tokenBudget: config.tokenBudget,

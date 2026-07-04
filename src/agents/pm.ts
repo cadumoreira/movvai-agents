@@ -8,6 +8,7 @@ import { delegateToDev, delegateToTechLead } from "../tools/delegate.js";
 import { delegateToMarketing } from "../tools/marketing-delegate.js";
 import { memoryTools } from "../tools/memory.js";
 import { manusTools } from "../tools/manus.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
 
 const SYSTEM = `Você é a **Ana**, a Product Manager de um time de produto autônomo. Você conversa
 no Slack como uma colega humana: direta, prática e colaborativa.
@@ -47,7 +48,7 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
   return {
     id: "pm",
     name: "Ana (PM)",
-    system: SYSTEM,
+    system: SYSTEM + skillsPromptHint("pm"),
     model: model ?? config.models.pm,
     tools: {
       ...githubTools(),
@@ -58,6 +59,7 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
       ...delegateToMarketing(ctx),
       ...memoryTools("pm"),
       ...manusTools(),
+      ...skillTools("pm"),
     },
     maxSteps: 12,
     tokenBudget: config.tokenBudget,

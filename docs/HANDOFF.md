@@ -33,7 +33,10 @@
   aprovação → Concluído, com squad e desfecho) + atividade, aprovações, auditoria, billing.
   Demo do kanban sem chaves/custo: `npm run demo:board` (aprovações reais pelos botões).
 - **Backoffice** (`:4000`, `npm run backoffice`): configura tudo pela web (grava no `.env`).
-- **Qualidade**: 38 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Skills (playbooks)**: Markdown em `skills/shared/` (todos) e `skills/<papel>/` (por papel),
+  carregado sob demanda via `list_skills`/`load_skill` — lido do disco a cada chamada (edita sem
+  redeploy). Exemplos inclusos para o squad de marketing; a dica só entra no prompt se houver skill.
+- **Qualidade**: 45 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -44,7 +47,7 @@ npm run try:pm -- "descrição completa do bug"   # PM cria ticket no Linear
 npm run try:dev -- "tarefa"                      # Dev no sandbox (local) abre PR
 npm run dev                                       # time completo no Slack + painel :3000
 npm run demo:board                                # kanban demo (sem chaves) em :3000
-npm test                                          # 38 testes
+npm test                                          # 45 testes
 ```
 
 ## Pendências (backlog priorizado)

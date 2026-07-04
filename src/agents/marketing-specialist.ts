@@ -5,6 +5,7 @@ import { config } from "../config.js";
 import type { MarketingDiscipline } from "../queue/types.js";
 import { notionTools } from "../tools/notion.js";
 import { memoryTools } from "../tools/memory.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import type { Approver } from "../approvals/gate.js";
 import { audit } from "../audit/log.js";
 
@@ -121,12 +122,13 @@ export function createMarketingSpecialistAgent(
   return {
     id: persona.id,
     name: persona.name,
-    system: buildSystem(persona),
+    system: buildSystem(persona) + skillsPromptHint(persona.id),
     model: model ?? config.models.marketing,
     tools: {
       ...notionTools(persona.id),
       ...publishApprovalTool(discipline, ctx),
       ...memoryTools(persona.id),
+      ...skillTools(persona.id),
     },
     maxSteps: 16,
     tokenBudget: config.tokenBudget,

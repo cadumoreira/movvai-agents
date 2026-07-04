@@ -59,6 +59,13 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Skills (playbooks curados):** conhecimento procedural em Markdown que os agentes carregam **sob
+  demanda** — `skills/shared/*.md` (todos) e `skills/<papel>/*.md` (só aquele papel, ex.:
+  `skills/mkt-social/`). O agente vê o índice (`list_skills`) e carrega só o relevante
+  (`load_skill`); o arquivo é lido do disco a cada chamada, então **editar o playbook muda o
+  comportamento sem redeploy**. Complementa a memória de longo prazo: memória é o que os agentes
+  aprendem; skills são o que você cura. Exemplos inclusos (tom de voz, formatos por canal,
+  estrutura de artigo, playbook de lançamento) — edite-os com o conteúdo da sua marca.
 - **Squad de MARKETING** (ao lado do time de produto): a Ana reconhece demandas de marketing e delega à
   **Malu (Head de Marketing)**, que cria o **brief no Notion** e aciona as especialistas por frente —
   **Caio** (conteúdo/blog/copy), **Sofia** (social media), **Leo** (campanhas/ads) e **Nina** (SEO/analytics).
@@ -83,7 +90,7 @@ src/
 ├── sandbox/              # e2b (sandbox efêmero) + repo (helpers) — token nunca entra
 ├── git/                  # fetch (tarball→sandbox) + committer (commit/PR no host)
 ├── workers/              # techlead, dev, qa, delivery, marketing(-lead) (reagem aos jobs)
-├── tools/                # github(-write), linear, notion, delegate, dev-tools, qa-tools, memory
+├── tools/                # github(-write), linear, notion, delegate, dev-tools, qa-tools, memory, skills
 ├── connectors/slack.ts   # bot do Slack (Socket Mode): menções + aprovações
 ├── scripts/              # try-pm e try-dev (smoke tests por terminal)
 ├── memory/               # thread-memory (curto prazo) + long-term (pgvector)
