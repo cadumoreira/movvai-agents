@@ -29,9 +29,11 @@
 - **Aprovação humana** nos pontos-chave (Slack botões **ou** painel web).
 - **Custo**: roteamento por modelo, prompt caching, orçamento de tokens, billing por org.
 - **Observabilidade**: logs de custo/cache-hit + OpenTelemetry → Langfuse.
-- **Painel web** (`:3000`): **kanban da atuação dos agentes** (Fila → Em atuação → Aguardando
-  aprovação → Concluído, com squad e desfecho) + atividade, aprovações, auditoria, billing.
-  Demo do kanban sem chaves/custo: `npm run demo:board` (aprovações reais pelos botões).
+- **Painel web** (`:3000`): **kanban interativo** (Fila → Em atuação → Aguardando humano →
+  Concluído): aprovar/recusar e responder perguntas DIRETO no card (aprovação casada por
+  thread+agente), filtro por squad, busca, e **dossiê** no clique (timeline completa + decisões).
+  Também: atividade, aprovações, perguntas, auditoria, billing. Demo sem chaves/custo:
+  `npm run demo:board` (aprovações e pergunta da Malu reais, respondíveis pelo painel).
 - **Backoffice** (`:4000`, `npm run backoffice`): configura tudo pela web (grava no `.env`).
 - **Skills (playbooks)**: Markdown em `skills/shared/` (todos) e `skills/<papel>/` (por papel),
   carregado sob demanda via `list_skills`/`load_skill` — lido do disco a cada chamada (edita sem

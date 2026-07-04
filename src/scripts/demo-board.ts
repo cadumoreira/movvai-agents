@@ -2,6 +2,7 @@ import "dotenv/config";
 import { startDashboard } from "../web/server.js";
 import { track } from "../board/board.js";
 import { register } from "../approvals/registry.js";
+import { askQuestion, answerQuestion } from "../approvals/questions.js";
 
 /**
  * Demo do kanban: sobe o painel e simula os dois squads trabalhando — cards andando
@@ -19,14 +20,30 @@ console.log(`\nDemo do board: abra http://localhost:${port} e acompanhe o kanban
 
 const sleep = (s: number) => new Promise((r) => setTimeout(r, s * 1000));
 
+const threadKeyOf = (cardKey: string) => cardKey.slice(0, cardKey.lastIndexOf(":"));
+
 /** Portão de aprovação da demo: pendura no registro central e espera o clique no painel. */
 async function approvalStep(cardKey: string, text: string): Promise<boolean> {
-  track(cardKey, { column: "aprovacao" }, "pediu OK humano — decida no painel");
+  track(cardKey, { column: "aprovacao" }, "pediu OK humano — decida no painel (ou direto no card)");
   console.log(`⏸  Aguardando aprovação no painel: "${text}"`);
-  const { promise } = register(text);
+  const { promise } = register(text, threadKeyOf(cardKey));
   const d = await promise;
   track(cardKey, { column: "execucao" }, d.approved ? "aprovado pelo humano" : "recusado pelo humano");
   return d.approved;
+}
+
+/** Pergunta de esclarecimento da demo: responda no card do painel (45s até seguir com o padrão). */
+async function questionStep(cardKey: string, askedBy: string, question: string): Promise<string> {
+  track(cardKey, { column: "aprovacao" }, `perguntou: ${question}`);
+  console.log(`⏸  Pergunta no painel (45s): "${question}"`);
+  const answered = await Promise.race([
+    askQuestion(threadKeyOf(cardKey), question, askedBy),
+    sleep(45).then(() => null),
+  ]);
+  if (answered === null) answerQuestion(threadKeyOf(cardKey), "(sem resposta — seguindo com o padrão)", "demo:timeout");
+  const answer = answered ?? "(sem resposta — seguindo com o padrão)";
+  track(cardKey, { column: "execucao" }, `resposta: ${answer.slice(0, 60)}`);
+  return answer;
 }
 
 async function squadProduto(run: number): Promise<void> {
@@ -70,6 +87,9 @@ async function squadMarketing(run: number): Promise<void> {
 
   track(t("marketing-lead"), { title, agent: "Malu (Head de Marketing)", squad: "marketing", column: "fila" }, "demanda delegada pela Ana");
   await sleep(2);
+  track(t("marketing-lead"), { column: "execucao" }, "lendo a demanda");
+  await sleep(2);
+  await questionStep(t("marketing-lead"), "Malu (Head de Marketing)", "Qual é o público prioritário da campanha?");
   track(t("marketing-lead"), { column: "execucao" }, "montando o brief no Notion");
   await sleep(5);
   track(t("marketing-lead"), { column: "concluido", outcome: "ok" }, "brief pronto; frentes acionadas");

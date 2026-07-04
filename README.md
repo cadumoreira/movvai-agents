@@ -51,6 +51,10 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   **Fila → Em atuação → Aguardando humano → Concluído**, com squad (produto/marketing), última
   nota de progresso e desfecho (ok/falha/recusado). Instrumentado nos handoffs reais (menção,
   delegações, workers e portão de aprovação). Demo sem custo/chaves: `npm run demo:board`.
+  - **Interativo:** aprovar/recusar e **responder perguntas direto no card** (a aprovação certa é
+    casada por thread+agente), filtro por squad e busca por título/agente.
+  - **Dossiê:** clicar no card abre a frente completa — timeline de todas as notas (links
+    clicáveis), status, timestamps e as decisões pendentes dela.
 - **Rotinas agendadas (cron):** o time trabalha proativamente — relatório de SEO toda segunda,
   calendário social toda sexta. Defina em `schedules.json` (veja `schedules.example.json`; relido
   a cada tick, sem redeploy): `{ name, cron, target, instructions }` com target `marketing`,
