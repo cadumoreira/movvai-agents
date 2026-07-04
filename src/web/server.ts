@@ -75,16 +75,26 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
       res.end(PAGE);
       return;
     }
-    // Assets gerados (criativos): servidos do ASSETS_DIR. basename barra path traversal.
-    if (req.method === "GET" && path.startsWith("/assets/")) {
-      const file = basename(decodeURIComponent(path.slice("/assets/".length)));
-      const full = join(config.assets.dir, file);
-      if (!file || !existsSync(full)) return json(res, 404, { error: "not found" });
-      const type = file.endsWith(".png") ? "image/png" : file.endsWith(".jpg") || file.endsWith(".jpeg") ? "image/jpeg" : "application/octet-stream";
+    // Assets (criativos gerados e arquivos da marca). basename barra path traversal.
+    const serveFile = (dir: string, prefix: string): boolean => {
+      if (req.method !== "GET" || !path.startsWith(prefix)) return false;
+      const file = basename(decodeURIComponent(path.slice(prefix.length)));
+      const full = join(dir, file);
+      if (!file || !existsSync(full)) {
+        json(res, 404, { error: "not found" });
+        return true;
+      }
+      const type = file.endsWith(".png") ? "image/png"
+        : file.endsWith(".jpg") || file.endsWith(".jpeg") ? "image/jpeg"
+        : file.endsWith(".svg") ? "image/svg+xml"
+        : file.endsWith(".webp") ? "image/webp"
+        : "application/octet-stream";
       res.writeHead(200, { "Content-Type": type, "Cache-Control": "public, max-age=3600" });
       res.end(readFileSync(full));
-      return;
-    }
+      return true;
+    };
+    if (serveFile(config.assets.dir, "/assets/")) return;
+    if (serveFile(join(config.brandDir, "assets"), "/brand-assets/")) return;
     if (req.method === "GET" && path === "/api/board") {
       return json(res, 200, {
         columns: BOARD_COLUMNS.map((id) => ({ id, label: COLUMN_LABELS[id] })),

@@ -10,6 +10,7 @@ import { askTools, type AskThread } from "../tools/ask.js";
 import { publishTools, type PublishGate } from "../tools/publish-tools.js";
 import { imageTools } from "../tools/image.js";
 import { analyticsTools } from "../tools/analytics.js";
+import { brandPromptBlock, brandTools } from "../brand/context.js";
 import { createMarketingReviewerAgent, parseReviewVerdict } from "./marketing-reviewer.js";
 import { runAgent } from "../agent-runtime/run.js";
 import type { Approver } from "../approvals/gate.js";
@@ -183,7 +184,7 @@ export function createMarketingSpecialistAgent(
   return {
     id: persona.id,
     name: persona.name,
-    system: buildSystem(persona) + skillsPromptHint(persona.id),
+    system: buildSystem(persona) + brandPromptBlock() + skillsPromptHint(persona.id),
     model: model ?? config.models.marketing,
     tools: {
       ...notionTools(persona.id),
@@ -193,6 +194,7 @@ export function createMarketingSpecialistAgent(
       ...(discipline === "seo" ? analyticsTools() : {}),
       ...memoryTools(persona.id),
       ...skillTools(persona.id),
+      ...brandTools(),
       ...(ctx.thread ? askTools(ctx.thread, persona.name, cardKey) : {}),
     },
     maxSteps: 20,

@@ -35,6 +35,9 @@
   Também: atividade, aprovações, perguntas, auditoria, billing. Demo sem chaves/custo:
   `npm run demo:board` (aprovações e pergunta da Malu reais, respondíveis pelo painel).
 - **Backoffice** (`:4000`, `npm run backoffice`): configura tudo pela web (grava no `.env`).
+- **Brand Center**: brand/perfil.md injetado no prompt dos 8 agentes (fonte de verdade da
+  empresa); docs profundos via list/read_brand_doc; brand/assets servidos em /brand-assets.
+  Exemplos placeholders inclusos — preencher com a marca real é parte do onboarding.
 - **Skills (playbooks)**: Markdown em `skills/shared/` (todos) e `skills/<papel>/` (por papel),
   carregado sob demanda via `list_skills`/`load_skill` — lido do disco a cada chamada (edita sem
   redeploy). Exemplos inclusos para o squad de marketing; a dica só entra no prompt se houver skill.
@@ -54,7 +57,7 @@
   SDK) — `ga4_report` e `search_console_query` na Nina.
 - **Design system**: app shell estilo ClickUp (sidebar com views e badges, board com pills de
   status, avatares por agente, roxo #7B68EE); squads validados (#2563EB / #DB2777 — ALL PASS).
-- **Qualidade**: 70 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 76 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -65,7 +68,7 @@ npm run try:pm -- "descrição completa do bug"   # PM cria ticket no Linear
 npm run try:dev -- "tarefa"                      # Dev no sandbox (local) abre PR
 npm run dev                                       # time completo no Slack + painel :3000
 npm run demo:board                                # kanban demo (sem chaves) em :3000
-npm test                                          # 70 testes
+npm test                                          # 76 testes
 ```
 
 ## Pendências (backlog priorizado)

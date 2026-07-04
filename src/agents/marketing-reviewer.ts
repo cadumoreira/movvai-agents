@@ -2,6 +2,7 @@ import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import type { MarketingDiscipline } from "../queue/types.js";
 import { skillTools } from "../tools/skills.js";
+import { brandPromptBlock } from "../brand/context.js";
 
 /**
  * Vera, a revisora de marketing: valida o entregável contra os playbooks (skills) da
@@ -30,7 +31,7 @@ export function createMarketingReviewerAgent(discipline: MarketingDiscipline, mo
   return {
     id: "mkt-revisao",
     name: "Vera (Revisão)",
-    system: SYSTEM,
+    system: SYSTEM + brandPromptBlock(),
     model: model ?? config.models.marketing,
     // A Vera enxerga as MESMAS skills da disciplina que está revisando (+ as shared).
     tools: skillTools(`mkt-${discipline}`),

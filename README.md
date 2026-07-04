@@ -91,6 +91,12 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Brand Center (contexto da empresa em TODO fluxo):** `brand/perfil.md` (quem somos, produto,
+  tom, público) é **injetado no prompt de todos os agentes** — ninguém trabalha sem saber quem é a
+  marca. Documentos profundos (`brand/brand-book.md`, `personas.md`, `produto.md`...) são carregados
+  **sob demanda** (`list_brand_docs`/`read_brand_doc`), e os **arquivos da marca** (logo, templates)
+  em `brand/assets/` ganham URL via painel (`/brand-assets/...`) para criativos e automações.
+  Tudo Markdown editável sem redeploy; exemplos inclusos (⚠️ placeholders — preencha com a sua marca).
 - **Skills (playbooks curados):** conhecimento procedural em Markdown que os agentes carregam **sob
   demanda** — `skills/shared/*.md` (todos) e `skills/<papel>/*.md` (só aquele papel, ex.:
   `skills/mkt-social/`). O agente vê o índice (`list_skills`) e carrega só o relevante

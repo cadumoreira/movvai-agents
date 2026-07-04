@@ -3,6 +3,7 @@ import { config } from "../config.js";
 import { linearTools } from "../tools/linear.js";
 import { memoryTools } from "../tools/memory.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
+import { brandPromptBlock } from "../brand/context.js";
 
 const SYSTEM = `Você é a **Dani**, Delivery Manager de um time de produto autônomo. Você acompanha a
 entrega e comunica o status de forma clara para o time.
@@ -23,7 +24,7 @@ export function createDeliveryAgent(model?: string): Agent {
   return {
     id: "delivery",
     name: "Dani (Delivery)",
-    system: SYSTEM + skillsPromptHint("delivery"),
+    system: SYSTEM + brandPromptBlock() + skillsPromptHint("delivery"),
     model: model ?? config.models.qa,
     tools: { ...linearTools(), ...memoryTools("delivery"), ...skillTools("delivery") },
     maxSteps: 8,

@@ -7,6 +7,7 @@ import { memoryTools } from "../tools/memory.js";
 import { councilTools } from "../tools/council.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools } from "../tools/ask.js";
+import { brandPromptBlock, brandTools } from "../brand/context.js";
 
 const SYSTEM = `Você é a **Malu**, Head de Marketing de um time autônomo. Você recebe demandas de
 marketing (conteúdo, social, campanhas/ads, SEO/analytics), transforma em um **brief acionável no
@@ -48,7 +49,7 @@ export function createMarketingLeadAgent(
   return {
     id: "marketing-lead",
     name: "Malu (Head de Marketing)",
-    system: SYSTEM + skillsPromptHint("marketing-lead"),
+    system: SYSTEM + brandPromptBlock() + skillsPromptHint("marketing-lead"),
     model: model ?? config.models.marketing,
     tools: {
       ...notionTools("marketing-lead"),
@@ -56,6 +57,7 @@ export function createMarketingLeadAgent(
       ...memoryTools("marketing-lead"),
       ...councilTools(),
       ...skillTools("marketing-lead"),
+      ...brandTools(),
       ...askTools(
         { channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey, slack: ctx.slack },
         "Malu (Head de Marketing)",

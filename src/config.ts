@@ -67,6 +67,8 @@ export const config = {
   },
   // Skills: playbooks em Markdown carregados sob demanda pelos agentes (skills/<papel>/*.md).
   skillsDir: optional("SKILLS_DIR", "skills"),
+  // Brand Center: contexto da empresa em todo fluxo (brand/perfil.md + docs + assets).
+  brandDir: optional("BRAND_DIR", "brand"),
   // Rotinas agendadas (cron) — arquivo JSON relido a cada tick; ausente = sem rotinas.
   schedulesPath: optional("SCHEDULES_PATH", "schedules.json"),
   // Revisora de marketing (Vera) valida entregáveis contra os playbooks antes do humano.
