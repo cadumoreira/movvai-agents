@@ -150,6 +150,9 @@ const PAGE = `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>movvai — Dream Team</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
   /*
    * Design system — app shell estilo ClickUp: sidebar de navegação, views, board
@@ -180,7 +183,7 @@ const PAGE = `<!doctype html>
   }
   * { box-sizing: border-box; }
   body {
-    font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 14px/1.5 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     background: var(--bg); color: var(--ink); margin: 0;
     -webkit-font-smoothing: antialiased;
   }
@@ -265,6 +268,27 @@ const PAGE = `<!doctype html>
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
   .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--brand); }
   .timeline .muted { display: block; }
+  /* ── Polimento ──────────────────────────────────────────────────────── */
+  .navlabel { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 4px 10px 6px; }
+  .side nav a { position: relative; transition: background .12s, color .12s; }
+  .side nav a.active::before { content: ""; position: absolute; left: -10px; top: 7px; bottom: 7px; width: 3px; border-radius: 99px; background: var(--brand); }
+  .top { justify-content: space-between; }
+  .facepile { display: flex; align-items: center; }
+  .facepile .avatar { width: 26px; height: 26px; font-size: 11px; margin-left: -7px; border: 2px solid var(--surface); box-shadow: 0 1px 2px rgba(41,45,52,.10); }
+  .facepile .avatar:first-child { margin-left: 0; }
+  .stats { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; min-width: 158px; flex: 1; max-width: 230px; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.04); }
+  .stat .num { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+  .stat .lbl { font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; display: inline-block; flex: none; }
+  .kcard { border-radius: 12px; animation: pop .18s ease-out; }
+  #modal { animation: pop .18s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(4px); } }
+  button:active { transform: scale(0.97); }
+  .kempty { padding: 22px 10px; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-track { background: transparent; }
 </style>
 </head>
 <body>
@@ -274,6 +298,7 @@ const PAGE = `<!doctype html>
       <div class="wmark">m</div>
       <div><div class="wname">movvai</div><div class="wsub">Dream Team</div></div>
     </div>
+    <div class="navlabel">Visões</div>
     <nav id="nav">
       <a data-view="board" class="active"><span class="lchip" style="background:#7B68EE">B</span> Board</a>
       <a data-view="aprovacoes"><span class="lchip" style="background:#2EBD85">A</span> Aprovações <span class="badge" id="b-aps" hidden></span></a>
@@ -285,9 +310,10 @@ const PAGE = `<!doctype html>
     <div class="side-foot"><span class="livedot"></span> ao vivo · atualiza a cada 2s</div>
   </aside>
   <main>
-    <header class="top"><span class="crumb">Espaço · <b>Marketing &amp; Produto</b> · <span id="viewtitle">Board</span></span></header>
+    <header class="top"><span class="crumb">Espaço · <b>Marketing &amp; Produto</b> · <span id="viewtitle">Board</span></span><div class="facepile" id="team" title="Agentes ativos"></div></header>
 
     <section id="view-board" class="view">
+      <div id="stats" class="stats"></div>
       <div class="toolbar">
         <input type="search" id="q" placeholder="Buscar por título ou agente…" />
         <button class="chip active" data-squad="todos">Todos</button>
@@ -585,7 +611,30 @@ function renderLists() {
   }
 }
 
-function render() { renderBoard(); renderLists(); renderModal(); }
+function renderStats() {
+  const cards = state.board.cards;
+  const count = col => cards.filter(c => c.column === col).length;
+  const today = new Date().toDateString();
+  const doneToday = cards.filter(c => c.column === 'concluido' && new Date(c.updatedAt).toDateString() === today).length;
+  const tiles = [
+    { n: count('execucao'), l: 'Em atuação', c: 'var(--col-execucao)' },
+    { n: count('aprovacao'), l: 'Aguardando você', c: 'var(--col-aprovacao)' },
+    { n: doneToday, l: 'Concluídas hoje', c: 'var(--col-concluido)' },
+    { n: count('fila'), l: 'Na fila', c: 'var(--col-fila)' },
+  ];
+  document.getElementById('stats').innerHTML = tiles.map(t =>
+    '<div class="stat"><div class="num">' + t.n + '</div>' +
+    '<div class="lbl"><span class="dot" style="background:' + t.c + '"></span>' + t.l + '</div></div>').join('');
+}
+function renderTeam() {
+  const seen = [];
+  for (const c of state.board.cards) if (!seen.includes(c.agent)) seen.push(c.agent);
+  const el = document.getElementById('team');
+  el.innerHTML = '';
+  for (const name of seen.slice(0, 8)) { const a = avatarEl(name); a.title = name; el.append(a); }
+}
+
+function render() { renderBoard(); renderLists(); renderStats(); renderTeam(); renderModal(); }
 refresh(); setInterval(refresh, 2000);
 </script>
 </body>
