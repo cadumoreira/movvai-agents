@@ -52,8 +52,8 @@
 - **Assets visuais**: `generate_image` (OpenAI Images) → ASSETS_DIR, servido em `/assets` no painel.
 - **Métricas**: GA4 Data API + Search Console via service account (JWT RS256 com node:crypto, sem
   SDK) — `ga4_report` e `search_console_query` na Nina.
-- **Design system**: painel corporativo claro (navy sóbrio); cores de squad validadas (produto
-  #2563EB, marketing #0D9488 — validate_palette ALL PASS na superfície branca).
+- **Design system**: painel corporativo clássico (topbar navy #16243A, base monocromática, cantos
+  retos); squads validados (produto #2E5EA8, marketing #9A6A1F — validate_palette ALL PASS).
 - **Qualidade**: 70 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 

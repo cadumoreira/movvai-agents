@@ -152,90 +152,94 @@ const PAGE = `<!doctype html>
 <title>movvai — Dream Team</title>
 <style>
   /*
-   * Design system do painel — corporativo: tema claro, navy sóbrio, sem gradientes
-   * ou glow. Cores de squad validadas (CVD/contraste) contra a superfície branca:
-   *   produto #2563EB · marketing #0D9488 — validate_palette: ALL CHECKS PASS.
+   * Design system do painel — corporativo clássico (portal enterprise): topbar
+   * escura, base quase monocromática, cantos retos, acento único em azul
+   * institucional. Cores de squad validadas (CVD/contraste) na superfície branca:
+   *   produto #2E5EA8 · marketing #9A6A1F (bronze) — validate_palette: ALL CHECKS PASS.
    * Status (reservado): ok verde · falha vermelho · recusado âmbar — sempre com rótulo.
    */
   :root {
     color-scheme: light;
-    --bg: #F5F6F8;
+    --topbar: #16243A;
+    --bg: #F7F8FA;
     --surface: #FFFFFF;
-    --well: #EFF1F4;
-    --border: #E3E6EB;
-    --border-strong: #C9CED6;
-    --ink: #1B2430;
-    --ink-2: #5A6472;
-    --ink-3: #8A93A2;
-    --accent: #1E3A66;
-    --produto: #2563EB;
-    --marketing: #0D9488;
-    --ok: #15803D;
-    --err: #B91C1C;
-    --warn: #B45309;
+    --well: #F1F3F5;
+    --border: #DDE2E8;
+    --border-strong: #B9C2CC;
+    --ink: #1F2937;
+    --ink-2: #52606D;
+    --ink-3: #7B8794;
+    --accent: #2E5EA8;
+    --produto: #2E5EA8;
+    --marketing: #9A6A1F;
+    --ok: #1E7A3E;
+    --err: #A63A3A;
+    --warn: #96690F;
   }
   * { box-sizing: border-box; }
   body {
-    font: 14px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 14px/1.5 "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, Arial, sans-serif;
     background: var(--bg);
     color: var(--ink);
-    margin: 0 auto; padding: 28px 24px 64px; max-width: 1240px;
+    margin: 0; padding: 0 0 64px;
     -webkit-font-smoothing: antialiased;
   }
-  /* Marca */
-  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .brand .mark { width: 24px; height: 24px; border-radius: 6px; background: var(--accent); }
-  .brand h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; margin: 0; color: var(--accent); }
-  .brand h1 span { color: var(--ink-3); font-weight: 500; }
-  .brand .env { margin-left: auto; font-size: 12px; color: var(--ink-2); border: 1px solid var(--border); background: var(--surface); padding: 2px 10px; border-radius: 4px; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); margin: 34px 0 4px; font-weight: 600; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 8px 0; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  /* Topbar institucional */
+  .brand { background: var(--topbar); color: #fff; }
+  .brand .inner { max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+  .brand .mark { width: 10px; height: 22px; background: var(--marketing); }
+  .brand h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.01em; margin: 0; color: #fff; }
+  .brand h1 span { color: #93A1B5; font-weight: 400; }
+  .brand .env { margin-left: auto; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: #B9C6D8; border: 1px solid #33455F; padding: 3px 10px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-2); margin: 34px 0 4px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 12px 14px; margin: 8px 0; }
   .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
   .muted { color: var(--ink-2); font-size: 12.5px; }
-  button { font: inherit; font-weight: 600; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
-  button:hover { border-color: var(--accent); }
-  .approve { background: var(--ok); color: #fff; border-color: var(--ok); }
-  .approve:hover { background: #166534; border-color: #166534; }
+  button { font: inherit; font-weight: 600; font-size: 13px; padding: 6px 14px; border-radius: 3px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  .approve { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .approve:hover { background: #244E8F; border-color: #244E8F; color: #fff; }
   .reject { background: var(--surface); color: var(--err); border-color: var(--border-strong); }
-  .reject:hover { border-color: var(--err); }
+  .reject:hover { border-color: var(--err); color: var(--err); }
   .empty { color: var(--ink-3); font-style: italic; font-size: 13px; }
-  a { color: var(--produto); text-decoration: none; }
+  a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   /* ── Kanban ─────────────────────────────────────────────────────────── */
   .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
   @media (max-width: 900px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .kcol { border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-height: 140px; background: var(--well); }
-  .kcol h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); margin: 4px 6px 10px; display: flex; justify-content: space-between; font-weight: 600; }
-  .kcard { border: 1px solid var(--border); border-left-width: 3px; border-radius: 6px; padding: 9px 11px; margin: 8px 0; font-size: 13px; background: var(--surface); cursor: pointer; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); transition: border-color .15s, box-shadow .15s; }
-  .kcard:hover { border-color: var(--border-strong); box-shadow: 0 2px 6px rgba(16, 24, 40, 0.08); }
+  .kcol { border: 1px solid var(--border); border-radius: 3px; padding: 10px; min-height: 140px; background: var(--well); }
+  .kcol h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-2); margin: 4px 6px 10px; display: flex; justify-content: space-between; font-weight: 600; }
+  .kcard { border: 1px solid var(--border); border-left-width: 3px; border-radius: 3px; padding: 9px 11px; margin: 8px 0; font-size: 13px; background: var(--surface); cursor: pointer; box-shadow: 0 1px 2px rgba(31, 41, 55, 0.05); transition: border-color .15s, box-shadow .15s; }
+  .kcard:hover { border-color: var(--border-strong); box-shadow: 0 2px 5px rgba(31, 41, 55, 0.10); }
   .kcard.produto { border-left-color: var(--produto); }
   .kcard.marketing { border-left-color: var(--marketing); }
-  .kcard .agent { font-weight: 600; letter-spacing: -0.01em; }
+  .kcard .agent { font-weight: 600; }
   .kcard .title { margin: 3px 0; color: var(--ink-2); }
-  .tag { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; padding: 0 7px; border-radius: 4px; border: 1px solid var(--border-strong); color: var(--ink-2); background: var(--surface); }
-  .kcard.produto .tag.squad, .tag.produto { color: var(--produto); border-color: rgba(37, 99, 235, 0.35); background: rgba(37, 99, 235, 0.06); }
-  .kcard.marketing .tag.squad, .tag.marketing { color: var(--marketing); border-color: rgba(13, 148, 136, 0.35); background: rgba(13, 148, 136, 0.06); }
-  .tag.ok { color: var(--ok); border-color: rgba(21, 128, 61, 0.35); background: rgba(21, 128, 61, 0.06); }
-  .tag.falha { color: var(--err); border-color: rgba(185, 28, 28, 0.35); background: rgba(185, 28, 28, 0.06); }
-  .tag.recusado { color: var(--warn); border-color: rgba(180, 83, 9, 0.35); background: rgba(180, 83, 9, 0.06); }
-  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--warn); animation: pulse 1.4s infinite; }
-  @keyframes pulse { 50% { opacity: 0.3; } }
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 7px; border-radius: 2px; border: 1px solid var(--border-strong); color: var(--ink-2); background: var(--surface); }
+  .kcard.produto .tag.squad, .tag.produto { color: var(--produto); border-color: rgba(46, 94, 168, 0.4); background: rgba(46, 94, 168, 0.05); }
+  .kcard.marketing .tag.squad, .tag.marketing { color: var(--marketing); border-color: rgba(154, 106, 31, 0.4); background: rgba(154, 106, 31, 0.05); }
+  .tag.ok { color: var(--ok); border-color: rgba(30, 122, 62, 0.4); background: rgba(30, 122, 62, 0.05); }
+  .tag.falha { color: var(--err); border-color: rgba(166, 58, 58, 0.4); background: rgba(166, 58, 58, 0.05); }
+  .tag.recusado { color: var(--warn); border-color: rgba(150, 105, 15, 0.4); background: rgba(150, 105, 15, 0.05); }
+  .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 99px; background: var(--warn); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
   /* ── Toolbar ────────────────────────────────────────────────────────── */
   .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
-  .toolbar input[type=search] { font: inherit; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border-strong); min-width: 240px; background: var(--surface); color: var(--ink); outline: none; }
-  .toolbar input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(30, 58, 102, 0.12); }
-  .chip { font-size: 12.5px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink-2); }
-  .chip:hover { border-color: var(--accent); color: var(--ink); }
-  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .toolbar input[type=search] { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 3px; border: 1px solid var(--border-strong); min-width: 240px; background: var(--surface); color: var(--ink); outline: none; }
+  .toolbar input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(46, 94, 168, 0.15); }
+  .chip { font-size: 12.5px; font-weight: 600; padding: 6px 16px; border-radius: 3px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink-2); }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip.active { background: var(--topbar); color: #fff; border-color: var(--topbar); }
   .kactions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
-  .kactions button { padding: 3px 10px; font-size: 12px; border-radius: 5px; }
-  .kactions input { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 5px; border: 1px solid var(--border-strong); flex: 1; min-width: 120px; background: var(--surface); color: var(--ink); outline: none; }
+  .kactions button { padding: 3px 12px; font-size: 12px; }
+  .kactions input { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 3px; border: 1px solid var(--border-strong); flex: 1; min-width: 120px; background: var(--surface); color: var(--ink); outline: none; }
   .kactions input:focus { border-color: var(--accent); }
   /* ── Modal (dossiê) ─────────────────────────────────────────────────── */
-  #overlay { position: fixed; inset: 0; background: rgba(27, 36, 48, 0.45); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
+  #overlay { position: fixed; inset: 0; background: rgba(22, 36, 58, 0.45); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
   #overlay.open { display: flex; }
-  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 10px; padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 16px 48px rgba(16, 24, 40, 0.18); }
-  #modal h3 { margin: 0 0 4px; font-size: 17px; letter-spacing: -0.01em; }
+  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 3px; border-top: 3px solid var(--topbar); padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 16px 48px rgba(31, 41, 55, 0.20); }
+  #modal h3 { margin: 0 0 4px; font-size: 16px; }
   .timeline { margin: 14px 0 0; padding: 0; list-style: none; border-left: 2px solid var(--border); }
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
   .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--accent); }
@@ -244,10 +248,13 @@ const PAGE = `<!doctype html>
 </head>
 <body>
   <div class="brand">
-    <div class="mark"></div>
-    <h1>movvai <span>/ dream team</span></h1>
-    <span class="env">ao vivo</span>
+    <div class="inner">
+      <div class="mark"></div>
+      <h1>movvai <span>· Dream Team</span></h1>
+      <span class="env">ao vivo</span>
+    </div>
   </div>
+  <div class="wrap">
   <h2>Board do time</h2>
   <div class="toolbar">
     <input type="search" id="q" placeholder="Buscar por título ou agente…" />
@@ -266,6 +273,7 @@ const PAGE = `<!doctype html>
   <div id="activity"></div>
   <h2>Auditoria</h2>
   <div id="audit"></div>
+  </div>
   <div id="overlay"><div id="modal"></div></div>
 <script>
 let state = { board: { columns: [], cards: [] }, approvals: [], questions: [], billing: [], activity: [], audit: [] };
@@ -336,8 +344,8 @@ function approvalWidget(a, compact) {
     const txt = document.createElement('div'); txt.className = 'muted'; txt.style.width = '100%';
     txt.innerHTML = linkify(a.text); box.append(txt);
   }
-  const yes = document.createElement('button'); yes.className = 'approve'; yes.textContent = '✅ Aprovar';
-  const no = document.createElement('button'); no.className = 'reject'; no.textContent = '❌ Recusar';
+  const yes = document.createElement('button'); yes.className = 'approve'; yes.textContent = 'Aprovar';
+  const no = document.createElement('button'); no.className = 'reject'; no.textContent = 'Recusar';
   yes.onclick = e => { e.stopPropagation(); decide(a.id, true); };
   no.onclick = e => { e.stopPropagation(); decide(a.id, false); };
   box.append(yes, no);
@@ -346,7 +354,7 @@ function approvalWidget(a, compact) {
 function questionWidget(q) {
   const box = document.createElement('div'); box.className = 'kactions';
   const label = document.createElement('div'); label.className = 'muted'; label.style.width = '100%';
-  label.textContent = '❓ ' + q.question; box.append(label);
+  label.textContent = 'Pergunta — ' + q.question; box.append(label);
   const input = document.createElement('input'); input.placeholder = 'Sua resposta…';
   const send = document.createElement('button'); send.textContent = 'Responder';
   const go = () => sendAnswer(q.threadKey, input.value);
