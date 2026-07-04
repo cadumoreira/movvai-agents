@@ -55,6 +55,12 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Squad de MARKETING** (ao lado do time de produto): a Ana reconhece demandas de marketing e delega à
+  **Malu (Head de Marketing)**, que cria o **brief no Notion** e aciona as especialistas por frente —
+  **Caio** (conteúdo/blog/copy), **Sofia** (social media), **Leo** (campanhas/ads) e **Nina** (SEO/analytics).
+  Os entregáveis nascem no Notion (subpáginas do brief) e passam pelo **mesmo portão de aprovação humana**
+  antes de serem dados como publicáveis. Liga com `NOTION_API_KEY` + (`NOTION_DATABASE_ID` ou
+  `NOTION_PARENT_PAGE_ID`); modelo do squad em `MARKETING_MODEL`.
 
 ## Como funciona (estrutura)
 
@@ -72,8 +78,8 @@ src/
 ├── approvals/gate.ts     # aprovação (Slack botões | terminal) com espera durável
 ├── sandbox/              # e2b (sandbox efêmero) + repo (helpers) — token nunca entra
 ├── git/                  # fetch (tarball→sandbox) + committer (commit/PR no host)
-├── workers/              # techlead, dev, qa, delivery (reagem aos jobs)
-├── tools/                # github(-write), linear, delegate, dev-tools, qa-tools, memory
+├── workers/              # techlead, dev, qa, delivery, marketing(-lead) (reagem aos jobs)
+├── tools/                # github(-write), linear, notion, delegate, dev-tools, qa-tools, memory
 ├── connectors/slack.ts   # bot do Slack (Socket Mode): menções + aprovações
 ├── scripts/              # try-pm e try-dev (smoke tests por terminal)
 ├── memory/               # thread-memory (curto prazo) + long-term (pgvector)
@@ -108,6 +114,10 @@ roteamento/caching/custo, aponte `MODEL_GATEWAY_BASE_URL` para um LiteLLM self-h
    - Fase 1 (Dev abre PR): `Contents:read+write` + `Pull requests:read+write`.
 
 6. **E2B:** crie uma conta em e2b.dev e coloque a chave em `E2B_API_KEY` (sandbox do Dev).
+
+7. **Notion (squad de marketing):** crie uma integração interna em notion.so/my-integrations
+   (`NOTION_API_KEY`), compartilhe com ela o database (`NOTION_DATABASE_ID`) **ou** a página-mãe
+   (`NOTION_PARENT_PAGE_ID`) onde os briefs devem nascer.
 
 ## Backoffice (configurar tudo pela web)
 

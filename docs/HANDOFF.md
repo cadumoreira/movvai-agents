@@ -20,6 +20,9 @@
 
 ## O que já existe
 - **5 agentes**: PM (Ana) → Tech Lead (Rui) → Dev (Téo) → QA (Bia) → Delivery (Dani) + **conselho multi-modelo**.
+- **Squad de MARKETING** (ao lado do time de produto): Malu (Head) planeja o **brief no Notion** e
+  delega por frente a Caio (conteúdo), Sofia (social), Leo (ads) e Nina (SEO/analytics). Entregáveis
+  no Notion com aprovação humana antes de publicar. Ativa com `NOTION_API_KEY` + database/página-mãe.
 - **Multi-provedor**: Anthropic, OpenAI, Google, Ollama (gateway via Vercel AI SDK) + Manus (agente externo).
 - **3 gatilhos**: menção no Slack, label em issue do GitHub, label no Linear (webhooks de entrada).
 - **Sandbox plugável**: `local` (na máquina, default sem E2B), `docker`, `e2b`. Token nunca entra no sandbox.
@@ -28,7 +31,7 @@
 - **Observabilidade**: logs de custo/cache-hit + OpenTelemetry → Langfuse.
 - **Painel web** (`:3000`): atividade, aprovações, auditoria, billing.
 - **Backoffice** (`:4000`, `npm run backoffice`): configura tudo pela web (grava no `.env`).
-- **Qualidade**: 26 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 32 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -38,7 +41,7 @@ npm run backoffice    # http://localhost:4000 — preencher chaves; ver status d
 npm run try:pm -- "descrição completa do bug"   # PM cria ticket no Linear
 npm run try:dev -- "tarefa"                      # Dev no sandbox (local) abre PR
 npm run dev                                       # time completo no Slack + painel :3000
-npm test                                          # 26 testes
+npm test                                          # 32 testes
 ```
 
 ## Pendências (backlog priorizado)
@@ -53,7 +56,8 @@ npm test                                          # 26 testes
 - Estado volátil em memória (acima) exceto logs de auditoria/billing (JSONL).
 - 1 bot no Slack (sem identidade por agente).
 - Egress allowlist por domínio é config de template do E2B (não imposto no código).
-- Endpoints do Manus/Jira a validar contra a doc oficial.
+- Endpoints do Manus/Jira a validar contra a doc oficial; conector Notion a validar com um
+  workspace real (integração interna + compartilhamento do database/página).
 
 ## ⚠️ Importante para a próxima sessão
 - **O contêiner é efêmero**: o que não está no GitHub se perde. Sempre `commit` + `push` ao terminar.

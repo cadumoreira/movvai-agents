@@ -21,6 +21,8 @@ export const config = {
     pm: optional("PM_MODEL", "anthropic:claude-sonnet-4-6"),
     dev: optional("DEV_MODEL", "anthropic:claude-opus-4-8"),
     qa: optional("QA_MODEL", "anthropic:claude-sonnet-4-6"),
+    // Squad de marketing (Head + especialistas). Roteado por custo como os demais.
+    marketing: optional("MARKETING_MODEL", "anthropic:claude-sonnet-4-6"),
     // Modelo barato para tarefas simples (roteamento de custo por tier).
     cheap: optional("CHEAP_MODEL", "anthropic:claude-haiku-4-5"),
     gatewayBaseUrl: optional("MODEL_GATEWAY_BASE_URL"),
@@ -125,6 +127,15 @@ export const config = {
     get webhookSecret() {
       return optional("GITHUB_WEBHOOK_SECRET");
     },
+  },
+  // Notion — board do squad de marketing (briefs, calendário, rascunhos). Ativo só com a chave.
+  notion: {
+    get apiKey() {
+      return optional("NOTION_API_KEY");
+    },
+    // Onde as páginas nascem: um database (item por brief) OU uma página-mãe (subpáginas).
+    databaseId: optional("NOTION_DATABASE_ID"),
+    parentPageId: optional("NOTION_PARENT_PAGE_ID"),
   },
   // Jira (alternativa/adicional ao Linear). Ativo só com base/email/token/projeto.
   jira: {

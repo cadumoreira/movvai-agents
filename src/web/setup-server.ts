@@ -25,6 +25,7 @@ const GROUPS: Group[] = [
       { key: "PM_MODEL", label: "PM (refino)", placeholder: "anthropic:claude-sonnet-4-6" },
       { key: "DEV_MODEL", label: "Dev (código)", placeholder: "anthropic:claude-opus-4-8" },
       { key: "QA_MODEL", label: "QA (revisão)", placeholder: "anthropic:claude-sonnet-4-6" },
+      { key: "MARKETING_MODEL", label: "Marketing (squad)", placeholder: "anthropic:claude-sonnet-4-6" },
       { key: "CHEAP_MODEL", label: "Barato (tarefas simples)", placeholder: "anthropic:claude-haiku-4-5" },
     ],
   },
@@ -68,6 +69,15 @@ const GROUPS: Group[] = [
       { key: "JIRA_EMAIL", label: "E-mail" },
       { key: "JIRA_API_TOKEN", label: "API Token", type: "secret" },
       { key: "JIRA_PROJECT_KEY", label: "Projeto (ex.: ENG)" },
+    ],
+  },
+  {
+    title: "Notion (squad de marketing)",
+    hint: "Board do marketing: briefs e entregáveis. Preencha o database OU a página-mãe.",
+    fields: [
+      { key: "NOTION_API_KEY", label: "API Key (integração interna)", type: "secret", placeholder: "ntn_..." },
+      { key: "NOTION_DATABASE_ID", label: "Database ID (um item por brief)" },
+      { key: "NOTION_PARENT_PAGE_ID", label: "Página-mãe (alternativa ao database)" },
     ],
   },
   {
@@ -140,6 +150,15 @@ function health() {
       name: "Dev abre PR",
       ready: hasModel && isSet("GITHUB_TOKEN") && sandboxOk,
       hint: !isSet("GITHUB_TOKEN") ? "Falta o GitHub Token" : !sandboxOk ? "Sandbox e2b sem E2B_API_KEY" : "",
+    },
+    {
+      name: "Marketing entrega no Notion",
+      ready: hasModel && isSet("NOTION_API_KEY") && (isSet("NOTION_DATABASE_ID") || isSet("NOTION_PARENT_PAGE_ID")),
+      hint: !isSet("NOTION_API_KEY")
+        ? "Falta a NOTION_API_KEY"
+        : !(isSet("NOTION_DATABASE_ID") || isSet("NOTION_PARENT_PAGE_ID"))
+          ? "Falta o database OU a página-mãe do Notion"
+          : "",
     },
     {
       name: "Time no Slack",
