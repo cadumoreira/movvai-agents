@@ -79,9 +79,10 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Métricas pós-campanha:** a Nina lê números REAIS do **GA4** (`ga4_report`) e do **Search
   Console** (`search_console_query`) via service account, e cruza com `list_recent_publications`
   — fecha o loop *plan → execute → measure* (o relatório semanal via cron usa dados de verdade).
-- **Design system:** painel corporativo clássico — topbar navy institucional, base monocromática,
-  cantos retos, cores de squad **validadas** para daltonismo/contraste (produto `#2E5EA8`,
-  marketing `#9A6A1F` bronze), status reservado (ok/falha/recusado) sempre com rótulo textual.
+- **Design system:** painel estilo **ClickUp** — base branca, cards arredondados com sombra suave,
+  colunas com **pill de status colorido** (fila cinza · atuação azul · aguardando âmbar · concluído
+  verde), roxo `#7B68EE` nas ações; tags de squad **validadas** para daltonismo/contraste
+  (produto `#2563EB`, marketing `#DB2777`).
 - **Webhooks de entrada** (`POST /webhooks/github`, `/webhooks/linear`): labelar uma issue com `agent`
   (ou o `AGENT_TRIGGER_LABEL`) **dispara o time automaticamente** — sem precisar de menção no Slack.
   Assinatura HMAC verificada; o trabalho é reportado no `SLACK_DEFAULT_CHANNEL`.

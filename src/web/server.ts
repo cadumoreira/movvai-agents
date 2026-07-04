@@ -152,97 +152,104 @@ const PAGE = `<!doctype html>
 <title>movvai — Dream Team</title>
 <style>
   /*
-   * Design system do painel — corporativo clássico (portal enterprise): topbar
-   * escura, base quase monocromática, cantos retos, acento único em azul
-   * institucional. Cores de squad validadas (CVD/contraste) na superfície branca:
-   *   produto #2E5EA8 · marketing #9A6A1F (bronze) — validate_palette: ALL CHECKS PASS.
-   * Status (reservado): ok verde · falha vermelho · recusado âmbar — sempre com rótulo.
+   * Design system do painel — estilo ClickUp: base branca, cards arredondados com
+   * sombra suave, colunas transparentes com pill de status colorido, roxo #7B68EE
+   * como cor de ação. Cores de squad (tags) validadas na superfície clara:
+   *   produto #2563EB · marketing #DB2777 — validate_palette: ALL CHECKS PASS.
+   * Status de coluna (semântico): fila cinza · atuação azul · aguardando âmbar · concluído verde.
    */
   :root {
     color-scheme: light;
-    --topbar: #16243A;
-    --bg: #F7F8FA;
+    --bg: #FAFBFC;
     --surface: #FFFFFF;
-    --well: #F1F3F5;
-    --border: #DDE2E8;
-    --border-strong: #B9C2CC;
-    --ink: #1F2937;
-    --ink-2: #52606D;
-    --ink-3: #7B8794;
-    --accent: #2E5EA8;
-    --produto: #2E5EA8;
-    --marketing: #9A6A1F;
-    --ok: #1E7A3E;
-    --err: #A63A3A;
-    --warn: #96690F;
+    --border: #E9EBF0;
+    --border-strong: #D6DAE1;
+    --ink: #292D34;
+    --ink-2: #656F7D;
+    --ink-3: #87909E;
+    --brand: #7B68EE;
+    --brand-dark: #6C5CE0;
+    --produto: #2563EB;
+    --marketing: #DB2777;
+    --col-fila: #87909E;
+    --col-execucao: #4194F6;
+    --col-aprovacao: #D97706;
+    --col-concluido: #27AE60;
+    --ok: #27AE60;
+    --err: #E0362C;
+    --warn: #D97706;
   }
   * { box-sizing: border-box; }
   body {
-    font: 14px/1.5 "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, Arial, sans-serif;
+    font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--ink);
     margin: 0; padding: 0 0 64px;
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
-  /* Topbar institucional */
-  .brand { background: var(--topbar); color: #fff; }
-  .brand .inner { max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
-  .brand .mark { width: 10px; height: 22px; background: var(--marketing); }
-  .brand h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.01em; margin: 0; color: #fff; }
-  .brand h1 span { color: #93A1B5; font-weight: 400; }
-  .brand .env { margin-left: auto; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: #B9C6D8; border: 1px solid #33455F; padding: 3px 10px; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-2); margin: 34px 0 4px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 3px; padding: 12px 14px; margin: 8px 0; }
+  /* Topbar clara com marca roxa */
+  .brand { background: var(--surface); border-bottom: 1px solid var(--border); }
+  .brand .inner { max-width: 1240px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 10px; }
+  .brand .mark { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg, #7B68EE, #A48AF7); }
+  .brand h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin: 0; color: var(--ink); }
+  .brand h1 span { color: var(--ink-3); font-weight: 500; }
+  .brand .env { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--brand); background: rgba(123, 104, 238, 0.10); padding: 3px 12px; border-radius: 99px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin: 34px 0 4px; font-weight: 700; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 8px 0; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.04); }
   .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
   .muted { color: var(--ink-2); font-size: 12.5px; }
-  button { font: inherit; font-weight: 600; font-size: 13px; padding: 6px 14px; border-radius: 3px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
-  button:hover { border-color: var(--accent); color: var(--accent); }
-  .approve { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .approve:hover { background: #244E8F; border-color: #244E8F; color: #fff; }
+  button { font: inherit; font-weight: 600; font-size: 13px; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: all .15s; }
+  button:hover { border-color: var(--brand); color: var(--brand); }
+  .approve { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .approve:hover { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
   .reject { background: var(--surface); color: var(--err); border-color: var(--border-strong); }
   .reject:hover { border-color: var(--err); color: var(--err); }
   .empty { color: var(--ink-3); font-style: italic; font-size: 13px; }
-  a { color: var(--accent); text-decoration: none; }
+  a { color: var(--brand); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  /* ── Kanban ─────────────────────────────────────────────────────────── */
-  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  /* ── Board (estilo ClickUp: colunas transparentes, pill de status) ──── */
+  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
   @media (max-width: 900px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .kcol { border: 1px solid var(--border); border-radius: 3px; padding: 10px; min-height: 140px; background: var(--well); }
-  .kcol h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-2); margin: 4px 6px 10px; display: flex; justify-content: space-between; font-weight: 600; }
-  .kcard { border: 1px solid var(--border); border-left-width: 3px; border-radius: 3px; padding: 9px 11px; margin: 8px 0; font-size: 13px; background: var(--surface); cursor: pointer; box-shadow: 0 1px 2px rgba(31, 41, 55, 0.05); transition: border-color .15s, box-shadow .15s; }
-  .kcard:hover { border-color: var(--border-strong); box-shadow: 0 2px 5px rgba(31, 41, 55, 0.10); }
-  .kcard.produto { border-left-color: var(--produto); }
-  .kcard.marketing { border-left-color: var(--marketing); }
+  .kcol { padding: 0 2px; min-height: 140px; }
+  .kcol h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .colpill { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; padding: 3px 10px; border-radius: 5px; }
+  .colpill.fila { background: var(--col-fila); }
+  .colpill.execucao { background: var(--col-execucao); }
+  .colpill.aprovacao { background: var(--col-aprovacao); }
+  .colpill.concluido { background: var(--col-concluido); }
+  .count { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+  .kcard { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 8px 0; font-size: 13px; background: var(--surface); cursor: pointer; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.05); transition: box-shadow .15s, transform .1s; }
+  .kcard:hover { box-shadow: 0 4px 14px rgba(41, 45, 52, 0.10); transform: translateY(-1px); }
   .kcard .agent { font-weight: 600; }
   .kcard .title { margin: 3px 0; color: var(--ink-2); }
-  .tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 7px; border-radius: 2px; border: 1px solid var(--border-strong); color: var(--ink-2); background: var(--surface); }
-  .kcard.produto .tag.squad, .tag.produto { color: var(--produto); border-color: rgba(46, 94, 168, 0.4); background: rgba(46, 94, 168, 0.05); }
-  .kcard.marketing .tag.squad, .tag.marketing { color: var(--marketing); border-color: rgba(154, 106, 31, 0.4); background: rgba(154, 106, 31, 0.05); }
-  .tag.ok { color: var(--ok); border-color: rgba(30, 122, 62, 0.4); background: rgba(30, 122, 62, 0.05); }
-  .tag.falha { color: var(--err); border-color: rgba(166, 58, 58, 0.4); background: rgba(166, 58, 58, 0.05); }
-  .tag.recusado { color: var(--warn); border-color: rgba(150, 105, 15, 0.4); background: rgba(150, 105, 15, 0.05); }
-  .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 99px; background: var(--warn); animation: pulse 1.6s infinite; }
-  @keyframes pulse { 50% { opacity: 0.35; } }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 9px; border-radius: 99px; border: 1px solid transparent; color: var(--ink-2); background: #F0F1F3; }
+  .kcard.produto .tag.squad, .tag.produto { color: var(--produto); background: rgba(37, 99, 235, 0.09); }
+  .kcard.marketing .tag.squad, .tag.marketing { color: var(--marketing); background: rgba(219, 39, 119, 0.09); }
+  .tag.ok { color: var(--ok); background: rgba(39, 174, 96, 0.10); }
+  .tag.falha { color: var(--err); background: rgba(224, 54, 44, 0.09); }
+  .tag.recusado { color: var(--warn); background: rgba(217, 119, 6, 0.10); }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--col-aprovacao); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
   /* ── Toolbar ────────────────────────────────────────────────────────── */
-  .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
-  .toolbar input[type=search] { font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 3px; border: 1px solid var(--border-strong); min-width: 240px; background: var(--surface); color: var(--ink); outline: none; }
-  .toolbar input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(46, 94, 168, 0.15); }
-  .chip { font-size: 12.5px; font-weight: 600; padding: 6px 16px; border-radius: 3px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink-2); }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
-  .chip.active { background: var(--topbar); color: #fff; border-color: var(--topbar); }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+  .toolbar input[type=search] { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); min-width: 250px; background: var(--surface); color: var(--ink); outline: none; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.03); }
+  .toolbar input[type=search]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.15); }
+  .chip { font-size: 12.5px; font-weight: 600; padding: 6px 16px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); }
+  .chip:hover { border-color: var(--brand); color: var(--brand); }
+  .chip.active { background: rgba(123, 104, 238, 0.12); color: var(--brand); border-color: transparent; }
   .kactions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
-  .kactions button { padding: 3px 12px; font-size: 12px; }
-  .kactions input { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 3px; border: 1px solid var(--border-strong); flex: 1; min-width: 120px; background: var(--surface); color: var(--ink); outline: none; }
-  .kactions input:focus { border-color: var(--accent); }
+  .kactions button { padding: 3px 12px; font-size: 12px; border-radius: 6px; }
+  .kactions input { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); flex: 1; min-width: 120px; background: var(--surface); color: var(--ink); outline: none; }
+  .kactions input:focus { border-color: var(--brand); }
   /* ── Modal (dossiê) ─────────────────────────────────────────────────── */
-  #overlay { position: fixed; inset: 0; background: rgba(22, 36, 58, 0.45); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
+  #overlay { position: fixed; inset: 0; background: rgba(41, 45, 52, 0.40); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
   #overlay.open { display: flex; }
-  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 3px; border-top: 3px solid var(--topbar); padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 16px 48px rgba(31, 41, 55, 0.20); }
-  #modal h3 { margin: 0 0 4px; font-size: 16px; }
+  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 20px 56px rgba(41, 45, 52, 0.22); }
+  #modal h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
   .timeline { margin: 14px 0 0; padding: 0; list-style: none; border-left: 2px solid var(--border); }
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
-  .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--accent); }
+  .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--brand); }
   .timeline .muted { display: block; }
 </style>
 </head>
@@ -372,7 +379,8 @@ function renderBoard() {
   for (const col of state.board.columns) {
     const cards = state.board.cards.filter(c => c.column === col.id && matchesFilter(c));
     const kcol = document.createElement('div'); kcol.className = 'kcol';
-    kcol.innerHTML = '<h3><span>' + escapeHtml(col.label) + '</span><span>' + cards.length + '</span></h3>';
+    kcol.innerHTML = '<h3><span class="colpill ' + col.id + '">' + escapeHtml(col.label) + '</span>' +
+      '<span class="count">' + cards.length + '</span></h3>';
     if (!cards.length) kcol.innerHTML += '<div class="empty" style="font-size:12px;margin:4px">—</div>';
     for (const c of cards) {
       const k = document.createElement('div'); k.className = 'kcard ' + c.squad;
