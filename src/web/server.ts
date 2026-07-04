@@ -152,11 +152,10 @@ const PAGE = `<!doctype html>
 <title>movvai — Dream Team</title>
 <style>
   /*
-   * Design system do painel — estilo ClickUp: base branca, cards arredondados com
-   * sombra suave, colunas transparentes com pill de status colorido, roxo #7B68EE
-   * como cor de ação. Cores de squad (tags) validadas na superfície clara:
+   * Design system — app shell estilo ClickUp: sidebar de navegação, views, board
+   * com pill de status por coluna, cards flutuantes com avatar por agente, roxo
+   * #7B68EE como cor de ação. Tags de squad validadas na superfície clara:
    *   produto #2563EB · marketing #DB2777 — validate_palette: ALL CHECKS PASS.
-   * Status de coluna (semântico): fila cinza · atuação azul · aguardando âmbar · concluído verde.
    */
   :root {
     color-scheme: light;
@@ -171,10 +170,10 @@ const PAGE = `<!doctype html>
     --brand-dark: #6C5CE0;
     --produto: #2563EB;
     --marketing: #DB2777;
-    --col-fila: #87909E;
+    --col-fila: #98A1AC;
     --col-execucao: #4194F6;
-    --col-aprovacao: #D97706;
-    --col-concluido: #27AE60;
+    --col-aprovacao: #E8A33D;
+    --col-concluido: #2EBD85;
     --ok: #27AE60;
     --err: #E0362C;
     --warn: #D97706;
@@ -182,20 +181,31 @@ const PAGE = `<!doctype html>
   * { box-sizing: border-box; }
   body {
     font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    margin: 0; padding: 0 0 64px;
+    background: var(--bg); color: var(--ink); margin: 0;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
-  /* Topbar clara com marca roxa */
-  .brand { background: var(--surface); border-bottom: 1px solid var(--border); }
-  .brand .inner { max-width: 1240px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 10px; }
-  .brand .mark { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg, #7B68EE, #A48AF7); }
-  .brand h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin: 0; color: var(--ink); }
-  .brand h1 span { color: var(--ink-3); font-weight: 500; }
-  .brand .env { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--brand); background: rgba(123, 104, 238, 0.10); padding: 3px 12px; border-radius: 99px; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin: 34px 0 4px; font-weight: 700; }
+  /* ── App shell ──────────────────────────────────────────────────────── */
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+  @media (max-width: 900px) { .app { grid-template-columns: 1fr; } .side { display: none; } }
+  .side { background: var(--surface); border-right: 1px solid var(--border); padding: 14px 10px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; }
+  .ws { display: flex; align-items: center; gap: 10px; padding: 6px 8px 14px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+  .wmark { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #7B68EE, #A48AF7); color: #fff; font-weight: 800; font-size: 17px; display: flex; align-items: center; justify-content: center; }
+  .wname { font-weight: 700; font-size: 14.5px; letter-spacing: -0.01em; }
+  .wsub { font-size: 11.5px; color: var(--ink-3); }
+  .side nav { display: flex; flex-direction: column; gap: 2px; }
+  .side nav a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; color: var(--ink-2); font-weight: 600; font-size: 13px; cursor: pointer; user-select: none; }
+  .side nav a:hover { background: #F3F4F6; color: var(--ink); }
+  .side nav a.active { background: rgba(123, 104, 238, 0.10); color: var(--brand); }
+  .lchip { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex: none; }
+  .badge { margin-left: auto; background: var(--col-aprovacao); color: #fff; font-size: 10.5px; border-radius: 99px; padding: 0 7px; font-weight: 700; line-height: 17px; }
+  .side-foot { margin-top: auto; padding: 10px; font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 7px; }
+  .livedot { width: 8px; height: 8px; border-radius: 99px; background: var(--col-concluido); animation: pulse 1.6s infinite; }
+  main { padding: 0 28px 64px; min-width: 0; }
+  .top { padding: 15px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .crumb { font-size: 13px; color: var(--ink-3); }
+  .crumb b { color: var(--ink); font-weight: 600; }
+  .view.hidden { display: none; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin: 26px 0 4px; font-weight: 700; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin: 8px 0; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.04); }
   .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
   .muted { color: var(--ink-2); font-size: 12.5px; }
@@ -208,10 +218,15 @@ const PAGE = `<!doctype html>
   .empty { color: var(--ink-3); font-style: italic; font-size: 13px; }
   a { color: var(--brand); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  /* ── Board (estilo ClickUp: colunas transparentes, pill de status) ──── */
-  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
-  @media (max-width: 900px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .kcol { padding: 0 2px; min-height: 140px; }
+  /* ── Board ──────────────────────────────────────────────────────────── */
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 16px 0 4px; flex-wrap: wrap; }
+  .toolbar input[type=search] { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); min-width: 250px; background: var(--surface); color: var(--ink); outline: none; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.03); }
+  .toolbar input[type=search]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.15); }
+  .chip { font-size: 12.5px; font-weight: 600; padding: 6px 16px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); }
+  .chip:hover { border-color: var(--brand); color: var(--brand); }
+  .chip.active { background: rgba(123, 104, 238, 0.12); color: var(--brand); border-color: transparent; }
+  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 14px; align-items: start; }
+  @media (max-width: 1100px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .kcol h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
   .colpill { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; padding: 3px 10px; border-radius: 5px; }
   .colpill.fila { background: var(--col-fila); }
@@ -219,34 +234,33 @@ const PAGE = `<!doctype html>
   .colpill.aprovacao { background: var(--col-aprovacao); }
   .colpill.concluido { background: var(--col-concluido); }
   .count { font-size: 12px; color: var(--ink-3); font-weight: 600; }
-  .kcard { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 8px 0; font-size: 13px; background: var(--surface); cursor: pointer; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.05); transition: box-shadow .15s, transform .1s; }
-  .kcard:hover { box-shadow: 0 4px 14px rgba(41, 45, 52, 0.10); transform: translateY(-1px); }
-  .kcard .agent { font-weight: 600; }
-  .kcard .title { margin: 3px 0; color: var(--ink-2); }
+  .kempty { border: 1.5px dashed var(--border-strong); border-radius: 10px; padding: 18px 10px; text-align: center; color: var(--ink-3); font-size: 12px; }
+  .kcard { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; font-size: 13px; background: var(--surface); cursor: pointer; box-shadow: 0 1px 3px rgba(41, 45, 52, 0.06); transition: box-shadow .15s, transform .1s; }
+  .kcard:hover { box-shadow: 0 5px 16px rgba(41, 45, 52, 0.12); transform: translateY(-1px); }
+  .khead { display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 24px; height: 24px; border-radius: 99px; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+  .kcard .agent { font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kcard .title { margin: 6px 0 2px; color: var(--ink); font-weight: 500; }
+  .kcard .note { color: var(--ink-2); font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .kfoot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .kfoot .muted { margin-left: auto; font-size: 11.5px; }
   .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 9px; border-radius: 99px; border: 1px solid transparent; color: var(--ink-2); background: #F0F1F3; }
-  .kcard.produto .tag.squad, .tag.produto { color: var(--produto); background: rgba(37, 99, 235, 0.09); }
-  .kcard.marketing .tag.squad, .tag.marketing { color: var(--marketing); background: rgba(219, 39, 119, 0.09); }
+  .tag.produto { color: var(--produto); background: rgba(37, 99, 235, 0.09); }
+  .tag.marketing { color: var(--marketing); background: rgba(219, 39, 119, 0.09); }
   .tag.ok { color: var(--ok); background: rgba(39, 174, 96, 0.10); }
   .tag.falha { color: var(--err); background: rgba(224, 54, 44, 0.09); }
   .tag.recusado { color: var(--warn); background: rgba(217, 119, 6, 0.10); }
-  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--col-aprovacao); animation: pulse 1.4s infinite; }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--col-aprovacao); animation: pulse 1.4s infinite; flex: none; }
   @keyframes pulse { 50% { opacity: 0.3; } }
-  /* ── Toolbar ────────────────────────────────────────────────────────── */
-  .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
-  .toolbar input[type=search] { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); min-width: 250px; background: var(--surface); color: var(--ink); outline: none; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.03); }
-  .toolbar input[type=search]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.15); }
-  .chip { font-size: 12.5px; font-weight: 600; padding: 6px 16px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); }
-  .chip:hover { border-color: var(--brand); color: var(--brand); }
-  .chip.active { background: rgba(123, 104, 238, 0.12); color: var(--brand); border-color: transparent; }
-  .kactions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+  .kactions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
   .kactions button { padding: 3px 12px; font-size: 12px; border-radius: 6px; }
-  .kactions input { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); flex: 1; min-width: 120px; background: var(--surface); color: var(--ink); outline: none; }
+  .kactions input { font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); flex: 1; min-width: 110px; background: var(--surface); color: var(--ink); outline: none; }
   .kactions input:focus { border-color: var(--brand); }
   /* ── Modal (dossiê) ─────────────────────────────────────────────────── */
   #overlay { position: fixed; inset: 0; background: rgba(41, 45, 52, 0.40); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
   #overlay.open { display: flex; }
   #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 20px 56px rgba(41, 45, 52, 0.22); }
-  #modal h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+  #modal h3 { margin: 0; font-size: 16px; font-weight: 700; }
   .timeline { margin: 14px 0 0; padding: 0; list-style: none; border-left: 2px solid var(--border); }
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
   .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--brand); }
@@ -254,34 +268,62 @@ const PAGE = `<!doctype html>
 </style>
 </head>
 <body>
-  <div class="brand">
-    <div class="inner">
-      <div class="mark"></div>
-      <h1>movvai <span>· Dream Team</span></h1>
-      <span class="env">ao vivo</span>
+<div class="app">
+  <aside class="side">
+    <div class="ws">
+      <div class="wmark">m</div>
+      <div><div class="wname">movvai</div><div class="wsub">Dream Team</div></div>
     </div>
-  </div>
-  <div class="wrap">
-  <h2>Board do time</h2>
-  <div class="toolbar">
-    <input type="search" id="q" placeholder="Buscar por título ou agente…" />
-    <button class="chip active" data-squad="todos">Todos</button>
-    <button class="chip" data-squad="produto">Produto</button>
-    <button class="chip" data-squad="marketing">Marketing</button>
-  </div>
-  <div id="board" class="kanban"></div>
-  <h2>Custo por organização</h2>
-  <div id="billing"></div>
-  <h2>Aprovações pendentes</h2>
-  <div id="approvals"></div>
-  <h2>Perguntas do time</h2>
-  <div id="questions"></div>
-  <h2>Atividade recente</h2>
-  <div id="activity"></div>
-  <h2>Auditoria</h2>
-  <div id="audit"></div>
-  </div>
-  <div id="overlay"><div id="modal"></div></div>
+    <nav id="nav">
+      <a data-view="board" class="active"><span class="lchip" style="background:#7B68EE">B</span> Board</a>
+      <a data-view="aprovacoes"><span class="lchip" style="background:#2EBD85">A</span> Aprovações <span class="badge" id="b-aps" hidden></span></a>
+      <a data-view="perguntas"><span class="lchip" style="background:#E8A33D">P</span> Perguntas <span class="badge" id="b-qs" hidden></span></a>
+      <a data-view="atividade"><span class="lchip" style="background:#4194F6">T</span> Atividade</a>
+      <a data-view="custo"><span class="lchip" style="background:#DB2777">C</span> Custo</a>
+      <a data-view="auditoria"><span class="lchip" style="background:#98A1AC">L</span> Auditoria</a>
+    </nav>
+    <div class="side-foot"><span class="livedot"></span> ao vivo · atualiza a cada 2s</div>
+  </aside>
+  <main>
+    <header class="top"><span class="crumb">Espaço · <b>Marketing &amp; Produto</b> · <span id="viewtitle">Board</span></span></header>
+
+    <section id="view-board" class="view">
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="Buscar por título ou agente…" />
+        <button class="chip active" data-squad="todos">Todos</button>
+        <button class="chip" data-squad="produto">Produto</button>
+        <button class="chip" data-squad="marketing">Marketing</button>
+      </div>
+      <div id="board" class="kanban"></div>
+    </section>
+
+    <section id="view-aprovacoes" class="view hidden">
+      <h2>Aprovações pendentes</h2>
+      <div id="approvals"></div>
+    </section>
+
+    <section id="view-perguntas" class="view hidden">
+      <h2>Perguntas do time</h2>
+      <div id="questions"></div>
+    </section>
+
+    <section id="view-atividade" class="view hidden">
+      <h2>Atividade recente</h2>
+      <div id="activity"></div>
+    </section>
+
+    <section id="view-custo" class="view hidden">
+      <h2>Custo por organização</h2>
+      <div id="billing"></div>
+    </section>
+
+    <section id="view-auditoria" class="view hidden">
+      <h2>Auditoria</h2>
+      <div id="audit"></div>
+    </section>
+  </main>
+</div>
+<div id="overlay"><div id="modal"></div></div>
 <script>
 let state = { board: { columns: [], cards: [] }, approvals: [], questions: [], billing: [], activity: [], audit: [] };
 let filterSquad = 'todos', searchQ = '', openCardKey = null;
@@ -306,9 +348,6 @@ function linkify(s) {
 }
 function threadKeyOf(cardKey) { const i = cardKey.lastIndexOf(':'); return i === -1 ? cardKey : cardKey.slice(0, i); }
 function cardApprovals(c) {
-  // Mesma thread pode ter várias frentes aguardando: cada card mostra as aprovações
-  // que citam o SEU agente; as que não citam ninguém (órfãs) aparecem em todos —
-  // melhor decisão visível em card errado do que decisão escondida.
   const tk = threadKeyOf(c.key);
   const all = state.approvals.filter(a => a.threadKey === tk);
   const mine = all.filter(a => a.text.includes(c.agent));
@@ -325,8 +364,20 @@ function matchesFilter(c) {
   const q = searchQ.toLowerCase();
   return c.title.toLowerCase().includes(q) || c.agent.toLowerCase().includes(q);
 }
+const AVATAR_COLORS = ['#7B68EE', '#4194F6', '#2EBD85', '#DB2777', '#E8A33D', '#0EA5E9', '#F26D6D', '#9F7AEA'];
+function avatarColor(name) {
+  let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+function avatarEl(name, size) {
+  const a = document.createElement('span'); a.className = 'avatar';
+  if (size) { a.style.width = size + 'px'; a.style.height = size + 'px'; a.style.fontSize = Math.round(size * 0.46) + 'px'; }
+  a.style.background = avatarColor(name);
+  a.textContent = (name.trim()[0] || '?').toUpperCase();
+  return a;
+}
 
-// ── Ações (mesmos endpoints dos botões clássicos) ────────────────────────
+// ── Ações ────────────────────────────────────────────────────────────────
 function dashToken() {
   let t = localStorage.getItem('dashToken');
   if (t === null) { t = prompt('Token do painel (deixe vazio se não houver):') || ''; localStorage.setItem('dashToken', t); }
@@ -344,7 +395,7 @@ async function authedPost(url, body) {
 const decide = (id, approved) => authedPost('/api/approvals/' + encodeURIComponent(id), { approved });
 const sendAnswer = (threadKey, answer) => answer.trim() && authedPost('/api/questions/answer', { threadKey, answer });
 
-// ── Widgets de decisão (usados no card E no dossiê) ──────────────────────
+// ── Widgets de decisão (card E dossiê) ───────────────────────────────────
 function approvalWidget(a, compact) {
   const box = document.createElement('div'); box.className = 'kactions';
   if (!compact) {
@@ -361,7 +412,7 @@ function approvalWidget(a, compact) {
 function questionWidget(q) {
   const box = document.createElement('div'); box.className = 'kactions';
   const label = document.createElement('div'); label.className = 'muted'; label.style.width = '100%';
-  label.textContent = 'Pergunta — ' + q.question; box.append(label);
+  label.textContent = q.question; box.append(label);
   const input = document.createElement('input'); input.placeholder = 'Sua resposta…';
   const send = document.createElement('button'); send.textContent = 'Responder';
   const go = () => sendAnswer(q.threadKey, input.value);
@@ -372,7 +423,7 @@ function questionWidget(q) {
   return box;
 }
 
-// ── Kanban ───────────────────────────────────────────────────────────────
+// ── Board ────────────────────────────────────────────────────────────────
 function renderBoard() {
   const el = document.getElementById('board');
   el.innerHTML = '';
@@ -381,20 +432,26 @@ function renderBoard() {
     const kcol = document.createElement('div'); kcol.className = 'kcol';
     kcol.innerHTML = '<h3><span class="colpill ' + col.id + '">' + escapeHtml(col.label) + '</span>' +
       '<span class="count">' + cards.length + '</span></h3>';
-    if (!cards.length) kcol.innerHTML += '<div class="empty" style="font-size:12px;margin:4px">—</div>';
+    if (!cards.length) kcol.innerHTML += '<div class="kempty">Sem frentes aqui</div>';
     for (const c of cards) {
       const k = document.createElement('div'); k.className = 'kcard ' + c.squad;
+      const head = document.createElement('div'); head.className = 'khead';
+      head.append(avatarEl(c.agent));
+      const nm = document.createElement('span'); nm.className = 'agent'; nm.textContent = c.agent;
+      head.append(nm);
+      if (c.column === 'concluido') {
+        if (c.outcome) { const t = document.createElement('span'); t.className = 'tag ' + c.outcome; t.textContent = c.outcome; head.append(t); }
+      } else if (c.column !== 'fila') {
+        const p = document.createElement('span'); p.className = 'pulse'; head.append(p);
+      }
+      k.append(head);
+      const title = document.createElement('div'); title.className = 'title'; title.textContent = c.title; k.append(title);
       const lastNote = c.notes.length ? c.notes[c.notes.length - 1].text : '';
-      const status = c.column === 'concluido'
-        ? (c.outcome ? '<span class="tag ' + c.outcome + '">' + c.outcome + '</span>' : '')
-        : (c.column === 'fila' ? '' : '<span class="pulse"></span>');
-      k.innerHTML =
-        '<div class="row"><span class="agent">' + escapeHtml(c.agent) + '</span>' + status + '</div>' +
-        '<div class="title">' + escapeHtml(c.title) + '</div>' +
-        '<div class="muted">' + escapeHtml(lastNote) + '</div>' +
-        '<div class="row" style="margin-top:4px"><span class="tag squad">' + escapeHtml(c.squad) + '</span>' +
-        '<span class="muted">' + new Date(c.updatedAt).toLocaleTimeString() + '</span></div>';
-      // Decisões inline: aprovar/recusar e responder pergunta sem sair do card.
+      if (lastNote) { const n = document.createElement('div'); n.className = 'note'; n.textContent = lastNote; k.append(n); }
+      const foot = document.createElement('div'); foot.className = 'kfoot';
+      foot.innerHTML = '<span class="tag ' + c.squad + '">' + escapeHtml(c.squad) + '</span>' +
+        '<span class="muted">' + new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</span>';
+      k.append(foot);
       if (c.column === 'aprovacao') {
         for (const a of cardApprovals(c)) k.append(approvalWidget(a, true));
         for (const q of cardQuestions(c)) k.append(questionWidget(q));
@@ -406,7 +463,7 @@ function renderBoard() {
   }
 }
 
-// ── Dossiê do card (modal) ───────────────────────────────────────────────
+// ── Dossiê (modal) ───────────────────────────────────────────────────────
 function renderModal() {
   const overlay = document.getElementById('overlay');
   const modal = document.getElementById('modal');
@@ -416,9 +473,12 @@ function renderModal() {
   modal.innerHTML = '';
 
   const head = document.createElement('div'); head.className = 'row';
-  const status = c.outcome ? '<span class="tag ' + c.outcome + '">' + c.outcome + '</span>'
-    : (c.column === 'fila' ? '<span class="tag">fila</span>' : '<span class="pulse"></span>');
-  head.innerHTML = '<h3>' + escapeHtml(c.agent) + '</h3>' + status;
+  const left = document.createElement('div'); left.style.display = 'flex'; left.style.alignItems = 'center'; left.style.gap = '10px';
+  left.append(avatarEl(c.agent, 30));
+  const h = document.createElement('h3'); h.textContent = c.agent; left.append(h);
+  if (c.outcome) { const t = document.createElement('span'); t.className = 'tag ' + c.outcome; t.textContent = c.outcome; left.append(t); }
+  else if (c.column !== 'fila' && c.column !== 'concluido') { const p = document.createElement('span'); p.className = 'pulse'; left.append(p); }
+  head.append(left);
   const close = document.createElement('button'); close.textContent = 'Fechar';
   close.onclick = () => { openCardKey = null; renderModal(); };
   head.append(close);
@@ -426,8 +486,8 @@ function renderModal() {
 
   const info = document.createElement('div');
   const colLabel = (state.board.columns.find(x => x.id === c.column) || {}).label || c.column;
-  info.innerHTML = '<div class="title" style="font-size:15px">' + escapeHtml(c.title) + '</div>' +
-    '<div class="muted"><span class="tag ' + c.squad + '">' + escapeHtml(c.squad) + '</span> · ' + escapeHtml(colLabel) +
+  info.innerHTML = '<div class="title" style="font-size:15px;margin-top:10px;font-weight:600">' + escapeHtml(c.title) + '</div>' +
+    '<div class="muted" style="margin-top:4px"><span class="tag ' + c.squad + '">' + escapeHtml(c.squad) + '</span> · ' + escapeHtml(colLabel) +
     ' · criado ' + new Date(c.createdAt).toLocaleString() + ' · atualizado ' + new Date(c.updatedAt).toLocaleString() + '</div>';
   modal.append(info);
 
@@ -445,6 +505,17 @@ function renderModal() {
 }
 document.getElementById('overlay').onclick = e => { if (e.target.id === 'overlay') { openCardKey = null; renderModal(); } };
 
+// ── Navegação (views) ────────────────────────────────────────────────────
+const VIEW_TITLES = { board: 'Board', aprovacoes: 'Aprovações', perguntas: 'Perguntas', atividade: 'Atividade', custo: 'Custo', auditoria: 'Auditoria' };
+for (const item of document.querySelectorAll('#nav a')) {
+  item.onclick = () => {
+    for (const i of document.querySelectorAll('#nav a')) i.classList.toggle('active', i === item);
+    for (const v of document.querySelectorAll('.view')) v.classList.add('hidden');
+    document.getElementById('view-' + item.dataset.view).classList.remove('hidden');
+    document.getElementById('viewtitle').textContent = VIEW_TITLES[item.dataset.view];
+  };
+}
+
 // ── Toolbar ──────────────────────────────────────────────────────────────
 document.getElementById('q').oninput = e => { searchQ = e.target.value; renderBoard(); };
 for (const chip of document.querySelectorAll('.chip')) {
@@ -455,8 +526,13 @@ for (const chip of document.querySelectorAll('.chip')) {
   };
 }
 
-// ── Listas clássicas ─────────────────────────────────────────────────────
+// ── Listas das views ─────────────────────────────────────────────────────
 function renderLists() {
+  const bAps = document.getElementById('b-aps');
+  bAps.hidden = !state.approvals.length; bAps.textContent = state.approvals.length;
+  const bQs = document.getElementById('b-qs');
+  bQs.hidden = !state.questions.length; bQs.textContent = state.questions.length;
+
   const bi = document.getElementById('billing');
   bi.innerHTML = state.billing.length ? '' : '<div class="empty">Sem consumo ainda.</div>';
   for (const o of state.billing) {
@@ -470,7 +546,7 @@ function renderLists() {
   ap.innerHTML = state.approvals.length ? '' : '<div class="empty">Nada pendente.</div>';
   for (const a of state.approvals) {
     const el = document.createElement('div'); el.className = 'card';
-    el.innerHTML = '<div>' + linkify(a.text) + '</div><div class="muted">' + a.createdAt + '</div>';
+    el.innerHTML = '<div>' + linkify(a.text) + '</div><div class="muted">' + new Date(a.createdAt).toLocaleString() + '</div>';
     el.append(approvalWidget(a, true));
     ap.append(el);
   }
@@ -478,7 +554,12 @@ function renderLists() {
   qs.innerHTML = state.questions.length ? '' : '<div class="empty">Nenhuma pergunta aberta.</div>';
   for (const q of state.questions) {
     const el = document.createElement('div'); el.className = 'card';
-    el.innerHTML = '<div><strong>' + escapeHtml(q.askedBy) + '</strong></div><div class="muted">' + q.createdAt + '</div>';
+    const head = document.createElement('div'); head.className = 'khead';
+    head.append(avatarEl(q.askedBy || '?'));
+    const nm = document.createElement('strong'); nm.textContent = q.askedBy; head.append(nm);
+    el.append(head);
+    const when = document.createElement('div'); when.className = 'muted'; when.textContent = new Date(q.createdAt).toLocaleString();
+    el.append(when);
     el.append(questionWidget(q));
     qs.append(el);
   }

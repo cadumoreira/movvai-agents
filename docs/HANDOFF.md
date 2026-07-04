@@ -52,8 +52,8 @@
 - **Assets visuais**: `generate_image` (OpenAI Images) → ASSETS_DIR, servido em `/assets` no painel.
 - **Métricas**: GA4 Data API + Search Console via service account (JWT RS256 com node:crypto, sem
   SDK) — `ga4_report` e `search_console_query` na Nina.
-- **Design system**: painel estilo ClickUp (branco, pills de status por coluna, roxo #7B68EE nas
-  ações); tags de squad validadas (produto #2563EB, marketing #DB2777 — ALL PASS).
+- **Design system**: app shell estilo ClickUp (sidebar com views e badges, board com pills de
+  status, avatares por agente, roxo #7B68EE); squads validados (#2563EB / #DB2777 — ALL PASS).
 - **Qualidade**: 70 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
