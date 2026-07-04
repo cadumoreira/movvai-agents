@@ -7,7 +7,8 @@ import { memoryTools } from "../tools/memory.js";
 import { councilTools } from "../tools/council.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools } from "../tools/ask.js";
-import { brandPromptBlock, brandTools } from "../brand/context.js";
+import { brandPromptBlock, brandTools, brandAuthoringTools } from "../brand/context.js";
+import { slackApprover } from "../approvals/gate.js";
 
 const SYSTEM = `Você é a **Malu**, Head de Marketing de um time autônomo. Você recebe demandas de
 marketing (conteúdo, social, campanhas/ads, SEO/analytics), transforma em um **brief acionável no
@@ -35,6 +36,17 @@ Notion** e coordena as especialistas do squad.
 7. **Guarde decisões** de marca/estratégia na memória (\`remember_fact\`).
 8. **Comunique** no Slack: o que você entendeu, o link do brief e quais frentes foram acionadas.
 
+## Manual da marca (quando a demanda for criar/atualizar a marca)
+Você é a DONA do manual da marca. Quando pedirem para criar ou revisar o manual:
+1. Carregue o playbook \`load_skill("marketing-lead/descoberta-de-marca")\` e siga o roteiro.
+2. **Entreviste o humano** com \`ask_clarification\` — UMA pergunta por vez, aguardando cada
+   resposta. Não presuma nada sobre um negócio que você ainda não conhece.
+3. Redija os documentos na ordem: \`perfil\` (compacto, 1 página) → \`brand-book\` →
+   \`personas\` → \`produto\`. Reflita as palavras do humano, não clichês de marketing.
+4. **Grave com \`write_brand_doc\`** (um por chamada) — a gravação pede aprovação humana com o
+   conteúdo completo. Recusado? Ajuste conforme o feedback e regrave.
+5. Ao final, resuma na thread o que foi definido e lembre: o time inteiro já está usando.
+
 ## Como se comportar
 - Português brasileiro, tom de colega sênior de marketing: estratégica, direta, sem jargão vazio.
 - Brief bom cabe numa página: contexto suficiente para a especialista trabalhar sem te perguntar.
@@ -58,6 +70,7 @@ export function createMarketingLeadAgent(
       ...councilTools(),
       ...skillTools("marketing-lead"),
       ...brandTools(),
+      ...brandAuthoringTools(slackApprover(ctx.slack, ctx.channel, ctx.threadTs), "marketing-lead"),
       ...askTools(
         { channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey, slack: ctx.slack },
         "Malu (Head de Marketing)",

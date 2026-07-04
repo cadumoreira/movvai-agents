@@ -97,6 +97,11 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   prompt** com instrução de degradação para cada ausência. Dependência **essencial** ausente (ex.:
   Dev sem `GITHUB_TOKEN`) **aborta antes de gastar tokens**, com aviso claro na thread. Insumo da
   tarefa (público? prazo?) continua com o briefing interativo (`ask_clarification`).
+- **Criação do manual da marca PELO time:** peça *"Malu, precisamos criar o manual da marca"* —
+  ela conduz a **entrevista de descoberta** na thread (playbook próprio, uma pergunta por vez),
+  redige perfil/brand book/personas/produto e **grava com sua aprovação** (`write_brand_doc`
+  mostra o conteúdo completo antes; escrever no Brand Center governa todos os agentes = portão).
+  Gravou, o time inteiro já usa (leitura ao vivo).
 - **Brand Center (contexto da empresa em TODO fluxo):** `brand/perfil.md` (quem somos, produto,
   tom, público) é **injetado no prompt de todos os agentes** — ninguém trabalha sem saber quem é a
   marca. Documentos profundos (`brand/brand-book.md`, `personas.md`, `produto.md`...) são carregados

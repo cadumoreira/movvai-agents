@@ -38,6 +38,9 @@
 - **Preflight de dependências** (src/deps): mapa determinístico por tipo de trabalho injetado no
   prompt (usa o que há, degrada com aviso no que falta); essencial ausente aborta antes de gastar
   tokens (dev/techlead). Generaliza o Brand Center para toda dependência.
+- **Autoria do manual da marca**: Malu entrevista (skill descoberta-de-marca + ask_clarification),
+  redige e grava via write_brand_doc — gravação passa pelo portão de aprovação (conteúdo na
+  prévia) e é auditada (brand_doc_written). config.brandDir agora é getter (lazy).
 - **Brand Center**: brand/perfil.md injetado no prompt dos 8 agentes (fonte de verdade da
   empresa); docs profundos via list/read_brand_doc; brand/assets servidos em /brand-assets.
   Exemplos placeholders inclusos — preencher com a marca real é parte do onboarding.
@@ -63,7 +66,7 @@
 - **E2E harness**: `try:marketing` roda demanda→Malu→Sofia→Vera→aprovação→entregável sem Slack
   (terminal + painel); provider `mock:` no gateway permite dry-run do encanamento sem chave/custo.
   AUTO_APPROVE=off deixa a decisão para o painel.
-- **Qualidade**: 82 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 84 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -76,7 +79,7 @@ npm run dev                                       # time completo no Slack + pai
 npm run demo:board                                # kanban demo (sem chaves) em :3000
 npm run try:marketing -- "peça pro Instagram"     # E2E marketing sem Slack (chave real)
 # sem chave nenhuma (dry-run do encanamento): MARKETING_MODEL=mock:marketing CHEAP_MODEL=mock:marketing npm run try:marketing
-npm test                                          # 82 testes
+npm test                                          # 84 testes
 ```
 
 ## Pendências (backlog priorizado)

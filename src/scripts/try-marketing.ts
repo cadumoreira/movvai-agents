@@ -19,6 +19,10 @@ import { config } from "../config.js";
  */
 
 const title = process.argv[2] || "Peça de lançamento no Instagram";
+const instructions =
+  process.argv[3] ||
+  `Somos uma EMPRESA NOVA fazendo o primeiro post no Instagram. Objetivo: apresentar a marca ` +
+    `e levar visita ao site. Use o perfil e o brand book da marca. Uma peça única (legenda + criativo descrito).`;
 const autoApprove = process.env.AUTO_APPROVE !== "off";
 
 // Slack fake: mensagens do time caem no terminal (mesma assinatura usada pelos workers).
@@ -60,9 +64,7 @@ async function main() {
     threadTs: "1",
     threadKey: "terminal:1",
     brief: { title },
-    instructions:
-      `Somos uma EMPRESA NOVA fazendo o primeiro post no Instagram. Objetivo: apresentar a marca ` +
-      `e levar visita ao site. Use o perfil e o brand book da marca. Uma peça única (legenda + criativo descrito).`,
+    instructions,
   });
 
   // Espera a frente social concluir (ou estoura o tempo com diagnóstico).

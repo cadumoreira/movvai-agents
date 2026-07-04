@@ -57,3 +57,34 @@ test("diretório de marca inexistente = tudo vazio, sem lançar", () => {
   assert.deepEqual(listBrandDocs("/nao/existe"), []);
   assert.deepEqual(listBrandAssets("/nao/existe"), []);
 });
+
+// ── Autoria do manual (Malu) ─────────────────────────────────────────────────
+
+import { writeBrandDoc, brandAuthoringTools } from "../src/brand/context.js";
+
+test("writeBrandDoc grava com id seguro e bloqueia traversal", () => {
+  const root = mkdtempSync(join(tmpdir(), "brand-w-"));
+  assert.equal(writeBrandDoc("perfil", "# Novo perfil", root), true);
+  assert.match(brandProfile(root) ?? "", /Novo perfil/);
+  assert.equal(writeBrandDoc("../fora", "x", root), false);
+});
+
+test("write_brand_doc exige aprovação humana: recusa não grava, aprovação grava", async () => {
+  const root = mkdtempSync(join(tmpdir(), "brand-a-"));
+  process.env.BRAND_DIR = root; // config lê BRAND_DIR no import — usa setter dinâmico? não: passa via env antes do uso da tool
+  let decision = false;
+  const tools = brandAuthoringTools(async () => ({ approved: decision }), "teste");
+  const exec = (tools.write_brand_doc as { execute: Function }).execute;
+
+  const denied = await exec({ id: "perfil", content_markdown: "# V1", summary: "primeiro perfil" }, {});
+  assert.equal(denied.ok, false);
+  assert.match(denied.error, /recusada/i);
+
+  decision = true;
+  const okRes = await exec({ id: "perfil", content_markdown: "# V1", summary: "primeiro perfil" }, {});
+  assert.equal(okRes.ok, true);
+
+  const bad = await exec({ id: "../../etc/x", content_markdown: "x", summary: "s" }, {});
+  assert.equal(bad.ok, false);
+  delete process.env.BRAND_DIR;
+});
