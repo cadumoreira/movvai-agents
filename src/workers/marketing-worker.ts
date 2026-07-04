@@ -2,9 +2,10 @@ import type { WebClient } from "@slack/web-api";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createMarketingSpecialistAgent, specialistName } from "../agents/marketing-specialist.js";
-import { slackApprover } from "../approvals/gate.js";
+import { slackApprover, type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
+import { track } from "../board/board.js";
 
 /**
  * Worker das especialistas de marketing: consome "marketing-work", instancia a persona
@@ -16,16 +17,25 @@ export function startMarketingWorker(slack: WebClient): void {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
+    const cardKey = `${task.threadKey}:mkt-${task.discipline}`;
     try {
+      track(
+        cardKey,
+        { title: task.brief.title, agent: specialistName(task.discipline), squad: "marketing", column: "execucao" },
+        "produzindo o entregável no Notion",
+      );
       await post(
         `:art: ${specialistName(task.discipline)} aqui — peguei a frente de *${task.brief.title}*. Produzindo o entregável…`,
       );
       const model = routeModel(config.models.marketing, { text: task.instructions });
-      const specialist = createMarketingSpecialistAgent(
-        task.discipline,
-        { approve: slackApprover(slack, task.channel, task.threadTs) },
-        model,
-      );
+      const baseApprove = slackApprover(slack, task.channel, task.threadTs);
+      const approve: Approver = async (opts) => {
+        track(cardKey, { column: "aprovacao" }, "pediu OK humano para publicar");
+        const decision = await baseApprove(opts);
+        track(cardKey, { column: "execucao" }, decision.approved ? "publicação aprovada" : "publicação recusada");
+        return decision;
+      };
+      const specialist = createMarketingSpecialistAgent(task.discipline, { approve }, model);
 
       const briefRef = [
         task.brief.url ? `Brief no Notion: ${task.brief.url}` : "",
@@ -40,8 +50,10 @@ export function startMarketingWorker(slack: WebClient): void {
         `Registre o entregável no Notion e chame request_publish_approval antes de dá-lo como aprovado.`;
 
       const { text } = await runAgent(specialist, [{ role: "user", content: initial }]);
+      track(cardKey, { column: "concluido", outcome: "ok" }, "entregável finalizado");
       if (text) await post(text);
     } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao produzir o entregável");
       console.error("Erro no worker de marketing:", err);
       await post(
         `Tive um problema ao produzir o entregável: ${err instanceof Error ? err.message : String(err)}`,

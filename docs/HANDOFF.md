@@ -29,9 +29,11 @@
 - **Aprovação humana** nos pontos-chave (Slack botões **ou** painel web).
 - **Custo**: roteamento por modelo, prompt caching, orçamento de tokens, billing por org.
 - **Observabilidade**: logs de custo/cache-hit + OpenTelemetry → Langfuse.
-- **Painel web** (`:3000`): atividade, aprovações, auditoria, billing.
+- **Painel web** (`:3000`): **kanban da atuação dos agentes** (Fila → Em atuação → Aguardando
+  aprovação → Concluído, com squad e desfecho) + atividade, aprovações, auditoria, billing.
+  Demo do kanban sem chaves/custo: `npm run demo:board` (aprovações reais pelos botões).
 - **Backoffice** (`:4000`, `npm run backoffice`): configura tudo pela web (grava no `.env`).
-- **Qualidade**: 32 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 38 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -41,7 +43,8 @@ npm run backoffice    # http://localhost:4000 — preencher chaves; ver status d
 npm run try:pm -- "descrição completa do bug"   # PM cria ticket no Linear
 npm run try:dev -- "tarefa"                      # Dev no sandbox (local) abre PR
 npm run dev                                       # time completo no Slack + painel :3000
-npm test                                          # 32 testes
+npm run demo:board                                # kanban demo (sem chaves) em :3000
+npm test                                          # 38 testes
 ```
 
 ## Pendências (backlog priorizado)

@@ -4,6 +4,7 @@ import { runAgent } from "../agent-runtime/run.js";
 import { createTechLeadAgent } from "../agents/tech-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
+import { track } from "../board/board.js";
 
 /**
  * Worker do Tech Lead: consome "techlead-task", desenha a abordagem (sem sandbox —
@@ -14,7 +15,13 @@ export function startTechLeadWorker(slack: WebClient): void {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
+    const cardKey = `${task.threadKey}:techlead`;
     try {
+      track(
+        cardKey,
+        { title: task.ticket.title, agent: "Rui (Tech Lead)", squad: "produto", column: "execucao" },
+        "desenhando a abordagem técnica",
+      );
       await post(
         `:triangular_ruler: Rui (Tech Lead) aqui — vou desenhar a abordagem de *${task.ticket.identifier ?? task.ticket.title}* e passar pro Dev.`,
       );
@@ -31,8 +38,10 @@ export function startTechLeadWorker(slack: WebClient): void {
         `${task.instructions}\n\nInvestigue o repositório, registre o design no ticket e chame delegate_to_dev.`;
 
       const { text } = await runAgent(techLead, [{ role: "user", content: initial }]);
+      track(cardKey, { column: "concluido", outcome: "ok" }, "abordagem definida e delegada");
       if (text) await post(text);
     } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao desenhar a abordagem");
       console.error("Erro no worker do Tech Lead:", err);
       await post(`Tive um problema ao desenhar a abordagem: ${err instanceof Error ? err.message : String(err)}`);
     }

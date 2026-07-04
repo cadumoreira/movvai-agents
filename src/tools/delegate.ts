@@ -2,6 +2,7 @@ import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import type { AgentContext } from "../agents/context.js";
 import { queue } from "../queue/index.js";
+import { track } from "../board/board.js";
 
 const taskInput = z.object({
   ticket_title: z.string().describe("Título do ticket/demanda."),
@@ -21,6 +22,11 @@ export function delegateToDev(ctx: AgentContext): ToolSet {
         "Passa uma demanda já refinada para o Dev implementar. O Dev trabalha num sandbox e pede aprovação antes de abrir o PR.",
       inputSchema: taskInput,
       execute: async (t) => {
+        track(
+          `${ctx.threadKey}:dev`,
+          { title: t.ticket_title, agent: "Téo (Dev)", squad: "produto", column: "fila" },
+          "demanda delegada ao Dev",
+        );
         await queue.enqueue("dev-task", {
           channel: ctx.channel,
           threadTs: ctx.threadTs,
@@ -43,6 +49,11 @@ export function delegateToTechLead(ctx: AgentContext): ToolSet {
         "Encaminha uma demanda complexa/arquitetural para o Tech Lead avaliar e desenhar a abordagem antes de ir para o Dev. Use quando houver decisão de design relevante.",
       inputSchema: taskInput,
       execute: async (t) => {
+        track(
+          `${ctx.threadKey}:techlead`,
+          { title: t.ticket_title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" },
+          "demanda encaminhada ao Tech Lead",
+        );
         await queue.enqueue("techlead-task", {
           channel: ctx.channel,
           threadTs: ctx.threadTs,

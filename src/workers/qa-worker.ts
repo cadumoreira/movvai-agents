@@ -4,6 +4,7 @@ import { runAgent } from "../agent-runtime/run.js";
 import { createQaAgent } from "../agents/qa.js";
 import { createRepoSandbox, parseRepo, type Sandbox } from "../sandbox/index.js";
 import { getPullRequestFiles } from "../tools/github-write.js";
+import { track } from "../board/board.js";
 
 /**
  * Worker do QA: consome jobs "qa-review" (acionados quando o Dev abre um PR), sobe um
@@ -14,9 +15,15 @@ export function startQaWorker(slack: WebClient): void {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
 
+    const cardKey = `${job.threadKey}:qa`;
     let sandbox: Sandbox | undefined;
     try {
       const target = parseRepo(job.repo);
+      track(
+        cardKey,
+        { title: job.title, agent: "Bia (QA)", squad: "produto", column: "execucao" },
+        `revisando o PR #${job.prNumber}`,
+      );
       await post(`:mag: Bia (QA) aqui — revisando o PR de *${job.title}* (${job.prUrl})…`);
 
       // O host traz a branch do PR via tarball (sem token no sandbox).
@@ -35,9 +42,15 @@ export function startQaWorker(slack: WebClient): void {
         `Leia os arquivos relevantes, rode os testes/lint, avalie e registre a revisão com comment_on_pr.`;
 
       const { text } = await runAgent(qa, [{ role: "user", content: initial }]);
+      track(cardKey, { column: "concluido", outcome: "ok" }, "revisão registrada no PR");
       if (text) await post(text);
 
       // Handoff QA → Delivery: resume a entrega.
+      track(
+        `${job.threadKey}:delivery`,
+        { title: job.title, agent: "Dani (Delivery)", squad: "produto", column: "fila" },
+        "entrega passada ao Delivery",
+      );
       await queue.enqueue("delivery-summary", {
         channel: job.channel,
         threadTs: job.threadTs,
@@ -47,6 +60,7 @@ export function startQaWorker(slack: WebClient): void {
         prNumber: job.prNumber,
       });
     } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro na revisão do PR");
       console.error("Erro no worker do QA:", err);
       await post(`Tive um problema ao revisar o PR: ${err instanceof Error ? err.message : String(err)}`);
     } finally {

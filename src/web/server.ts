@@ -1,5 +1,6 @@
 import http from "node:http";
 import { listActivity } from "../observability/activity.js";
+import { listBoard, BOARD_COLUMNS, COLUMN_LABELS } from "../board/board.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
 import { listAudit } from "../audit/log.js";
 import { billingSummary } from "../billing/meter.js";
@@ -71,6 +72,12 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
       res.end(PAGE);
       return;
     }
+    if (req.method === "GET" && path === "/api/board") {
+      return json(res, 200, {
+        columns: BOARD_COLUMNS.map((id) => ({ id, label: COLUMN_LABELS[id] })),
+        cards: listBoard(),
+      });
+    }
     if (req.method === "GET" && path === "/api/activity") {
       return json(res, 200, listActivity());
     }
@@ -118,7 +125,7 @@ const PAGE = `<!doctype html>
 <title>Dream Team — Painel</title>
 <style>
   :root { color-scheme: light dark; }
-  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; max-width: 900px; margin: 0 auto; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; max-width: 1200px; margin: 0 auto; }
   h1 { font-size: 20px; } h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: #888; margin-top: 32px; }
   .card { border: 1px solid #8883; border-radius: 10px; padding: 12px 14px; margin: 8px 0; }
   .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
@@ -127,10 +134,27 @@ const PAGE = `<!doctype html>
   .approve { background: #16a34a; color: #fff; border-color: #16a34a; }
   .reject { background: #dc2626; color: #fff; border-color: #dc2626; }
   .empty { color: #888; font-style: italic; }
+  /* ── Kanban ─────────────────────────────────────────────────────────── */
+  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+  @media (max-width: 860px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kcol { border: 1px solid #8883; border-radius: 10px; padding: 10px; min-height: 120px; background: #8880801a; }
+  .kcol h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #888; margin: 2px 4px 8px; display: flex; justify-content: space-between; }
+  .kcard { border: 1px solid #8884; border-left-width: 3px; border-radius: 8px; padding: 8px 10px; margin: 8px 0; font-size: 13px; background: Canvas; }
+  .kcard.produto { border-left-color: #2563eb; }
+  .kcard.marketing { border-left-color: #9333ea; }
+  .kcard .agent { font-weight: 600; }
+  .kcard .title { margin: 2px 0; }
+  .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 99px; border: 1px solid #8884; color: #888; }
+  .tag.ok { color: #16a34a; border-color: #16a34a66; }
+  .tag.falha, .tag.recusado { color: #dc2626; border-color: #dc262666; }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: #f59e0b; animation: pulse 1.2s infinite; vertical-align: baseline; }
+  @keyframes pulse { 50% { opacity: .3; } }
 </style>
 </head>
 <body>
   <h1>🤖 Dream Team — Painel</h1>
+  <h2>Board do time (kanban)</h2>
+  <div id="board" class="kanban"></div>
   <h2>Custo por organização</h2>
   <div id="billing"></div>
   <h2>Aprovações pendentes</h2>
@@ -141,12 +165,14 @@ const PAGE = `<!doctype html>
   <div id="audit"></div>
 <script>
 async function refresh() {
-  const [aps, act, aud, bil] = await Promise.all([
+  const [aps, act, aud, bil, board] = await Promise.all([
     fetch('/api/approvals').then(r => r.json()),
     fetch('/api/activity').then(r => r.json()),
     fetch('/api/audit').then(r => r.json()),
     fetch('/api/billing').then(r => r.json()),
+    fetch('/api/board').then(r => r.json()),
   ]);
+  renderBoard(board);
   const bi = document.getElementById('billing');
   bi.innerHTML = bil.length ? '' : '<div class="empty">Sem consumo ainda.</div>';
   for (const o of bil) {
@@ -201,6 +227,31 @@ async function decide(id, approved) {
   });
   if (res.status === 401) { localStorage.removeItem('dashToken'); alert('Token inválido — tente de novo.'); }
   refresh();
+}
+function renderBoard(board) {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for (const col of board.columns) {
+    const cards = board.cards.filter(c => c.column === col.id);
+    const kcol = document.createElement('div'); kcol.className = 'kcol';
+    kcol.innerHTML = '<h3><span>' + escapeHtml(col.label) + '</span><span>' + cards.length + '</span></h3>';
+    if (!cards.length) kcol.innerHTML += '<div class="empty" style="font-size:12px;margin:4px">—</div>';
+    for (const c of cards) {
+      const k = document.createElement('div'); k.className = 'kcard ' + c.squad;
+      const lastNote = c.notes.length ? c.notes[c.notes.length - 1].text : '';
+      const status = c.column === 'concluido'
+        ? (c.outcome ? '<span class="tag ' + c.outcome + '">' + c.outcome + '</span>' : '')
+        : (c.column === 'fila' ? '' : '<span class="pulse"></span>');
+      k.innerHTML =
+        '<div class="row"><span class="agent">' + escapeHtml(c.agent) + '</span>' + status + '</div>' +
+        '<div class="title">' + escapeHtml(c.title) + '</div>' +
+        '<div class="muted">' + escapeHtml(lastNote) + '</div>' +
+        '<div class="row" style="margin-top:4px"><span class="tag">' + escapeHtml(c.squad) + '</span>' +
+        '<span class="muted">' + new Date(c.updatedAt).toLocaleTimeString() + '</span></div>';
+      kcol.append(k);
+    }
+    el.append(kcol);
+  }
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 refresh(); setInterval(refresh, 2000);

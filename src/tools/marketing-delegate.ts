@@ -3,6 +3,14 @@ import { z } from "zod";
 import type { AgentContext } from "../agents/context.js";
 import { queue } from "../queue/index.js";
 import type { MarketingDiscipline } from "../queue/types.js";
+import { track } from "../board/board.js";
+
+const SPECIALIST_LABEL: Record<MarketingDiscipline, string> = {
+  conteudo: "Caio (Conteúdo)",
+  social: "Sofia (Social)",
+  ads: "Leo (Performance)",
+  seo: "Nina (SEO & Analytics)",
+};
 
 /**
  * Normaliza a disciplina pedida (aceita sinônimos comuns em PT/EN) para o
@@ -36,6 +44,11 @@ export function delegateToMarketing(ctx: AgentContext): ToolSet {
           .describe("O que foi pedido: objetivo, público, canais desejados, prazo e contexto relevante."),
       }),
       execute: async (t) => {
+        track(
+          `${ctx.threadKey}:marketing-lead`,
+          { title: t.brief_title, agent: "Malu (Head de Marketing)", squad: "marketing", column: "fila" },
+          "demanda delegada ao squad de marketing",
+        );
         await queue.enqueue("marketing-task", {
           channel: ctx.channel,
           threadTs: ctx.threadTs,
@@ -75,6 +88,11 @@ export function assignMarketingWork(
         if (!discipline) {
           return { ok: false, error: `Disciplina "${t.discipline}" não reconhecida. Use: conteudo, social, ads ou seo.` };
         }
+        track(
+          `${ctx.threadKey}:mkt-${discipline}`,
+          { title: brief.title, agent: SPECIALIST_LABEL[discipline], squad: "marketing", column: "fila" },
+          "frente delegada pela Head de Marketing",
+        );
         await queue.enqueue("marketing-work", {
           channel: ctx.channel,
           threadTs: ctx.threadTs,

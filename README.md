@@ -47,6 +47,10 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Painel web** (`http://localhost:3000`, `DASHBOARD_PORT`): vê a atividade do time (custo/cache por
   execução) e as **aprovações pendentes** — você pode **aprovar/recusar fora do Slack**. Mesma fonte de
   verdade dos botões do Slack (registro central), então aprovar em qualquer lugar destrava o agente.
+- **Kanban da atuação dos agentes** (no topo do painel): um card por frente de trabalho andando por
+  **Fila → Em atuação → Aguardando aprovação → Concluído**, com squad (produto/marketing), última
+  nota de progresso e desfecho (ok/falha/recusado). Instrumentado nos handoffs reais (menção,
+  delegações, workers e portão de aprovação). Demo sem custo/chaves: `npm run demo:board`.
 - **Webhooks de entrada** (`POST /webhooks/github`, `/webhooks/linear`): labelar uma issue com `agent`
   (ou o `AGENT_TRIGGER_LABEL`) **dispara o time automaticamente** — sem precisar de menção no Slack.
   Assinatura HMAC verificada; o trabalho é reportado no `SLACK_DEFAULT_CHANNEL`.

@@ -6,6 +6,7 @@ import type { AgentContext } from "../agents/context.js";
 import type { ThreadMemory } from "../memory/thread-memory.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { registerApprovalHandlers } from "../approvals/gate.js";
+import { track } from "../board/board.js";
 
 const { App } = bolt;
 
@@ -44,18 +45,26 @@ export function createSlackApp(
       /* reação é best-effort */
     }
 
+    const cardKey = `${threadKey}:pm`;
     try {
       const agent = agentFactory({ channel, threadTs, threadKey, slack: client }, userText);
+      track(
+        cardKey,
+        { title: userText.slice(0, 80), agent: agent.name, squad: "produto", column: "execucao" },
+        "menção recebida no Slack",
+      );
       await memory.append(threadKey, { role: "user", content: userText });
       const { text, newMessages } = await runAgent(agent, await memory.get(threadKey));
       await memory.append(threadKey, ...(newMessages as ModelMessage[]));
 
+      track(cardKey, { column: "concluido", outcome: "ok" }, "respondeu na thread");
       await client.chat.postMessage({
         channel,
         thread_ts: threadTs,
         text: text || "(sem resposta)",
       });
     } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao processar a menção");
       console.error("Erro ao processar menção:", err);
       await client.chat.postMessage({
         channel,

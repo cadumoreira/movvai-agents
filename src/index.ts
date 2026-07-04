@@ -11,6 +11,7 @@ import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
 import { startDashboard, type InboundHandler } from "./web/server.js";
 import { queue } from "./queue/index.js";
+import { track } from "./board/board.js";
 import { config } from "./config.js";
 
 /**
@@ -53,6 +54,11 @@ async function main() {
       text: `:inbox_tray: Recebi do ${source}: *${task.title}* — passando pro time.`,
     });
     const threadTs = String(posted.ts);
+    track(
+      `${channel}:${threadTs}:techlead`,
+      { title: task.title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" },
+      `demanda recebida por webhook (${source})`,
+    );
     await queue.enqueue("techlead-task", {
       channel,
       threadTs,

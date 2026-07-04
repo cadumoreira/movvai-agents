@@ -4,6 +4,7 @@ import { runAgent } from "../agent-runtime/run.js";
 import { createMarketingLeadAgent } from "../agents/marketing-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
+import { track } from "../board/board.js";
 
 /**
  * Worker da Head de Marketing: consome "marketing-task", cria o brief no Notion e
@@ -14,7 +15,13 @@ export function startMarketingLeadWorker(slack: WebClient): void {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
+    const cardKey = `${task.threadKey}:marketing-lead`;
     try {
+      track(
+        cardKey,
+        { title: task.brief.title, agent: "Malu (Head de Marketing)", squad: "marketing", column: "execucao" },
+        "montando o brief no Notion",
+      );
       await post(
         `:dart: Malu (Head de Marketing) aqui — vou montar o brief de *${task.brief.title}* no Notion e acionar o squad.`,
       );
@@ -31,8 +38,10 @@ export function startMarketingLeadWorker(slack: WebClient): void {
         `Demanda: ${task.brief.title}\n\n${task.instructions}`;
 
       const { text } = await runAgent(lead, [{ role: "user", content: initial }]);
+      track(cardKey, { column: "concluido", outcome: "ok" }, "brief pronto e frentes acionadas");
       if (text) await post(text);
     } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao planejar o brief");
       console.error("Erro no worker da Head de Marketing:", err);
       await post(
         `Tive um problema ao planejar a demanda: ${err instanceof Error ? err.message : String(err)}`,
