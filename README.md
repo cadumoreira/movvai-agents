@@ -190,6 +190,7 @@ exibidos; campos em branco não apagam o que existe). (`npm run setup` é o mesm
 
 ```bash
 npm run dev      # com reload
+npm run try:marketing -- "peça de lançamento no Instagram"   # E2E do squad de marketing sem Slack
 npm start        # uma vez
 npm run typecheck
 npm test         # testes unitários (Node test runner + tsx) — sem custo, roda no CI

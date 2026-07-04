@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { EmbeddingModel, LanguageModel } from "ai";
 import { config } from "../config.js";
+import { createMockModel } from "./mock.js";
 
 /**
  * Gateway de modelos agnóstico de provedor.
@@ -38,6 +39,9 @@ export function resolveModel(ref: string): LanguageModel {
   }
 
   switch (provider) {
+    // Dry-run de ponta a ponta sem chave/custo (ver src/models/mock.ts e try:marketing).
+    case "mock":
+      return createMockModel(modelId);
     case "anthropic":
       return createAnthropic({ apiKey: env("ANTHROPIC_API_KEY") })(modelId);
     case "openai":
