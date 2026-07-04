@@ -36,7 +36,15 @@
 - **Skills (playbooks)**: Markdown em `skills/shared/` (todos) e `skills/<papel>/` (por papel),
   carregado sob demanda via `list_skills`/`load_skill` — lido do disco a cada chamada (edita sem
   redeploy). Exemplos inclusos para o squad de marketing; a dica só entra no prompt se houver skill.
-- **Qualidade**: 45 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Rotinas agendadas (cron)**: `schedules.json` (parser de cron próprio, 5 campos; relido a cada
+  tick). Targets: marketing (Malu), produto (Rui) ou disciplina direta. Ex.: `schedules.example.json`.
+- **Conversa contínua na thread**: menção começando com nome de agente ("Sofia, ...") roteia o
+  follow-up direto pra especialista (com contexto da frente via board); produto/sem nome → Ana.
+- **Revisora (Vera)**: valida entregáveis de marketing contra os playbooks antes da aprovação
+  humana (inline no portão, sem worker). `MARKETING_REVIEW=off` desativa.
+- **Briefing interativo**: `ask_clarification` (Malu + especialistas) pergunta na thread e PAUSA
+  até a resposta (mencionar o bot na thread responde; registro em `approvals/questions.ts`).
+- **Qualidade**: 60 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -47,7 +55,7 @@ npm run try:pm -- "descrição completa do bug"   # PM cria ticket no Linear
 npm run try:dev -- "tarefa"                      # Dev no sandbox (local) abre PR
 npm run dev                                       # time completo no Slack + painel :3000
 npm run demo:board                                # kanban demo (sem chaves) em :3000
-npm test                                          # 45 testes
+npm test                                          # 60 testes
 ```
 
 ## Pendências (backlog priorizado)

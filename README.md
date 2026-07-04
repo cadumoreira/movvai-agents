@@ -48,9 +48,23 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   execução) e as **aprovações pendentes** — você pode **aprovar/recusar fora do Slack**. Mesma fonte de
   verdade dos botões do Slack (registro central), então aprovar em qualquer lugar destrava o agente.
 - **Kanban da atuação dos agentes** (no topo do painel): um card por frente de trabalho andando por
-  **Fila → Em atuação → Aguardando aprovação → Concluído**, com squad (produto/marketing), última
+  **Fila → Em atuação → Aguardando humano → Concluído**, com squad (produto/marketing), última
   nota de progresso e desfecho (ok/falha/recusado). Instrumentado nos handoffs reais (menção,
   delegações, workers e portão de aprovação). Demo sem custo/chaves: `npm run demo:board`.
+- **Rotinas agendadas (cron):** o time trabalha proativamente — relatório de SEO toda segunda,
+  calendário social toda sexta. Defina em `schedules.json` (veja `schedules.example.json`; relido
+  a cada tick, sem redeploy): `{ name, cron, target, instructions }` com target `marketing`,
+  `produto` ou uma disciplina (`conteudo|social|ads|seo`).
+- **Conversa contínua na thread:** mencione o bot começando pelo nome do agente ("**Sofia**, troca
+  o tom do post 2") e o follow-up vai DIRETO para a especialista certa, com o contexto da frente
+  existente. Nomes do time de produto (e mensagens sem nome) seguem para a Ana, que re-delega.
+- **Revisão entre agentes (Vera):** antes de pedir SUA aprovação, o entregável de marketing passa
+  pela **Vera (revisora)**, que o valida contra os playbooks (skills) da disciplina — menos recusa
+  humana. Se ela pedir ajustes, a especialista corrige e tenta de novo. Desative com
+  `MARKETING_REVIEW=off`.
+- **Briefing interativo:** faltou informação essencial (público? prazo? orçamento?), a Malu e as
+  especialistas **perguntam na thread e pausam** (`ask_clarification`, mesma interrupção durável da
+  aprovação). Responda mencionando o bot na thread e o trabalho continua.
 - **Webhooks de entrada** (`POST /webhooks/github`, `/webhooks/linear`): labelar uma issue com `agent`
   (ou o `AGENT_TRIGGER_LABEL`) **dispara o time automaticamente** — sem precisar de menção no Slack.
   Assinatura HMAC verificada; o trabalho é reportado no `SLACK_DEFAULT_CHANNEL`.

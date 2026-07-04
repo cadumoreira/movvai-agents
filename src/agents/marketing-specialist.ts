@@ -6,6 +6,9 @@ import type { MarketingDiscipline } from "../queue/types.js";
 import { notionTools } from "../tools/notion.js";
 import { memoryTools } from "../tools/memory.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
+import { askTools, type AskThread } from "../tools/ask.js";
+import { createMarketingReviewerAgent, parseReviewVerdict } from "./marketing-reviewer.js";
+import { runAgent } from "../agent-runtime/run.js";
 import type { Approver } from "../approvals/gate.js";
 import { audit } from "../audit/log.js";
 
@@ -66,13 +69,15 @@ ${p.craft}
 
 ## Seu fluxo
 1. **Cheque a memória** (\`recall_memory\`) por tom de voz, personas e decisões da marca.
-2. **Leia o brief** (link/página no Notion, se houver) e produza o entregável completo.
-3. **Registre no Notion** (\`notion_create_page\`): crie o entregável como subpágina do brief
-   (passe o parent_page_id do brief quando tiver) ou no espaço padrão do marketing.
+2. **Leia o brief** (link/página no Notion, se houver). Se faltar informação ESSENCIAL que você
+   não pode assumir com segurança, use \`ask_clarification\` (uma pergunta objetiva) e aguarde.
+3. **Produza o entregável completo** e **registre no Notion** (\`notion_create_page\`): crie como
+   subpágina do brief (passe o parent_page_id quando tiver) ou no espaço padrão do marketing.
 4. **Peça aprovação** (\`request_publish_approval\`) ANTES de dar o material como aprovado para
-   publicação — descreva em 2-3 linhas o que está sendo aprovado, com o link.
+   publicação — passe o entregável COMPLETO em \`deliverable_markdown\`. A Vera (revisora) valida
+   contra os playbooks antes do humano: se ela pedir ajustes, corrija e peça de novo.
 5. Se aprovado, registre na página (\`notion_comment\`) e responda na thread com o link. Se
-   recusado, pergunte o que ajustar em vez de insistir.
+   recusado pelo humano, pergunte o que ajustar em vez de insistir.
 
 ## Como se comportar
 - Português brasileiro, tom de colega, objetivo. O entregável é o produto — capriche NELE.
@@ -82,24 +87,62 @@ ${p.craft}
 
 export interface MarketingSpecialistContext {
   approve: Approver;
+  /** Thread do Slack (habilita ask_clarification — briefing interativo). */
+  thread?: AskThread;
 }
 
-/** Portão de aprovação humana antes de "publicar" (dar o entregável como aprovado). */
+/**
+ * Portão de publicação em duas camadas: a Vera (revisora) valida contra os playbooks
+ * primeiro (barato, sem incomodar ninguém); só então o humano decide. MARKETING_REVIEW=off
+ * pula a revisora.
+ */
 function publishApprovalTool(discipline: MarketingDiscipline, ctx: MarketingSpecialistContext): ToolSet {
   const persona = PERSONAS[discipline];
   return {
     request_publish_approval: tool({
       description:
-        "Pede aprovação humana (botões no Slack ou painel) antes de dar o entregável como aprovado " +
-        "para publicação. OBRIGATÓRIO antes de declarar o material pronto/publicável.",
+        "Pede aprovação antes de dar o entregável como publicável: a Vera (revisora) valida contra " +
+        "os playbooks e, se ok, o humano decide. OBRIGATÓRIO antes de declarar o material pronto. " +
+        "Se a Vera pedir ajustes, corrija o entregável e chame de novo.",
       inputSchema: z.object({
         summary: z.string().describe("2-3 linhas: o que está sendo aprovado e para qual canal/objetivo."),
+        deliverable_markdown: z
+          .string()
+          .describe("O entregável COMPLETO (em Markdown) — é o que a revisora avalia."),
         page_url: z.string().optional().describe("URL da página do entregável no Notion."),
       }),
-      execute: async ({ summary, page_url }) => {
+      execute: async ({ summary, deliverable_markdown, page_url }) => {
+        let reviewNote = "";
+        if (config.marketingReview) {
+          const reviewer = createMarketingReviewerAgent(discipline);
+          const { text } = await runAgent(reviewer, [
+            {
+              role: "user",
+              content:
+                `Revise o entregável de ${persona.name} (frente: ${discipline}).\n\n` +
+                `Resumo do objetivo: ${summary}\n\n---\n\n${deliverable_markdown}`,
+            },
+          ]);
+          const verdict = parseReviewVerdict(text ?? "");
+          audit({
+            kind: verdict.approved ? "marketing_review_ok" : "marketing_review_adjust",
+            actor: "mkt-revisao",
+            detail: summary.slice(0, 200),
+          });
+          if (!verdict.approved) {
+            return {
+              approved: false,
+              reviewed_by: "Vera (Revisão)",
+              feedback: verdict.feedback,
+              next_step: "Ajuste o entregável conforme o feedback e chame request_publish_approval de novo.",
+            };
+          }
+          reviewNote = "\n:white_check_mark: _Revisado pela Vera contra os playbooks._";
+        }
+
         const link = page_url ? `\n${page_url}` : "";
         const decision = await ctx.approve({
-          text: `:mega: *${persona.name}* pede aprovação para publicar:\n${summary}${link}`,
+          text: `:mega: *${persona.name}* pede aprovação para publicar:\n${summary}${link}${reviewNote}`,
         });
         audit({
           kind: decision.approved ? "marketing_publish_approved" : "marketing_publish_rejected",
@@ -129,6 +172,7 @@ export function createMarketingSpecialistAgent(
       ...publishApprovalTool(discipline, ctx),
       ...memoryTools(persona.id),
       ...skillTools(persona.id),
+      ...(ctx.thread ? askTools(ctx.thread, persona.name, `${ctx.thread.threadKey}:${persona.id}`) : {}),
     },
     maxSteps: 16,
     tokenBudget: config.tokenBudget,

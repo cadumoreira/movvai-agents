@@ -35,7 +35,14 @@ export function startMarketingWorker(slack: WebClient): void {
         track(cardKey, { column: "execucao" }, decision.approved ? "publicação aprovada" : "publicação recusada");
         return decision;
       };
-      const specialist = createMarketingSpecialistAgent(task.discipline, { approve }, model);
+      const specialist = createMarketingSpecialistAgent(
+        task.discipline,
+        {
+          approve,
+          thread: { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, slack },
+        },
+        model,
+      );
 
       const briefRef = [
         task.brief.url ? `Brief no Notion: ${task.brief.url}` : "",

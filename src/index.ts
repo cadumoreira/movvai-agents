@@ -7,6 +7,7 @@ import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
 import { startMarketingLeadWorker } from "./workers/marketing-lead-worker.js";
 import { startMarketingWorker } from "./workers/marketing-worker.js";
+import { startScheduler } from "./schedule/scheduler.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
 import { startDashboard, type InboundHandler } from "./web/server.js";
@@ -41,6 +42,9 @@ async function main() {
   // Squad de marketing (Malu coordena; Caio/Sofia/Leo/Nina executam no Notion).
   startMarketingLeadWorker(app.client);
   startMarketingWorker(app.client);
+
+  // Rotinas agendadas (cron): o time trabalha proativamente (schedules.json).
+  startScheduler(app.client);
 
   // Webhooks de entrada (GitHub/Linear) → posta no canal padrão e aciona o Tech Lead.
   const handleInbound: InboundHandler = async (source, task) => {

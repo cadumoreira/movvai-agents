@@ -67,6 +67,10 @@ export const config = {
   },
   // Skills: playbooks em Markdown carregados sob demanda pelos agentes (skills/<papel>/*.md).
   skillsDir: optional("SKILLS_DIR", "skills"),
+  // Rotinas agendadas (cron) — arquivo JSON relido a cada tick; ausente = sem rotinas.
+  schedulesPath: optional("SCHEDULES_PATH", "schedules.json"),
+  // Revisora de marketing (Vera) valida entregáveis contra os playbooks antes do humano.
+  marketingReview: optional("MARKETING_REVIEW", "on") !== "off",
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
   embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),

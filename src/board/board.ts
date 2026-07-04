@@ -13,7 +13,7 @@ export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 export const COLUMN_LABELS: Record<BoardColumn, string> = {
   fila: "Fila",
   execucao: "Em atuação",
-  aprovacao: "Aguardando aprovação",
+  aprovacao: "Aguardando humano", // aprovação OU resposta a pergunta de esclarecimento
   concluido: "Concluído",
 };
 
