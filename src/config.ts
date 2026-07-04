@@ -71,6 +71,49 @@ export const config = {
   schedulesPath: optional("SCHEDULES_PATH", "schedules.json"),
   // Revisora de marketing (Vera) valida entregáveis contra os playbooks antes do humano.
   marketingReview: optional("MARKETING_REVIEW", "on") !== "off",
+  // Publicação real (pós-aprovação): blog, e-mail e social/automação via webhook.
+  publish: {
+    wordpress: {
+      baseUrl: optional("WORDPRESS_BASE_URL"),
+      get username() {
+        return optional("WORDPRESS_USERNAME");
+      },
+      get appPassword() {
+        return optional("WORDPRESS_APP_PASSWORD");
+      },
+      // Segurança: entra como rascunho por padrão; "publish" vai ao ar direto.
+      status: optional("WORDPRESS_STATUS", "draft"),
+    },
+    resend: {
+      get apiKey() {
+        return optional("RESEND_API_KEY");
+      },
+      from: optional("EMAIL_FROM"),
+      to: optional("EMAIL_TO")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    },
+    get webhookUrl() {
+      return optional("PUBLISH_WEBHOOK_URL");
+    },
+    get logPath() {
+      return optional("PUBLICATIONS_LOG_PATH", "publications.log");
+    },
+  },
+  // Assets visuais (criativos gerados): pasta local, servida pelo painel em /assets.
+  assets: {
+    dir: optional("ASSETS_DIR", "assets"),
+    publicBaseUrl: optional("PUBLIC_BASE_URL"),
+  },
+  // Google (GA4 + Search Console) via service account — métricas pós-campanha da Nina.
+  google: {
+    get serviceAccountJson() {
+      return optional("GOOGLE_SERVICE_ACCOUNT_JSON"); // caminho do .json OU o JSON inline
+    },
+    ga4PropertyId: optional("GA4_PROPERTY_ID"),
+    gscSiteUrl: optional("GSC_SITE_URL"),
+  },
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
   embeddingModel: optional("EMBEDDING_MODEL", "openai:text-embedding-3-small"),

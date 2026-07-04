@@ -7,6 +7,9 @@ import { notionTools } from "../tools/notion.js";
 import { memoryTools } from "../tools/memory.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools, type AskThread } from "../tools/ask.js";
+import { publishTools, type PublishGate } from "../tools/publish-tools.js";
+import { imageTools } from "../tools/image.js";
+import { analyticsTools } from "../tools/analytics.js";
 import { createMarketingReviewerAgent, parseReviewVerdict } from "./marketing-reviewer.js";
 import { runAgent } from "../agent-runtime/run.js";
 import type { Approver } from "../approvals/gate.js";
@@ -56,7 +59,9 @@ const PERSONAS: Record<MarketingDiscipline, Persona> = {
     headline: "SEO e analytics — keywords, auditoria e relatórios",
     craft: `- Pesquisa de keywords: intenção de busca, dificuldade estimada e prioridade — justifique.
 - Auditorias: achados concretos e acionáveis (o quê, onde, impacto, como corrigir), não genéricos.
-- Relatórios: números que sustentam decisão; se não tiver o dado, diga o que falta instrumentar.`,
+- Relatórios: números REAIS — use \`ga4_report\` e \`search_console_query\` (se disponíveis) e cruze
+  com \`list_recent_publications\` para amarrar métrica ao que o time publicou. Sem o dado, diga o
+  que falta instrumentar — nunca invente número.`,
   },
 };
 
@@ -76,8 +81,12 @@ ${p.craft}
 4. **Peça aprovação** (\`request_publish_approval\`) ANTES de dar o material como aprovado para
    publicação — passe o entregável COMPLETO em \`deliverable_markdown\`. A Vera (revisora) valida
    contra os playbooks antes do humano: se ela pedir ajustes, corrija e peça de novo.
-5. Se aprovado, registre na página (\`notion_comment\`) e responda na thread com o link. Se
-   recusado pelo humano, pergunte o que ajustar em vez de insistir.
+5. **Aprovado? PUBLIQUE** com as ferramentas de publicação disponíveis (blog/e-mail/social);
+   se nenhuma estiver configurada, o material fica pronto no Notion — diga isso na thread.
+   Registre o desfecho na página (\`notion_comment\`) e responda na thread com os links.
+   Se recusado pelo humano, pergunte o que ajustar em vez de insistir.
+6. Precisa de criativo? Gere um rascunho com \`generate_image\` (se disponível) ANTES de pedir
+   aprovação, e inclua a URL no material.
 
 ## Como se comportar
 - Português brasileiro, tom de colega, objetivo. O entregável é o produto — capriche NELE.
@@ -96,7 +105,11 @@ export interface MarketingSpecialistContext {
  * primeiro (barato, sem incomodar ninguém); só então o humano decide. MARKETING_REVIEW=off
  * pula a revisora.
  */
-function publishApprovalTool(discipline: MarketingDiscipline, ctx: MarketingSpecialistContext): ToolSet {
+function publishApprovalTool(
+  discipline: MarketingDiscipline,
+  ctx: MarketingSpecialistContext,
+  gate: PublishGate,
+): ToolSet {
   const persona = PERSONAS[discipline];
   return {
     request_publish_approval: tool({
@@ -150,6 +163,8 @@ function publishApprovalTool(discipline: MarketingDiscipline, ctx: MarketingSpec
           detail: summary.slice(0, 200),
           meta: { url: page_url },
         });
+        // Destrava (ou trava) as ferramentas de publicação desta execução.
+        gate.approved = decision.approved;
         return { approved: decision.approved };
       },
     }),
@@ -162,6 +177,9 @@ export function createMarketingSpecialistAgent(
   model?: string,
 ): Agent {
   const persona = PERSONAS[discipline];
+  // Gate de publicação: nasce travado; o portão de aprovação destrava quando o humano aprova.
+  const gate: PublishGate = { approved: false };
+  const cardKey = ctx.thread ? `${ctx.thread.threadKey}:${persona.id}` : undefined;
   return {
     id: persona.id,
     name: persona.name,
@@ -169,12 +187,15 @@ export function createMarketingSpecialistAgent(
     model: model ?? config.models.marketing,
     tools: {
       ...notionTools(persona.id),
-      ...publishApprovalTool(discipline, ctx),
+      ...publishApprovalTool(discipline, ctx, gate),
+      ...publishTools(discipline, { gate, personaId: persona.id, threadKey: ctx.thread?.threadKey, cardKey }),
+      ...(discipline !== "seo" ? imageTools(persona.id) : {}),
+      ...(discipline === "seo" ? analyticsTools() : {}),
       ...memoryTools(persona.id),
       ...skillTools(persona.id),
-      ...(ctx.thread ? askTools(ctx.thread, persona.name, `${ctx.thread.threadKey}:${persona.id}`) : {}),
+      ...(ctx.thread ? askTools(ctx.thread, persona.name, cardKey) : {}),
     },
-    maxSteps: 16,
+    maxSteps: 20,
     tokenBudget: config.tokenBudget,
   };
 }

@@ -105,6 +105,31 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: "Publicação (pós-aprovação)",
+    hint: "Transforma entregável aprovado em resultado: blog, e-mail e social via automação.",
+    fields: [
+      { key: "WORDPRESS_BASE_URL", label: "WordPress URL", placeholder: "https://blog.suamarca.com" },
+      { key: "WORDPRESS_USERNAME", label: "WordPress usuário" },
+      { key: "WORDPRESS_APP_PASSWORD", label: "WordPress app password", type: "secret" },
+      { key: "WORDPRESS_STATUS", label: "Status do post", type: "select", options: ["draft", "publish"] },
+      { key: "RESEND_API_KEY", label: "Resend API Key (e-mail)", type: "secret", placeholder: "re_..." },
+      { key: "EMAIL_FROM", label: "Remetente", placeholder: "news@suamarca.com" },
+      { key: "EMAIL_TO", label: "Lista (e-mails, vírgula)" },
+      { key: "PUBLISH_WEBHOOK_URL", label: "Webhook social/ads (Zapier/Make/n8n)" },
+    ],
+  },
+  {
+    title: "Métricas (Google) & assets",
+    hint: "Nina lê GA4/Search Console (service account). Criativos exigem OPENAI_API_KEY.",
+    fields: [
+      { key: "GOOGLE_SERVICE_ACCOUNT_JSON", label: "Service account (caminho do .json ou JSON)", type: "secret" },
+      { key: "GA4_PROPERTY_ID", label: "GA4 Property ID", placeholder: "123456789" },
+      { key: "GSC_SITE_URL", label: "Search Console site", placeholder: "https://suamarca.com/" },
+      { key: "ASSETS_DIR", label: "Pasta de assets", placeholder: "assets" },
+      { key: "PUBLIC_BASE_URL", label: "URL pública do painel (p/ links de asset)" },
+    ],
+  },
+  {
     title: "Acesso (RBAC) & organização",
     fields: [
       { key: "APPROVER_SLACK_IDS", label: "Aprovadores Slack (IDs, vírgula)" },

@@ -69,6 +69,19 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Briefing interativo:** faltou informação essencial (público? prazo? orçamento?), a Malu e as
   especialistas **perguntam na thread e pausam** (`ask_clarification`, mesma interrupção durável da
   aprovação). Responda mencionando o bot na thread e o trabalho continua.
+- **Publicação REAL (pós-aprovação):** aprovado ≠ parado no Notion — o Caio publica no **blog
+  (WordPress, rascunho por padrão)** e envia **e-mail (Resend)**; Sofia e Leo despacham posts e
+  campanhas via **webhook de automação** (Zapier/Make/n8n → qualquer rede). As ferramentas de
+  publicação ficam **travadas até o humano aprovar**. Tudo vira linha no `publications.log`.
+- **Assets visuais:** `generate_image` (OpenAI Images, exige `OPENAI_API_KEY`) gera o rascunho do
+  criativo; o arquivo fica em `ASSETS_DIR` e é servido pelo painel em `/assets/...` — a URL segue
+  junto do post para a automação.
+- **Métricas pós-campanha:** a Nina lê números REAIS do **GA4** (`ga4_report`) e do **Search
+  Console** (`search_console_query`) via service account, e cruza com `list_recent_publications`
+  — fecha o loop *plan → execute → measure* (o relatório semanal via cron usa dados de verdade).
+- **Design system:** painel com identidade movvai — tema escuro, acento violeta, cores de squad
+  **validadas** para daltonismo/contraste (produto `#0284C7`, marketing `#9333EA`), status
+  reservado (ok/falha/recusado) sempre com rótulo textual.
 - **Webhooks de entrada** (`POST /webhooks/github`, `/webhooks/linear`): labelar uma issue com `agent`
   (ou o `AGENT_TRIGGER_LABEL`) **dispara o time automaticamente** — sem precisar de menção no Slack.
   Assinatura HMAC verificada; o trabalho é reportado no `SLACK_DEFAULT_CHANNEL`.

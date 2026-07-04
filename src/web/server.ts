@@ -1,4 +1,6 @@
 import http from "node:http";
+import { readFileSync, existsSync } from "node:fs";
+import { join, basename } from "node:path";
 import { listActivity } from "../observability/activity.js";
 import { listBoard, BOARD_COLUMNS, COLUMN_LABELS } from "../board/board.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
@@ -73,6 +75,16 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
       res.end(PAGE);
       return;
     }
+    // Assets gerados (criativos): servidos do ASSETS_DIR. basename barra path traversal.
+    if (req.method === "GET" && path.startsWith("/assets/")) {
+      const file = basename(decodeURIComponent(path.slice("/assets/".length)));
+      const full = join(config.assets.dir, file);
+      if (!file || !existsSync(full)) return json(res, 404, { error: "not found" });
+      const type = file.endsWith(".png") ? "image/png" : file.endsWith(".jpg") || file.endsWith(".jpeg") ? "image/jpeg" : "application/octet-stream";
+      res.writeHead(200, { "Content-Type": type, "Cache-Control": "public, max-age=3600" });
+      res.end(readFileSync(full));
+      return;
+    }
     if (req.method === "GET" && path === "/api/board") {
       return json(res, 200, {
         columns: BOARD_COLUMNS.map((id) => ({ id, label: COLUMN_LABELS[id] })),
@@ -137,58 +149,110 @@ const PAGE = `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dream Team — Painel</title>
+<title>movvai — Dream Team</title>
 <style>
-  :root { color-scheme: light dark; }
-  body { font: 15px/1.5 system-ui, sans-serif; margin: 0; padding: 24px; max-width: 1200px; margin: 0 auto; }
-  h1 { font-size: 20px; } h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: #888; margin-top: 32px; }
-  .card { border: 1px solid #8883; border-radius: 10px; padding: 12px 14px; margin: 8px 0; }
+  /*
+   * Design system do painel (tema escuro deliberado, estética AI-SaaS).
+   * Cores de squad validadas (CVD/contraste) contra a superfície escura:
+   *   produto #0284C7 · marketing #9333EA — validate_palette: ALL CHECKS PASS.
+   * Status (reservado): ok verde · falha vermelho · recusado âmbar — sempre com rótulo.
+   */
+  :root {
+    color-scheme: dark;
+    --bg: #0B0C10;
+    --surface: #14161C;
+    --well: #0F1116;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --ink: #E7E9EE;
+    --ink-2: #9BA1AE;
+    --ink-3: #646B78;
+    --accent: #8B5CF6;
+    --accent-2: #6366F1;
+    --produto: #0284C7;
+    --marketing: #9333EA;
+    --ok: #4ADE80;
+    --err: #F87171;
+    --warn: #FBBF24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 14px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 420px at 80% -10%, rgba(139, 92, 246, 0.10), transparent 60%),
+      radial-gradient(700px 380px at 8% -14%, rgba(2, 132, 199, 0.08), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    margin: 0 auto; padding: 28px 24px 64px; max-width: 1240px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Marca */
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .brand .mark { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 18px rgba(139, 92, 246, 0.45); }
+  .brand h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+  .brand h1 span { color: var(--ink-3); font-weight: 500; }
+  .brand .env { margin-left: auto; font-size: 12px; color: var(--ink-3); border: 1px solid var(--border); padding: 2px 10px; border-radius: 99px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin: 36px 0 4px; font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin: 8px 0; }
   .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-  .muted { color: #888; font-size: 13px; }
-  button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid #8884; cursor: pointer; }
-  .approve { background: #16a34a; color: #fff; border-color: #16a34a; }
-  .reject { background: #dc2626; color: #fff; border-color: #dc2626; }
-  .empty { color: #888; font-style: italic; }
+  .muted { color: var(--ink-2); font-size: 12.5px; }
+  button { font: inherit; font-weight: 600; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
+  button:hover { border-color: var(--accent); }
+  .approve { background: rgba(74, 222, 128, 0.12); color: var(--ok); border-color: rgba(74, 222, 128, 0.35); }
+  .approve:hover { background: rgba(74, 222, 128, 0.22); border-color: var(--ok); }
+  .reject { background: rgba(248, 113, 113, 0.10); color: var(--err); border-color: rgba(248, 113, 113, 0.35); }
+  .reject:hover { background: rgba(248, 113, 113, 0.20); border-color: var(--err); }
+  .empty { color: var(--ink-3); font-style: italic; font-size: 13px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
   /* ── Kanban ─────────────────────────────────────────────────────────── */
-  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-  @media (max-width: 860px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .kcol { border: 1px solid #8883; border-radius: 10px; padding: 10px; min-height: 120px; background: #8880801a; }
-  .kcol h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #888; margin: 2px 4px 8px; display: flex; justify-content: space-between; }
-  .kcard { border: 1px solid #8884; border-left-width: 3px; border-radius: 8px; padding: 8px 10px; margin: 8px 0; font-size: 13px; background: Canvas; }
-  .kcard.produto { border-left-color: #2563eb; }
-  .kcard.marketing { border-left-color: #9333ea; }
-  .kcard .agent { font-weight: 600; }
-  .kcard .title { margin: 2px 0; }
-  .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 99px; border: 1px solid #8884; color: #888; }
-  .tag.ok { color: #16a34a; border-color: #16a34a66; }
-  .tag.falha, .tag.recusado { color: #dc2626; border-color: #dc262666; }
-  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: #f59e0b; animation: pulse 1.2s infinite; vertical-align: baseline; }
-  @keyframes pulse { 50% { opacity: .3; } }
-  /* ── Toolbar (busca + filtro por squad) ─────────────────────────────── */
-  .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  .toolbar input[type=search] { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid #8884; min-width: 220px; background: Canvas; color: CanvasText; }
-  .chip { font-size: 13px; padding: 4px 10px; border-radius: 99px; border: 1px solid #8884; background: transparent; color: CanvasText; }
-  .chip.active { background: CanvasText; color: Canvas; border-color: CanvasText; }
-  .kcard { cursor: pointer; }
-  .kcard:hover { border-color: #888a; }
+  .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  @media (max-width: 900px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kcol { border: 1px solid var(--border); border-radius: 14px; padding: 10px; min-height: 140px; background: var(--well); }
+  .kcol h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin: 4px 6px 10px; display: flex; justify-content: space-between; font-weight: 600; }
+  .kcard { border: 1px solid var(--border); border-left-width: 3px; border-radius: 10px; padding: 9px 11px; margin: 8px 0; font-size: 13px; background: var(--surface); cursor: pointer; transition: border-color .15s, transform .1s; }
+  .kcard:hover { border-color: var(--border-strong); border-left-width: 3px; transform: translateY(-1px); }
+  .kcard.produto { border-left-color: var(--produto); }
+  .kcard.marketing { border-left-color: var(--marketing); }
+  .kcard .agent { font-weight: 600; letter-spacing: -0.01em; }
+  .kcard .title { margin: 3px 0; color: var(--ink-2); }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; padding: 0 7px; border-radius: 99px; border: 1px solid var(--border-strong); color: var(--ink-2); }
+  .kcard.produto .tag.squad, .tag.produto { color: #7DC4F0; border-color: rgba(2, 132, 199, 0.5); }
+  .kcard.marketing .tag.squad, .tag.marketing { color: #C89BF5; border-color: rgba(147, 51, 234, 0.5); }
+  .tag.ok { color: var(--ok); border-color: rgba(74, 222, 128, 0.4); }
+  .tag.falha { color: var(--err); border-color: rgba(248, 113, 113, 0.4); }
+  .tag.recusado { color: var(--warn); border-color: rgba(251, 191, 36, 0.4); }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--warn); box-shadow: 0 0 10px rgba(251, 191, 36, 0.7); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity: 0.25; } }
+  /* ── Toolbar ────────────────────────────────────────────────────────── */
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  .toolbar input[type=search] { font: inherit; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--border); min-width: 240px; background: var(--surface); color: var(--ink); outline: none; }
+  .toolbar input[type=search]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18); }
+  .chip { font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--ink-2); }
+  .chip:hover { border-color: var(--border-strong); }
+  .chip.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; }
   .kactions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
-  .kactions button { padding: 3px 10px; font-size: 12px; border-radius: 6px; }
-  .kactions input { font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 6px; border: 1px solid #8884; flex: 1; min-width: 120px; background: Canvas; color: CanvasText; }
-  /* ── Modal (dossiê do card) ─────────────────────────────────────────── */
-  #overlay { position: fixed; inset: 0; background: #0006; display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 10; overflow-y: auto; }
+  .kactions button { padding: 3px 10px; font-size: 12px; border-radius: 7px; }
+  .kactions input { font: inherit; font-size: 12px; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--border); flex: 1; min-width: 120px; background: var(--well); color: var(--ink); outline: none; }
+  .kactions input:focus { border-color: var(--accent); }
+  /* ── Modal (dossiê) ─────────────────────────────────────────────────── */
+  #overlay { position: fixed; inset: 0; background: rgba(5, 6, 9, 0.65); backdrop-filter: blur(4px); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
   #overlay.open { display: flex; }
-  #modal { background: Canvas; color: CanvasText; border: 1px solid #8884; border-radius: 12px; padding: 20px; max-width: 640px; width: 100%; }
-  #modal h3 { margin: 0 0 4px; font-size: 17px; }
-  .timeline { margin: 12px 0 0; padding: 0; list-style: none; border-left: 2px solid #8884; }
+  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); border-radius: 16px; padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); }
+  #modal h3 { margin: 0 0 4px; font-size: 17px; letter-spacing: -0.01em; }
+  .timeline { margin: 14px 0 0; padding: 0; list-style: none; border-left: 2px solid var(--border-strong); }
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
-  .timeline li::before { content: ""; position: absolute; left: -19px; top: 6px; width: 8px; height: 8px; border-radius: 99px; background: #888; }
+  .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--accent); }
   .timeline .muted { display: block; }
-  a { color: inherit; }
 </style>
 </head>
 <body>
-  <h1>🤖 Dream Team — Painel</h1>
-  <h2>Board do time (kanban)</h2>
+  <div class="brand">
+    <div class="mark"></div>
+    <h1>movvai <span>/ dream team</span></h1>
+    <span class="env">ao vivo</span>
+  </div>
+  <h2>Board do time</h2>
   <div class="toolbar">
     <input type="search" id="q" placeholder="Buscar por título ou agente…" />
     <button class="chip active" data-squad="todos">Todos</button>
@@ -231,11 +295,15 @@ function linkify(s) {
 }
 function threadKeyOf(cardKey) { const i = cardKey.lastIndexOf(':'); return i === -1 ? cardKey : cardKey.slice(0, i); }
 function cardApprovals(c) {
-  // Mesma thread pode ter várias frentes aguardando: prefere as aprovações que citam
-  // o agente do card; se nenhuma citar, mostra as da thread (não esconder decisão).
-  const all = state.approvals.filter(a => a.threadKey === threadKeyOf(c.key));
+  // Mesma thread pode ter várias frentes aguardando: cada card mostra as aprovações
+  // que citam o SEU agente; as que não citam ninguém (órfãs) aparecem em todos —
+  // melhor decisão visível em card errado do que decisão escondida.
+  const tk = threadKeyOf(c.key);
+  const all = state.approvals.filter(a => a.threadKey === tk);
   const mine = all.filter(a => a.text.includes(c.agent));
-  return mine.length ? mine : all;
+  if (mine.length) return mine;
+  const agents = state.board.cards.filter(x => threadKeyOf(x.key) === tk).map(x => x.agent);
+  return all.filter(a => !agents.some(name => a.text.includes(name)));
 }
 function cardQuestions(c) {
   return state.questions.filter(q => q.threadKey === threadKeyOf(c.key) && (!q.askedBy || q.askedBy === c.agent));
@@ -312,7 +380,7 @@ function renderBoard() {
         '<div class="row"><span class="agent">' + escapeHtml(c.agent) + '</span>' + status + '</div>' +
         '<div class="title">' + escapeHtml(c.title) + '</div>' +
         '<div class="muted">' + escapeHtml(lastNote) + '</div>' +
-        '<div class="row" style="margin-top:4px"><span class="tag">' + escapeHtml(c.squad) + '</span>' +
+        '<div class="row" style="margin-top:4px"><span class="tag squad">' + escapeHtml(c.squad) + '</span>' +
         '<span class="muted">' + new Date(c.updatedAt).toLocaleTimeString() + '</span></div>';
       // Decisões inline: aprovar/recusar e responder pergunta sem sair do card.
       if (c.column === 'aprovacao') {
@@ -347,7 +415,7 @@ function renderModal() {
   const info = document.createElement('div');
   const colLabel = (state.board.columns.find(x => x.id === c.column) || {}).label || c.column;
   info.innerHTML = '<div class="title" style="font-size:15px">' + escapeHtml(c.title) + '</div>' +
-    '<div class="muted"><span class="tag">' + escapeHtml(c.squad) + '</span> · ' + escapeHtml(colLabel) +
+    '<div class="muted"><span class="tag ' + c.squad + '">' + escapeHtml(c.squad) + '</span> · ' + escapeHtml(colLabel) +
     ' · criado ' + new Date(c.createdAt).toLocaleString() + ' · atualizado ' + new Date(c.updatedAt).toLocaleString() + '</div>';
   modal.append(info);
 

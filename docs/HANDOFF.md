@@ -46,7 +46,15 @@
   humana (inline no portão, sem worker). `MARKETING_REVIEW=off` desativa.
 - **Briefing interativo**: `ask_clarification` (Malu + especialistas) pergunta na thread e PAUSA
   até a resposta (mencionar o bot na thread responde; registro em `approvals/questions.ts`).
-- **Qualidade**: 60 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Publicação real (pós-aprovação)**: WordPress (rascunho por default), Resend (e-mail) e webhook
+  genérico p/ social/ads (Zapier/Make/n8n). Ferramentas travadas até a aprovação humana (gate).
+  Log em `publications.log`. Nina cruza com métricas (`list_recent_publications`).
+- **Assets visuais**: `generate_image` (OpenAI Images) → ASSETS_DIR, servido em `/assets` no painel.
+- **Métricas**: GA4 Data API + Search Console via service account (JWT RS256 com node:crypto, sem
+  SDK) — `ga4_report` e `search_console_query` na Nina.
+- **Design system**: painel escuro identidade movvai; cores de squad validadas (produto #0284C7,
+  marketing #9333EA — validate_palette ALL PASS na superfície #14161C).
+- **Qualidade**: 70 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -57,7 +65,7 @@ npm run try:pm -- "descrição completa do bug"   # PM cria ticket no Linear
 npm run try:dev -- "tarefa"                      # Dev no sandbox (local) abre PR
 npm run dev                                       # time completo no Slack + painel :3000
 npm run demo:board                                # kanban demo (sem chaves) em :3000
-npm test                                          # 60 testes
+npm test                                          # 70 testes
 ```
 
 ## Pendências (backlog priorizado)
