@@ -418,7 +418,8 @@ const PAGE = `<!doctype html>
   .stat .num { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
   .stat .lbl { font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
   .dot { width: 8px; height: 8px; border-radius: 99px; display: inline-block; flex: none; }
-  .kcard { border-radius: 12px; animation: pop .18s ease-out; }
+  .kcard { border-radius: 12px; }
+  .kcard.enter { animation: pop .18s ease-out; }
   #modal { animation: pop .18s ease-out; }
   @keyframes pop { from { opacity: 0; transform: translateY(4px); } }
   button:active { transform: scale(0.97); }
@@ -625,54 +626,113 @@ function questionWidget(q) {
 }
 
 // ── Board ────────────────────────────────────────────────────────────────
-function renderBoard() {
+// ── Board com reconciliação por chave (sem piscar) ─────────────────────────
+// Em vez de destruir e recriar o DOM a cada refresh (o que fazia os cards
+// "piscarem" e reanimava a entrada), a gente mantém os nós e só atualiza o que
+// mudou: card novo entra com animação; card igual nem é tocado (preserva foco).
+let boardColsKey = null, boardCols = null;
+const cardNodes = {};
+
+// Assinatura do que é VISÍVEL num card: se não muda, o nó não é reconstruído.
+function cardSig(c) {
+  const lastNote = c.notes.length ? c.notes[c.notes.length - 1].text : '';
+  const extra = c.column === 'aprovacao'
+    ? cardApprovals(c).map(a => a.id).join(',') + '|' + cardQuestions(c).map(q => q.question).join('|')
+    : '';
+  return [c.agent, c.title, c.column, c.outcome || '', c.squad, lastNote, c.updatedAt, extra].join('\\u00a6');
+}
+
+function fillCard(k, c) {
+  const head = document.createElement('div'); head.className = 'khead';
+  head.append(avatarEl(c.agent));
+  const nm = document.createElement('span'); nm.className = 'agent'; nm.textContent = c.agent; head.append(nm);
+  if (c.column === 'concluido') {
+    if (c.outcome) { const t = document.createElement('span'); t.className = 'tag ' + c.outcome; t.textContent = c.outcome; head.append(t); }
+  } else if (c.column !== 'fila') {
+    const p = document.createElement('span'); p.className = 'pulse'; head.append(p);
+  }
+  k.append(head);
+  const title = document.createElement('div'); title.className = 'title'; title.textContent = c.title; k.append(title);
+  const lastNote = c.notes.length ? c.notes[c.notes.length - 1].text : '';
+  if (lastNote) { const n = document.createElement('div'); n.className = 'note'; n.textContent = lastNote; k.append(n); }
+  const foot = document.createElement('div'); foot.className = 'kfoot';
+  foot.innerHTML = '<span class="tag ' + c.squad + '">' + escapeHtml(c.squad) + '</span>' +
+    '<span class="muted">' + new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</span>';
+  k.append(foot);
+  if (c.column === 'aprovacao') {
+    for (const a of cardApprovals(c)) k.append(approvalWidget(a, true));
+    for (const q of cardQuestions(c)) k.append(questionWidget(q));
+  }
+}
+
+function buildCard(c) {
+  const k = document.createElement('div'); k.className = 'kcard ' + c.squad + ' enter';
+  k.onclick = () => { openCardKey = c.key; renderModal(); };
+  k.addEventListener('animationend', () => k.classList.remove('enter'), { once: true });
+  fillCard(k, c);
+  return k;
+}
+
+// Cria o esqueleto de colunas UMA vez (recria só se o conjunto de colunas mudar).
+function ensureBoardSkeleton() {
   const el = document.getElementById('board');
+  const colsKey = state.board.columns.map(c => c.id).join(',');
+  if (boardCols && boardColsKey === colsKey) return;
+  boardColsKey = colsKey; boardCols = {};
+  for (const k in cardNodes) delete cardNodes[k];
   el.innerHTML = '';
-  el.style.gridTemplateColumns = onlyColumn ? 'minmax(0, 1fr)' : '';
   for (const col of state.board.columns) {
-    const cards = state.board.cards.filter(c => c.column === col.id && matchesFilter(c));
     const kcol = document.createElement('div'); kcol.className = 'kcol';
-    if (onlyColumn && col.id !== onlyColumn) continue;
-    kcol.innerHTML = '<h3><span class="colpill ' + col.id + '">' + escapeHtml(col.label) + '</span>' +
-      '<span class="count">' + cards.length + '</span></h3>';
+    const h = document.createElement('h3');
+    h.innerHTML = '<span class="colpill ' + col.id + '">' + escapeHtml(col.label) + '</span><span class="count">0</span>';
+    kcol.append(h);
     const wrap = document.createElement('div'); wrap.className = 'kcards'; kcol.append(wrap);
-    if (!cards.length) wrap.innerHTML = '<div class="kempty">Sem frentes aqui</div>';
-    for (const c of cards) {
-      const k = document.createElement('div'); k.className = 'kcard ' + c.squad;
-      const head = document.createElement('div'); head.className = 'khead';
-      head.append(avatarEl(c.agent));
-      const nm = document.createElement('span'); nm.className = 'agent'; nm.textContent = c.agent;
-      head.append(nm);
-      if (c.column === 'concluido') {
-        if (c.outcome) { const t = document.createElement('span'); t.className = 'tag ' + c.outcome; t.textContent = c.outcome; head.append(t); }
-      } else if (c.column !== 'fila') {
-        const p = document.createElement('span'); p.className = 'pulse'; head.append(p);
-      }
-      k.append(head);
-      const title = document.createElement('div'); title.className = 'title'; title.textContent = c.title; k.append(title);
-      const lastNote = c.notes.length ? c.notes[c.notes.length - 1].text : '';
-      if (lastNote) { const n = document.createElement('div'); n.className = 'note'; n.textContent = lastNote; k.append(n); }
-      const foot = document.createElement('div'); foot.className = 'kfoot';
-      foot.innerHTML = '<span class="tag ' + c.squad + '">' + escapeHtml(c.squad) + '</span>' +
-        '<span class="muted">' + new Date(c.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</span>';
-      k.append(foot);
-      if (c.column === 'aprovacao') {
-        for (const a of cardApprovals(c)) k.append(approvalWidget(a, true));
-        for (const q of cardQuestions(c)) k.append(questionWidget(q));
-      }
-      k.onclick = () => { openCardKey = c.key; renderModal(); };
-      wrap.append(k);
-    }
     el.append(kcol);
+    boardCols[col.id] = { kcol, wrap, count: h.querySelector('.count') };
+  }
+}
+
+function renderBoard() {
+  ensureBoardSkeleton();
+  document.getElementById('board').style.gridTemplateColumns = onlyColumn ? 'minmax(0, 1fr)' : '';
+  const seen = new Set();
+  for (const col of state.board.columns) {
+    const slot = boardCols[col.id]; if (!slot) continue;
+    slot.kcol.style.display = (!onlyColumn || col.id === onlyColumn) ? '' : 'none';
+    const cards = state.board.cards.filter(c => c.column === col.id && matchesFilter(c));
+    slot.count.textContent = cards.length;
+    let empty = slot.wrap.querySelector('.kempty');
+    if (!cards.length && !empty) { empty = document.createElement('div'); empty.className = 'kempty'; empty.textContent = 'Sem frentes aqui'; slot.wrap.append(empty); }
+    else if (cards.length && empty) empty.remove();
+    // Reconcilia por chave, mantendo a ordem desejada (só move/insere o necessário).
+    let cursor = slot.wrap.firstChild;
+    for (const c of cards) {
+      seen.add(c.key);
+      let entry = cardNodes[c.key], sig = cardSig(c);
+      if (!entry) entry = cardNodes[c.key] = { node: buildCard(c), sig };
+      else if (entry.sig !== sig) { entry.node.className = 'kcard ' + c.squad; entry.node.innerHTML = ''; fillCard(entry.node, c); entry.sig = sig; }
+      const node = entry.node;
+      if (node === cursor) cursor = node.nextSibling;
+      else slot.wrap.insertBefore(node, cursor);
+    }
+  }
+  for (const key of Object.keys(cardNodes)) {
+    if (!seen.has(key)) { cardNodes[key].node.remove(); delete cardNodes[key]; }
   }
 }
 
 // ── Dossiê (modal) ───────────────────────────────────────────────────────
+let modalSig = null;
 function renderModal() {
   const overlay = document.getElementById('overlay');
   const modal = document.getElementById('modal');
   const c = openCardKey && state.board.cards.find(x => x.key === openCardKey);
-  if (!c) { overlay.className = ''; modal.innerHTML = ''; return; }
+  if (!c) { overlay.className = ''; modal.innerHTML = ''; modalSig = null; return; }
+  // Só reconstrói o dossiê quando algo muda (senão pisca e perde o foco do chat).
+  const conv = state.conversation && state.conversation.threadKey === threadKeyOf(c.key) ? state.conversation.messages.length : 0;
+  const sig = c.key + '\\u00a6' + cardSig(c) + '\\u00a6' + conv;
+  if (overlay.className === 'open' && modalSig === sig) return;
+  modalSig = sig;
   overlay.className = 'open';
   modal.innerHTML = '';
 
