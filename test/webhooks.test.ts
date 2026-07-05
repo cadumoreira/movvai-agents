@@ -14,9 +14,10 @@ test("verifyHmacSha256 aceita assinatura válida e rejeita inválida", () => {
   assert.equal(verifyHmacSha256("", body, "x"), false);
 });
 
-test("parseGithubIssue aciona em label do agente", () => {
+test("parseGithubIssue aciona quando o label ADICIONADO é o do agente", () => {
   const body = {
     action: "labeled",
+    label: { name: "agent" }, // o GitHub manda o label recém-adicionado no topo do payload
     issue: { title: "Bug X", body: "passos", number: 7, html_url: "http://gh/7", labels: [{ name: "agent" }] },
   };
   const task = parseGithubIssue("issues", body, "agent");
@@ -25,8 +26,17 @@ test("parseGithubIssue aciona em label do agente", () => {
   assert.ok(task?.instructions.includes("passos"));
 });
 
+test("parseGithubIssue NÃO re-dispara quando outro label é adicionado a issue já marcada", () => {
+  const body = {
+    action: "labeled",
+    label: { name: "p1" }, // adicionaram "p1", mas a issue já tinha "agent"
+    issue: { title: "Bug X", labels: [{ name: "agent" }, { name: "p1" }] },
+  };
+  assert.equal(parseGithubIssue("issues", body, "agent"), null);
+});
+
 test("parseGithubIssue ignora evento sem o label e tipo errado", () => {
-  const body = { action: "labeled", issue: { title: "X", labels: [{ name: "outro" }] } };
+  const body = { action: "labeled", label: { name: "outro" }, issue: { title: "X", labels: [{ name: "outro" }] } };
   assert.equal(parseGithubIssue("issues", body, "agent"), null);
   assert.equal(parseGithubIssue("push", body, "agent"), null);
 });

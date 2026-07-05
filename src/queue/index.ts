@@ -9,8 +9,9 @@ function parseRedisUrl(url: string): ConnectionOptions {
   return {
     host: u.hostname,
     port: Number(u.port || 6379),
-    username: u.username || undefined,
-    password: u.password || undefined,
+    // A classe URL mantém user/senha percent-encoded ("p%40ss") — o Redis quer o valor real.
+    username: u.username ? decodeURIComponent(u.username) : undefined,
+    password: u.password ? decodeURIComponent(u.password) : undefined,
     db: u.pathname && u.pathname !== "/" ? Number(u.pathname.slice(1)) : undefined,
     tls: u.protocol === "rediss:" ? {} : undefined,
     maxRetriesPerRequest: null,

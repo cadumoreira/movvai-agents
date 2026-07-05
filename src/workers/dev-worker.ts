@@ -7,7 +7,8 @@ import { slackApprover, type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
-import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
+import { formatPreflight } from "../deps/preflight.js";
+import { preflightOrAbort } from "./support.js";
 
 /**
  * Worker do Dev: consome jobs "dev-task", sobe um sandbox efêmero, roda o agente Dev
@@ -20,13 +21,8 @@ export function startDevWorker(slack: WebClient): void {
 
     const cardKey = `${task.threadKey}:dev`;
     // Preflight: dependência ESSENCIAL ausente aborta ANTES de subir sandbox/gastar tokens.
-    const checks = preflight("dev");
-    const missing = missingRequired(checks);
-    if (missing.length) {
-      track(cardKey, { title: task.ticket.title, agent: "Téo (Dev)", squad: "produto", column: "concluido", outcome: "falha" }, "dependências essenciais ausentes");
-      await post(`:warning: Não consigo começar *${task.ticket.title}* — falta: ${missing.map((m) => `${m.label} (${m.hint})`).join("; ")}.`);
-      return;
-    }
+    const checks = await preflightOrAbort("dev", { cardKey, title: task.ticket.title, agent: "Téo (Dev)", squad: "produto" }, post);
+    if (!checks) return;
     let sandbox: Sandbox | undefined;
     try {
       const target = parseRepo(task.repo);

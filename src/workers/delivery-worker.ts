@@ -47,13 +47,15 @@ export function startDeliveryWorker(slack: WebClient): void {
   queue.process("delivery-task", async (job) => {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
-    const cardKey = `${job.threadKey}:delivery`;
+    // Sufixo próprio: a MESMA thread pode ter um delivery-summary — não dividir o card.
+    const cardKey = `${job.threadKey}:delivery-task`;
     try {
       track(
         cardKey,
         { title: job.title, agent: "Dani (Delivery)", squad: "produto", column: "execucao" },
         "trabalhando na tarefa",
       );
+      await post(`:package: Dani (Delivery) aqui — peguei *${job.title}*.`);
       const { text } = await runAgent(createDeliveryAgent(), [{ role: "user", content: job.instructions }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "tarefa concluída");
       if (text) await post(text);

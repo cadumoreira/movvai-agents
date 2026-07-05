@@ -11,6 +11,12 @@ function optional(name: string, fallback = ""): string {
   return process.env[name] ?? fallback;
 }
 
+/** Env numérica validada: valor inválido (ex.: JOB_RETRIES=abc) cai no default, nunca em NaN. */
+function numeric(name: string, fallback: number): number {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 /**
  * Config com acesso preguiçoso (getters) para as chaves obrigatórias: importar a
  * config não lança erro — só lança quando você de fato usa aquela integração. Isso
@@ -31,7 +37,7 @@ export const config = {
     gatewayApiKey: optional("MODEL_GATEWAY_API_KEY"),
   },
   // Orçamento de tokens por execução de agente (guarda de custo). 0 = sem limite.
-  tokenBudget: Number(optional("AGENT_TOKEN_BUDGET", "400000")),
+  tokenBudget: numeric("AGENT_TOKEN_BUDGET", 400_000),
   // Conselho multi-modelo (debate/MoA) para decisões de alto valor. Vazio/1 modelo = desligado.
   council: {
     models: optional("COUNCIL_MODELS")
@@ -43,15 +49,15 @@ export const config = {
   redisUrl: optional("REDIS_URL"),
   // Robustez dos jobs: retentativas com backoff, e vigia de cards órfãos no board.
   jobs: {
-    retries: Number(optional("JOB_RETRIES", "1")),
-    retryDelayMs: Number(optional("JOB_RETRY_DELAY_MS", "30000")),
+    retries: numeric("JOB_RETRIES", 1),
+    retryDelayMs: numeric("JOB_RETRY_DELAY_MS", 30_000),
     // Card parado em fila/execução além disso vira falha (0 = vigia desligado).
-    staleCardMinutes: Number(optional("STALE_CARD_MINUTES", "30")),
+    staleCardMinutes: numeric("STALE_CARD_MINUTES", 30),
     // Aprovação/pergunta esperando você além disso ganha lembrete na thread (0 = off).
-    approvalReminderMinutes: Number(optional("APPROVAL_REMINDER_MINUTES", "30")),
+    approvalReminderMinutes: numeric("APPROVAL_REMINDER_MINUTES", 30),
   },
   dashboard: {
-    port: Number(optional("DASHBOARD_PORT", "3000")),
+    port: numeric("DASHBOARD_PORT", 3000),
   },
   audit: {
     get path() {
@@ -85,7 +91,9 @@ export const config = {
     return optional("BRAND_DIR", "brand");
   },
   // Rotinas agendadas (cron) — arquivo JSON relido a cada tick; ausente = sem rotinas.
-  schedulesPath: optional("SCHEDULES_PATH", "schedules.json"),
+  get schedulesPath() {
+    return optional("SCHEDULES_PATH", "schedules.json");
+  },
   // Templates de demanda cross-squad (templates/*.json, lidos ao vivo).
   get templatesDir() {
     return optional("TEMPLATES_DIR", "templates");
@@ -95,7 +103,9 @@ export const config = {
   // Publicação real (pós-aprovação): blog, e-mail e social/automação via webhook.
   publish: {
     wordpress: {
-      baseUrl: optional("WORDPRESS_BASE_URL"),
+      get baseUrl() {
+        return optional("WORDPRESS_BASE_URL");
+      },
       get username() {
         return optional("WORDPRESS_USERNAME");
       },
@@ -103,17 +113,23 @@ export const config = {
         return optional("WORDPRESS_APP_PASSWORD");
       },
       // Segurança: entra como rascunho por padrão; "publish" vai ao ar direto.
-      status: optional("WORDPRESS_STATUS", "draft"),
+      get status() {
+        return optional("WORDPRESS_STATUS", "draft");
+      },
     },
     resend: {
       get apiKey() {
         return optional("RESEND_API_KEY");
       },
-      from: optional("EMAIL_FROM"),
-      to: optional("EMAIL_TO")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      get from() {
+        return optional("EMAIL_FROM");
+      },
+      get to() {
+        return optional("EMAIL_TO")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      },
     },
     get webhookUrl() {
       return optional("PUBLISH_WEBHOOK_URL");
@@ -124,16 +140,24 @@ export const config = {
   },
   // Assets visuais (criativos gerados): pasta local, servida pelo painel em /assets.
   assets: {
-    dir: optional("ASSETS_DIR", "assets"),
-    publicBaseUrl: optional("PUBLIC_BASE_URL"),
+    get dir() {
+      return optional("ASSETS_DIR", "assets");
+    },
+    get publicBaseUrl() {
+      return optional("PUBLIC_BASE_URL");
+    },
   },
   // Google (GA4 + Search Console) via service account — métricas pós-campanha da Nina.
   google: {
     get serviceAccountJson() {
       return optional("GOOGLE_SERVICE_ACCOUNT_JSON"); // caminho do .json OU o JSON inline
     },
-    ga4PropertyId: optional("GA4_PROPERTY_ID"),
-    gscSiteUrl: optional("GSC_SITE_URL"),
+    get ga4PropertyId() {
+      return optional("GA4_PROPERTY_ID");
+    },
+    get gscSiteUrl() {
+      return optional("GSC_SITE_URL");
+    },
   },
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
@@ -204,19 +228,28 @@ export const config = {
       return optional("NOTION_API_KEY");
     },
     // Onde as páginas nascem: um database (item por brief) OU uma página-mãe (subpáginas).
-    databaseId: optional("NOTION_DATABASE_ID"),
-    parentPageId: optional("NOTION_PARENT_PAGE_ID"),
+    get databaseId() {
+      return optional("NOTION_DATABASE_ID");
+    },
+    get parentPageId() {
+      return optional("NOTION_PARENT_PAGE_ID");
+    },
   },
   // Jira (alternativa/adicional ao Linear). Ativo só com base/email/token/projeto.
   jira: {
-    baseUrl: optional("JIRA_BASE_URL"), // ex.: https://suaorg.atlassian.net
+    // ex.: https://suaorg.atlassian.net
+    get baseUrl() {
+      return optional("JIRA_BASE_URL");
+    },
     get email() {
       return optional("JIRA_EMAIL");
     },
     get apiToken() {
       return optional("JIRA_API_TOKEN");
     },
-    projectKey: optional("JIRA_PROJECT_KEY"),
+    get projectKey() {
+      return optional("JIRA_PROJECT_KEY");
+    },
   },
   // Webhooks de entrada: label que aciona o time, e segredo do Linear.
   webhooks: {

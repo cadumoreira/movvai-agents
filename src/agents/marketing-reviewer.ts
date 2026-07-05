@@ -1,7 +1,7 @@
 import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import type { MarketingDiscipline } from "../queue/types.js";
-import { skillTools } from "../tools/skills.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { brandPromptBlock } from "../brand/context.js";
 
 /**
@@ -31,7 +31,7 @@ export function createMarketingReviewerAgent(discipline: MarketingDiscipline, mo
   return {
     id: "mkt-revisao",
     name: "Vera (Revisão)",
-    system: SYSTEM + brandPromptBlock(),
+    system: SYSTEM + brandPromptBlock() + skillsPromptHint(`mkt-${discipline}`),
     model: model ?? config.models.marketing,
     // A Vera enxerga as MESMAS skills da disciplina que está revisando (+ as shared).
     tools: skillTools(`mkt-${discipline}`),

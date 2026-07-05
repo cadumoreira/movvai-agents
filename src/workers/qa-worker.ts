@@ -5,6 +5,10 @@ import { createQaAgent } from "../agents/qa.js";
 import { createRepoSandbox, parseRepo, type Sandbox } from "../sandbox/index.js";
 import { getPullRequestFiles } from "../tools/github-write.js";
 import { track } from "../board/board.js";
+import { routeModel } from "../models/router.js";
+import { config } from "../config.js";
+import { formatPreflight } from "../deps/preflight.js";
+import { preflightOrAbort } from "./support.js";
 
 /**
  * Worker do QA: consome jobs "qa-review" (acionados quando o Dev abre um PR), sobe um
@@ -16,6 +20,8 @@ export function startQaWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
 
     const cardKey = `${job.threadKey}:qa`;
+    const checks = await preflightOrAbort("qa", { cardKey, title: job.title, agent: "Bia (QA)", squad: "produto" }, post);
+    if (!checks) return;
     let sandbox: Sandbox | undefined;
     try {
       const target = parseRepo(job.repo);
@@ -35,11 +41,12 @@ export function startQaWorker(slack: WebClient): void {
         .map((f) => `- ${f.status} ${f.filename} (+${f.additions}/-${f.deletions})`)
         .join("\n");
 
-      const qa = createQaAgent({ sandbox, target, prNumber: job.prNumber });
+      const qa = createQaAgent({ sandbox, target, prNumber: job.prNumber }, routeModel(config.models.qa, { text: job.title }));
       const initial =
         `Revise o PR "#${job.prNumber}: ${job.title}" (${job.prUrl}). O conteúdo da branch \`${job.branch}\` ` +
         `está disponível no sandbox (use caminhos relativos).\n\nArquivos alterados:\n${fileList || "(não foi possível obter a lista)"}\n\n` +
-        `Leia os arquivos relevantes, rode os testes/lint, avalie e registre a revisão com comment_on_pr.`;
+        `Leia os arquivos relevantes, rode os testes/lint, avalie e registre a revisão com comment_on_pr.` +
+        formatPreflight(checks);
 
       const { text } = await runAgent(qa, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "revisão registrada no PR");

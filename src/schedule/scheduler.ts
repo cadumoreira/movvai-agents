@@ -124,8 +124,12 @@ export function startScheduler(slack: WebClient): void {
       const key = `${s.name}@${minute}`;
       if (fired.has(key) || !matchesCron(s.cron, now)) continue;
       fired.add(key);
-      if (fired.size > 1000) fired.clear(); // higiene: chaves têm o minuto, não colidem após clear
       fire(slack, s).catch((err) => console.error(`Rotina "${s.name}" falhou:`, err));
+    }
+    // Higiene: só descarta chaves de minutos PASSADOS — limpar a do minuto
+    // corrente faria o próximo tick (30s) disparar a mesma rotina em dobro.
+    if (fired.size > 1000) {
+      for (const k of fired) if (!k.endsWith(`@${minute}`)) fired.delete(k);
     }
   };
 

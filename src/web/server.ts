@@ -112,14 +112,19 @@ export function startDashboard(port: number, onInbound?: InboundHandler, onDeman
     if (req.method === "GET" && path === "/api/approvals") {
       return json(res, 200, listPending());
     }
+    // Leituras sensíveis (auditoria, custos, playbooks/marca) também exigem o token
+    // quando DASHBOARD_TOKEN está configurado — não são só as escritas que vazam.
     if (req.method === "GET" && path === "/api/audit") {
+      if (!dashboardAuthorized(req.headers.authorization)) return json(res, 401, { error: "não autorizado" });
       return json(res, 200, listAudit());
     }
     if (req.method === "GET" && path === "/api/billing") {
+      if (!dashboardAuthorized(req.headers.authorization)) return json(res, 401, { error: "não autorizado" });
       return json(res, 200, billingSummary());
     }
     // ── Curadoria: playbooks (skills) e manual da marca pelo painel ─────────
     if (req.method === "GET" && path === "/api/docs") {
+      if (!dashboardAuthorized(req.headers.authorization)) return json(res, 401, { error: "não autorizado" });
       return json(res, 200, listDocs());
     }
     if (path === "/api/docs/content") {
@@ -128,6 +133,7 @@ export function startDashboard(port: number, onInbound?: InboundHandler, onDeman
         id: url.searchParams.get("id") ?? "",
       };
       if (req.method === "GET") {
+        if (!dashboardAuthorized(req.headers.authorization)) return json(res, 401, { error: "não autorizado" });
         const content = readDoc(ref);
         return content === null ? json(res, 404, { error: "not found" }) : json(res, 200, { content });
       }
@@ -475,13 +481,18 @@ const PAGE = `<!doctype html>
 let state = { board: { columns: [], cards: [] }, approvals: [], questions: [], billing: [], activity: [], audit: [] };
 let filterSquad = 'todos', searchQ = '', openCardKey = null, onlyColumn = null;
 
+// Leitura autenticada: usa o token salvo (sem prompt); 401 vira lista vazia.
+const authedGet = (url, fallback) => fetch(url, {
+  headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dashToken') || '') },
+}).then(r => r.ok ? r.json() : fallback);
+
 async function refresh() {
   const [aps, qs, act, aud, bil, board] = await Promise.all([
     fetch('/api/approvals').then(r => r.json()),
     fetch('/api/questions').then(r => r.json()),
     fetch('/api/activity').then(r => r.json()),
-    fetch('/api/audit').then(r => r.json()),
-    fetch('/api/billing').then(r => r.json()),
+    authedGet('/api/audit', []),
+    authedGet('/api/billing', { total: 0, byAgent: [] }),
     fetch('/api/board').then(r => r.json()),
   ]);
   state = { board, approvals: aps, questions: qs, activity: act, audit: aud, billing: bil };
@@ -765,14 +776,14 @@ function renderTeam() {
 // ── Editor de playbooks/marca ───────────────────────────────────────────
 let currentDoc = null, docsLoaded = false;
 async function loadDocs() {
-  const docs = await fetch('/api/docs').then(r => r.json());
+  const docs = await authedGet('/api/docs', []);
   const list = document.getElementById('doclist');
   list.innerHTML = '';
   for (const d of docs) {
     const a = document.createElement('a');
     a.textContent = d.title;
     a.onclick = async () => {
-      const res = await fetch('/api/docs/content?type=' + d.type + '&id=' + encodeURIComponent(d.id)).then(r => r.json());
+      const res = await authedGet('/api/docs/content?type=' + d.type + '&id=' + encodeURIComponent(d.id), { content: '' });
       currentDoc = d;
       document.getElementById('docname').textContent = d.title;
       document.getElementById('docbody').value = res.content || '';

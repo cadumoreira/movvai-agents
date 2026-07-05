@@ -5,6 +5,12 @@ import { register, resolvePending } from "../src/approvals/registry.js";
 import { askQuestion, answerQuestion, resetQuestions } from "../src/approvals/questions.js";
 import { isStatusCommand } from "../src/connectors/routing.js";
 import { startDashboard } from "../src/web/server.js";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// Auditoria em tmp: testes não escrevem o audit.log REAL do repo.
+process.env.AUDIT_LOG_PATH = join(mkdtempSync(join(tmpdir(), "audit-prio-")), "audit.log");
 
 // ── Lembretes de pendências humanas ─────────────────────────────────────────
 

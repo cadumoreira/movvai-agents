@@ -13,6 +13,31 @@ import { track } from "../board/board.js";
 export interface PublishGate {
   /** Setado pelo portão de aprovação quando o humano aprova. */
   approved: boolean;
+  /**
+   * Entregável (normalizado) que o humano aprovou. As tools de publicação só
+   * aceitam corpo CONTIDO nele — aprovar "X" nunca autoriza publicar "Y".
+   */
+  approvedContent?: string;
+}
+
+/** Normalização usada para comparar corpo publicado × entregável aprovado. */
+export function normalizeForApproval(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/** null = liberado; senão o erro a retornar. */
+function gateCheck(gate: PublishGate, body: string): { ok: false; error: string } | null {
+  if (!gate.approved) return LOCKED;
+  const n = normalizeForApproval(body);
+  if (!n || !gate.approvedContent?.includes(n)) {
+    return {
+      ok: false as const,
+      error:
+        "Publicação bloqueada: o corpo difere do entregável aprovado. Peça aprovação de novo " +
+        "(request_publish_approval) com o texto FINAL exatamente como será publicado.",
+    };
+  }
+  return null;
 }
 
 interface PublishCtx {
@@ -44,7 +69,8 @@ function contentPublishTools(ctx: PublishCtx): ToolSet {
         excerpt: z.string().optional().describe("Resumo/meta description."),
       }),
       execute: async ({ title, markdown, excerpt }) => {
-        if (!ctx.gate.approved) return LOCKED;
+        const blocked = gateCheck(ctx.gate, markdown);
+        if (blocked) return blocked;
         const res = await publishWordPress({ title, markdown, excerpt });
         if (res.ok) {
           logPublication({ channel: "blog", title, url: res.url, by: ctx.personaId, threadKey: ctx.threadKey });
@@ -64,7 +90,8 @@ function contentPublishTools(ctx: PublishCtx): ToolSet {
         to: z.array(z.string()).optional().describe("Destinatários (default: lista EMAIL_TO)."),
       }),
       execute: async ({ subject, markdown, to }) => {
-        if (!ctx.gate.approved) return LOCKED;
+        const blocked = gateCheck(ctx.gate, markdown);
+        if (blocked) return blocked;
         const res = await sendEmailResend({ subject, markdown, to });
         if (res.ok) {
           logPublication({ channel: "email", title: subject, by: ctx.personaId, threadKey: ctx.threadKey });
@@ -94,7 +121,8 @@ function webhookPublishTools(ctx: PublishCtx, kind: "social-post" | "ads-campaig
         image_url: z.string().optional().describe("URL do criativo (se houver)."),
       }),
       execute: async ({ title, channel, content, scheduled_at, image_url }) => {
-        if (!ctx.gate.approved) return LOCKED;
+        const blocked = gateCheck(ctx.gate, content);
+        if (blocked) return blocked;
         const res = await publishWebhook({ kind, title, channel, content, scheduled_at, image_url, by: ctx.personaId });
         if (res.ok) {
           logPublication({

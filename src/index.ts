@@ -118,6 +118,20 @@ async function main() {
 
   startDashboard(config.dashboard.port, handleInbound, handleDemand);
 
+  // Defaults abertos são para uso LOCAL: em produção, avise alto.
+  if (!config.security.dashboardToken || config.security.approverSlackIds.length === 0) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        kind: "security",
+        message:
+          "Modo aberto: defina DASHBOARD_TOKEN (painel) e APPROVER_SLACK_IDS (quem aprova) em produção — " +
+          "sem eles, qualquer pessoa com acesso à porta lê/edita playbooks e qualquer membro do canal aprova.",
+        at: new Date().toISOString(),
+      }),
+    );
+  }
+
   await app.start();
   console.log(
     JSON.stringify({

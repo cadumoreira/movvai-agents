@@ -117,6 +117,11 @@ export async function sendEmailResend(opts: {
   to?: string[];
 }): Promise<{ ok: boolean; id?: string; error?: string }> {
   const { apiKey, from, to } = config.publish.resend;
+  // Allowlist server-side: o agente só envia para quem está em EMAIL_TO — um brief
+  // malicioso não escolhe destinatário arbitrário (spam/exfiltração).
+  if (opts.to?.length && opts.to.some((r) => !to.includes(r))) {
+    return { ok: false, error: "Destinatário fora da allowlist EMAIL_TO — adicione lá ou remova o parâmetro to." };
+  }
   const recipients = opts.to?.length ? opts.to : to;
   if (!apiKey || !from) return { ok: false, error: "Resend não configurado (RESEND_API_KEY/EMAIL_FROM)." };
   if (!recipients.length) return { ok: false, error: "Sem destinatários (EMAIL_TO ou parâmetro to)." };

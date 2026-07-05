@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { until } from "./helpers.js";
+
+// Auditoria em tmp: testes não escrevem o audit.log REAL do repo.
+process.env.AUDIT_LOG_PATH = join(mkdtempSync(join(tmpdir(), "audit-orch-")), "audit.log");
 import { validateTemplate, listTemplates, renderStep, fireTemplate } from "../src/orchestration/templates.js";
 import { queue } from "../src/queue/index.js";
 import { listBoard, resetBoard } from "../src/board/board.js";
@@ -52,7 +56,7 @@ test("fireTemplate enfileira cada passo na MESMA thread e cria os cards", async 
     ],
   };
   const targets = await fireTemplate(t, { channel: "C9", threadTs: "9.9", threadKey: "C9:9.9" }, "o modo escuro");
-  await new Promise((r) => setTimeout(r, 30));
+  await until(() => received.length >= 2);
 
   assert.deepEqual(targets, ["produto", "marketing"]);
   assert.equal(received.length, 2);

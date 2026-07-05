@@ -6,7 +6,8 @@ import { slackApprover, type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
-import { preflight, formatPreflight } from "../deps/preflight.js";
+import { formatPreflight } from "../deps/preflight.js";
+import { preflightOrAbort } from "./support.js";
 
 /**
  * Worker do squad de Operações: consome "ops-task", instancia a persona da disciplina
@@ -18,6 +19,12 @@ export function startOpsWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
     const cardKey = `${task.threadKey}:ops-${task.discipline}`;
+    const checks = await preflightOrAbort(
+      task.discipline,
+      { cardKey, title: task.title, agent: opsSpecialistName(task.discipline), squad: "operacoes" },
+      post,
+    );
+    if (!checks) return;
     try {
       track(
         cardKey,
@@ -43,7 +50,7 @@ export function startOpsWorker(slack: WebClient): void {
       const initial =
         `Trabalhe na demanda a seguir.\n\nDemanda: ${task.title}\n\n${task.instructions}\n\n` +
         `Lembre: request_send_approval ANTES de qualquer envio.` +
-        formatPreflight(preflight(task.discipline));
+        formatPreflight(checks);
 
       const { text } = await runAgent(specialist, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "demanda concluída");

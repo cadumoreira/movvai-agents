@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { InProcessQueue } from "../src/queue/index.js";
+import { until } from "./helpers.js";
 
 test("InProcessQueue entrega o job ao processador", async () => {
   const q = new InProcessQueue();
@@ -19,6 +20,6 @@ test("InProcessQueue entrega o job ao processador", async () => {
     prNumber: 1,
   });
 
-  await new Promise((r) => setTimeout(r, 20));
+  await until(() => received !== undefined);
   assert.equal(received?.title, "Entrega X");
 });

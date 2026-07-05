@@ -55,6 +55,15 @@ export async function initBoard(): Promise<void> {
   for (const card of await boardStore.loadAll()) {
     if (!cards.has(card.key)) cards.set(card.key, card);
   }
+  // Aprovações são promises em memória: um card restaurado em "aprovacao" não tem
+  // mais quem o destrave (o registry nasce vazio). Marca como falha com nota clara
+  // em vez de exibir "Aguardando humano" para sempre; se a fila durável reentregar
+  // o job, a frente re-tracka e volta ao fluxo normal.
+  for (const card of cards.values()) {
+    if (card.column === "aprovacao") {
+      track(card.key, { column: "concluido", outcome: "falha" }, "aprovação perdida no restart — reabra a demanda na thread");
+    }
+  }
 }
 
 /** Import do store cacheado (dinâmico para evitar ciclo board↔store). */
