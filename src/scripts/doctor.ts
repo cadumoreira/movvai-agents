@@ -143,7 +143,8 @@ const CHECKS: Check[] = [
   {
     canal: "Slack",
     desbloqueia: "Superfície extra (o painel já faz tudo)",
-    need: ["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "SLACK_SIGNING_SECRET"],
+    // SLACK_DEFAULT_CHANNEL entra aqui: sem ele, com Slack ligado, demandas dão "sem canal para ancorar".
+    need: ["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "SLACK_SIGNING_SECRET", "SLACK_DEFAULT_CHANNEL"],
     live: async () => {
       const r = await withTimeout(fetch("https://slack.com/api/auth.test", { method: "POST", headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` } }));
       const j = (await r.json()) as { ok?: boolean; team?: string; error?: string };

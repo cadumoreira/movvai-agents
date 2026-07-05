@@ -58,6 +58,20 @@ async function main() {
     const created = createSlackApp(agentFactory, memory);
     slackApp = created.app;
     messenger = created.messenger;
+    // Armadilha comum: Slack ligado, mas sem canal → toda demanda falha com "sem canal para ancorar".
+    if (!config.slack.defaultChannel) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          kind: "surface",
+          message:
+            "Slack ligado, mas SLACK_DEFAULT_CHANNEL está vazio — demandas/webhooks/rotinas vão falhar " +
+            "com 'sem canal para ancorar'. Defina o ID do canal (ex.: C0123ABCD) ou apague os tokens do " +
+            "Slack para rodar em modo painel.",
+          at: new Date().toISOString(),
+        }),
+      );
+    }
   } else {
     messenger = new PanelMessenger();
     console.warn(
