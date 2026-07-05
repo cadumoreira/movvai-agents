@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { Redis } from "ioredis";
 
 /**
  * "Médico" da configuração: diz o que já está pronto e o que falta, canal por canal.
@@ -150,7 +151,26 @@ const CHECKS: Check[] = [
       return `workspace ${j.team}`;
     },
   },
-  { canal: "Redis (durabilidade)", desbloqueia: "Board persiste + jobs com retry", need: ["REDIS_URL"] },
+  {
+    canal: "Redis (durabilidade)",
+    desbloqueia: "Board + conversas persistem, jobs com retry",
+    need: ["REDIS_URL"],
+    // Conecta e dá PING de verdade (presença do REDIS_URL não garante que o Redis está no ar).
+    live: async () => {
+      const r = new Redis(process.env.REDIS_URL!, {
+        maxRetriesPerRequest: 1,
+        lazyConnect: true,
+        connectTimeout: 6000,
+        retryStrategy: () => null,
+      });
+      try {
+        await r.connect();
+        return `respondeu ${await r.ping()}`;
+      } finally {
+        r.disconnect();
+      }
+    },
+  },
 ];
 
 const ICON: Record<Status, string> = { ok: "✅", parcial: "🟡", falta: "⬜" };
