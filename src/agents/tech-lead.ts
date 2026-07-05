@@ -6,6 +6,8 @@ import { linearTools } from "../tools/linear.js";
 import { delegateToDev } from "../tools/delegate.js";
 import { memoryTools } from "../tools/memory.js";
 import { councilTools } from "../tools/council.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
+import { brandPromptBlock } from "../brand/context.js";
 
 const SYSTEM = `Você é o **Rui**, Tech Lead/Arquiteto de um time de produto autônomo. Você recebe demandas
 com decisão de design e define a abordagem técnica ANTES de o Dev implementar.
@@ -30,7 +32,7 @@ export function createTechLeadAgent(ctx: AgentContext, model?: string): Agent {
   return {
     id: "techlead",
     name: "Rui (Tech Lead)",
-    system: SYSTEM,
+    system: SYSTEM + brandPromptBlock() + skillsPromptHint("techlead"),
     model: model ?? config.models.dev,
     tools: {
       ...githubTools(),
@@ -38,6 +40,7 @@ export function createTechLeadAgent(ctx: AgentContext, model?: string): Agent {
       ...delegateToDev(ctx),
       ...memoryTools("techlead"),
       ...councilTools(),
+      ...skillTools("techlead"),
     },
     maxSteps: 16,
     tokenBudget: config.tokenBudget,

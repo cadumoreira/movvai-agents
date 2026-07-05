@@ -21,6 +21,8 @@ export const config = {
     pm: optional("PM_MODEL", "anthropic:claude-sonnet-4-6"),
     dev: optional("DEV_MODEL", "anthropic:claude-opus-4-8"),
     qa: optional("QA_MODEL", "anthropic:claude-sonnet-4-6"),
+    // Squad de marketing (Head + especialistas). Roteado por custo como os demais.
+    marketing: optional("MARKETING_MODEL", "anthropic:claude-sonnet-4-6"),
     // Modelo barato para tarefas simples (roteamento de custo por tier).
     cheap: optional("CHEAP_MODEL", "anthropic:claude-haiku-4-5"),
     gatewayBaseUrl: optional("MODEL_GATEWAY_BASE_URL"),
@@ -62,6 +64,59 @@ export const config = {
     },
     // Identificador da organização (fundação para multi-org; tagueia a auditoria).
     orgId: optional("ORG_ID", "default"),
+  },
+  // Skills: playbooks em Markdown carregados sob demanda pelos agentes (skills/<papel>/*.md).
+  skillsDir: optional("SKILLS_DIR", "skills"),
+  // Brand Center: contexto da empresa em todo fluxo (brand/perfil.md + docs + assets).
+  get brandDir() {
+    return optional("BRAND_DIR", "brand");
+  },
+  // Rotinas agendadas (cron) — arquivo JSON relido a cada tick; ausente = sem rotinas.
+  schedulesPath: optional("SCHEDULES_PATH", "schedules.json"),
+  // Revisora de marketing (Vera) valida entregáveis contra os playbooks antes do humano.
+  marketingReview: optional("MARKETING_REVIEW", "on") !== "off",
+  // Publicação real (pós-aprovação): blog, e-mail e social/automação via webhook.
+  publish: {
+    wordpress: {
+      baseUrl: optional("WORDPRESS_BASE_URL"),
+      get username() {
+        return optional("WORDPRESS_USERNAME");
+      },
+      get appPassword() {
+        return optional("WORDPRESS_APP_PASSWORD");
+      },
+      // Segurança: entra como rascunho por padrão; "publish" vai ao ar direto.
+      status: optional("WORDPRESS_STATUS", "draft"),
+    },
+    resend: {
+      get apiKey() {
+        return optional("RESEND_API_KEY");
+      },
+      from: optional("EMAIL_FROM"),
+      to: optional("EMAIL_TO")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    },
+    get webhookUrl() {
+      return optional("PUBLISH_WEBHOOK_URL");
+    },
+    get logPath() {
+      return optional("PUBLICATIONS_LOG_PATH", "publications.log");
+    },
+  },
+  // Assets visuais (criativos gerados): pasta local, servida pelo painel em /assets.
+  assets: {
+    dir: optional("ASSETS_DIR", "assets"),
+    publicBaseUrl: optional("PUBLIC_BASE_URL"),
+  },
+  // Google (GA4 + Search Console) via service account — métricas pós-campanha da Nina.
+  google: {
+    get serviceAccountJson() {
+      return optional("GOOGLE_SERVICE_ACCOUNT_JSON"); // caminho do .json OU o JSON inline
+    },
+    ga4PropertyId: optional("GA4_PROPERTY_ID"),
+    gscSiteUrl: optional("GSC_SITE_URL"),
   },
   // Memória de longo prazo (Postgres + pgvector). Vazio = memória desativada (no-op).
   databaseUrl: optional("DATABASE_URL"),
@@ -125,6 +180,15 @@ export const config = {
     get webhookSecret() {
       return optional("GITHUB_WEBHOOK_SECRET");
     },
+  },
+  // Notion — board do squad de marketing (briefs, calendário, rascunhos). Ativo só com a chave.
+  notion: {
+    get apiKey() {
+      return optional("NOTION_API_KEY");
+    },
+    // Onde as páginas nascem: um database (item por brief) OU uma página-mãe (subpáginas).
+    databaseId: optional("NOTION_DATABASE_ID"),
+    parentPageId: optional("NOTION_PARENT_PAGE_ID"),
   },
   // Jira (alternativa/adicional ao Linear). Ativo só com base/email/token/projeto.
   jira: {

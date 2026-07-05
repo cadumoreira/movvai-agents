@@ -2,6 +2,7 @@ import type { WebClient } from "@slack/web-api";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createDeliveryAgent } from "../agents/delivery.js";
+import { track } from "../board/board.js";
 
 /**
  * Worker do Delivery Manager: consome "delivery-summary" (acionado após a revisão do QA)
@@ -12,7 +13,13 @@ export function startDeliveryWorker(slack: WebClient): void {
     const post = (text: string) =>
       slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
 
+    const cardKey = `${job.threadKey}:delivery`;
     try {
+      track(
+        cardKey,
+        { title: job.title, agent: "Dani (Delivery)", squad: "produto", column: "execucao" },
+        "montando o resumo da entrega",
+      );
       const delivery = createDeliveryAgent();
       const verdict =
         job.qaApproved === undefined
@@ -27,8 +34,10 @@ export function startDeliveryWorker(slack: WebClient): void {
         `Faça um resumo curto e, se houver identificador de ticket, registre o resumo nele.`;
 
       const { text } = await runAgent(delivery, [{ role: "user", content: initial }]);
+      track(cardKey, { column: "concluido", outcome: "ok" }, "resumo publicado");
       if (text) await post(text);
     } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao resumir a entrega");
       console.error("Erro no worker do Delivery:", err);
       await post(`Tive um problema ao resumir a entrega: ${err instanceof Error ? err.message : String(err)}`);
     }

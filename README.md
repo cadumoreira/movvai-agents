@@ -47,6 +47,42 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
 - **Painel web** (`http://localhost:3000`, `DASHBOARD_PORT`): vê a atividade do time (custo/cache por
   execução) e as **aprovações pendentes** — você pode **aprovar/recusar fora do Slack**. Mesma fonte de
   verdade dos botões do Slack (registro central), então aprovar em qualquer lugar destrava o agente.
+- **Kanban da atuação dos agentes** (no topo do painel): um card por frente de trabalho andando por
+  **Fila → Em atuação → Aguardando humano → Concluído**, com squad (produto/marketing), última
+  nota de progresso e desfecho (ok/falha/recusado). Instrumentado nos handoffs reais (menção,
+  delegações, workers e portão de aprovação). Demo sem custo/chaves: `npm run demo:board`.
+  - **Interativo:** aprovar/recusar e **responder perguntas direto no card** (a aprovação certa é
+    casada por thread+agente), filtro por squad e busca por título/agente.
+  - **Dossiê:** clicar no card abre a frente completa — timeline de todas as notas (links
+    clicáveis), status, timestamps e as decisões pendentes dela.
+- **Rotinas agendadas (cron):** o time trabalha proativamente — relatório de SEO toda segunda,
+  calendário social toda sexta. Defina em `schedules.json` (veja `schedules.example.json`; relido
+  a cada tick, sem redeploy): `{ name, cron, target, instructions }` com target `marketing`,
+  `produto` ou uma disciplina (`conteudo|social|ads|seo`).
+- **Conversa contínua na thread:** mencione o bot começando pelo nome do agente ("**Sofia**, troca
+  o tom do post 2") e o follow-up vai DIRETO para a especialista certa, com o contexto da frente
+  existente. Nomes do time de produto (e mensagens sem nome) seguem para a Ana, que re-delega.
+- **Revisão entre agentes (Vera):** antes de pedir SUA aprovação, o entregável de marketing passa
+  pela **Vera (revisora)**, que o valida contra os playbooks (skills) da disciplina — menos recusa
+  humana. Se ela pedir ajustes, a especialista corrige e tenta de novo. Desative com
+  `MARKETING_REVIEW=off`.
+- **Briefing interativo:** faltou informação essencial (público? prazo? orçamento?), a Malu e as
+  especialistas **perguntam na thread e pausam** (`ask_clarification`, mesma interrupção durável da
+  aprovação). Responda mencionando o bot na thread e o trabalho continua.
+- **Publicação REAL (pós-aprovação):** aprovado ≠ parado no Notion — o Caio publica no **blog
+  (WordPress, rascunho por padrão)** e envia **e-mail (Resend)**; Sofia e Leo despacham posts e
+  campanhas via **webhook de automação** (Zapier/Make/n8n → qualquer rede). As ferramentas de
+  publicação ficam **travadas até o humano aprovar**. Tudo vira linha no `publications.log`.
+- **Assets visuais:** `generate_image` (OpenAI Images, exige `OPENAI_API_KEY`) gera o rascunho do
+  criativo; o arquivo fica em `ASSETS_DIR` e é servido pelo painel em `/assets/...` — a URL segue
+  junto do post para a automação.
+- **Métricas pós-campanha:** a Nina lê números REAIS do **GA4** (`ga4_report`) e do **Search
+  Console** (`search_console_query`) via service account, e cruza com `list_recent_publications`
+  — fecha o loop *plan → execute → measure* (o relatório semanal via cron usa dados de verdade).
+- **Design system:** app shell estilo **ClickUp** — sidebar de navegação com ícones coloridos e
+  badges (Board · Aprovações · Perguntas · Atividade · Custo · Auditoria), breadcrumb, board com
+  **pill de status por coluna**, cards com **avatar por agente**, roxo `#7B68EE` nas ações; tags
+  de squad **validadas** para daltonismo/contraste (produto `#2563EB`, marketing `#DB2777`).
 - **Webhooks de entrada** (`POST /webhooks/github`, `/webhooks/linear`): labelar uma issue com `agent`
   (ou o `AGENT_TRIGGER_LABEL`) **dispara o time automaticamente** — sem precisar de menção no Slack.
   Assinatura HMAC verificada; o trabalho é reportado no `SLACK_DEFAULT_CHANNEL`.
@@ -55,6 +91,36 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Preflight de dependências (todo trabalho, não só marca):** antes de o agente começar, o worker
+  verifica deterministicamente as dependências DAQUELE tipo de trabalho — conhecimento (brand,
+  skills), integrações (Notion, WordPress, webhook, GA4, GitHub, sandbox) — e entrega o **mapa no
+  prompt** com instrução de degradação para cada ausência. Dependência **essencial** ausente (ex.:
+  Dev sem `GITHUB_TOKEN`) **aborta antes de gastar tokens**, com aviso claro na thread. Insumo da
+  tarefa (público? prazo?) continua com o briefing interativo (`ask_clarification`).
+- **Criação do manual da marca PELO time:** peça *"Malu, precisamos criar o manual da marca"* —
+  ela conduz a **entrevista de descoberta** na thread (playbook próprio, uma pergunta por vez),
+  redige perfil/brand book/personas/produto e **grava com sua aprovação** (`write_brand_doc`
+  mostra o conteúdo completo antes; escrever no Brand Center governa todos os agentes = portão).
+  Gravou, o time inteiro já usa (leitura ao vivo).
+- **Brand Center (contexto da empresa em TODO fluxo):** `brand/perfil.md` (quem somos, produto,
+  tom, público) é **injetado no prompt de todos os agentes** — ninguém trabalha sem saber quem é a
+  marca. Documentos profundos (`brand/brand-book.md`, `personas.md`, `produto.md`...) são carregados
+  **sob demanda** (`list_brand_docs`/`read_brand_doc`), e os **arquivos da marca** (logo, templates)
+  em `brand/assets/` ganham URL via painel (`/brand-assets/...`) para criativos e automações.
+  Tudo Markdown editável sem redeploy; exemplos inclusos (⚠️ placeholders — preencha com a sua marca).
+- **Skills (playbooks curados):** conhecimento procedural em Markdown que os agentes carregam **sob
+  demanda** — `skills/shared/*.md` (todos) e `skills/<papel>/*.md` (só aquele papel, ex.:
+  `skills/mkt-social/`). O agente vê o índice (`list_skills`) e carrega só o relevante
+  (`load_skill`); o arquivo é lido do disco a cada chamada, então **editar o playbook muda o
+  comportamento sem redeploy**. Complementa a memória de longo prazo: memória é o que os agentes
+  aprendem; skills são o que você cura. Exemplos inclusos (tom de voz, formatos por canal,
+  estrutura de artigo, playbook de lançamento) — edite-os com o conteúdo da sua marca.
+- **Squad de MARKETING** (ao lado do time de produto): a Ana reconhece demandas de marketing e delega à
+  **Malu (Head de Marketing)**, que cria o **brief no Notion** e aciona as especialistas por frente —
+  **Caio** (conteúdo/blog/copy), **Sofia** (social media), **Leo** (campanhas/ads) e **Nina** (SEO/analytics).
+  Os entregáveis nascem no Notion (subpáginas do brief) e passam pelo **mesmo portão de aprovação humana**
+  antes de serem dados como publicáveis. Liga com `NOTION_API_KEY` + (`NOTION_DATABASE_ID` ou
+  `NOTION_PARENT_PAGE_ID`); modelo do squad em `MARKETING_MODEL`.
 
 ## Como funciona (estrutura)
 
@@ -72,8 +138,8 @@ src/
 ├── approvals/gate.ts     # aprovação (Slack botões | terminal) com espera durável
 ├── sandbox/              # e2b (sandbox efêmero) + repo (helpers) — token nunca entra
 ├── git/                  # fetch (tarball→sandbox) + committer (commit/PR no host)
-├── workers/              # techlead, dev, qa, delivery (reagem aos jobs)
-├── tools/                # github(-write), linear, delegate, dev-tools, qa-tools, memory
+├── workers/              # techlead, dev, qa, delivery, marketing(-lead) (reagem aos jobs)
+├── tools/                # github(-write), linear, notion, delegate, dev-tools, qa-tools, memory, skills
 ├── connectors/slack.ts   # bot do Slack (Socket Mode): menções + aprovações
 ├── scripts/              # try-pm e try-dev (smoke tests por terminal)
 ├── memory/               # thread-memory (curto prazo) + long-term (pgvector)
@@ -109,6 +175,10 @@ roteamento/caching/custo, aponte `MODEL_GATEWAY_BASE_URL` para um LiteLLM self-h
 
 6. **E2B:** crie uma conta em e2b.dev e coloque a chave em `E2B_API_KEY` (sandbox do Dev).
 
+7. **Notion (squad de marketing):** crie uma integração interna em notion.so/my-integrations
+   (`NOTION_API_KEY`), compartilhe com ela o database (`NOTION_DATABASE_ID`) **ou** a página-mãe
+   (`NOTION_PARENT_PAGE_ID`) onde os briefs devem nascer.
+
 ## Backoffice (configurar tudo pela web)
 
 Em vez de editar o `.env` na mão:
@@ -125,6 +195,7 @@ exibidos; campos em branco não apagam o que existe). (`npm run setup` é o mesm
 
 ```bash
 npm run dev      # com reload
+npm run try:marketing -- "peça de lançamento no Instagram"   # E2E do squad de marketing sem Slack
 npm start        # uma vez
 npm run typecheck
 npm test         # testes unitários (Node test runner + tsx) — sem custo, roda no CI

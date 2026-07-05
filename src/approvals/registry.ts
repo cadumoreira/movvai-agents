@@ -10,6 +10,8 @@ interface Entry {
   id: string;
   text: string;
   createdAt: string;
+  /** Thread do Slack que originou (permite ao painel mostrar a aprovação NO card). */
+  threadKey?: string;
   resolve: (d: ApprovalDecision) => void;
 }
 
@@ -21,18 +23,18 @@ interface Entry {
  */
 const pending = new Map<string, Entry>();
 
-export function register(text: string): { id: string; promise: Promise<ApprovalDecision> } {
+export function register(text: string, threadKey?: string): { id: string; promise: Promise<ApprovalDecision> } {
   const id = randomUUID();
   let resolve!: (d: ApprovalDecision) => void;
   const promise = new Promise<ApprovalDecision>((r) => {
     resolve = r;
   });
-  pending.set(id, { id, text, createdAt: new Date().toISOString(), resolve });
+  pending.set(id, { id, text, createdAt: new Date().toISOString(), threadKey, resolve });
   return { id, promise };
 }
 
-export function listPending(): Array<{ id: string; text: string; createdAt: string }> {
-  return [...pending.values()].map(({ id, text, createdAt }) => ({ id, text, createdAt }));
+export function listPending(): Array<{ id: string; text: string; createdAt: string; threadKey?: string }> {
+  return [...pending.values()].map(({ id, text, createdAt, threadKey }) => ({ id, text, createdAt, threadKey }));
 }
 
 export function resolvePending(

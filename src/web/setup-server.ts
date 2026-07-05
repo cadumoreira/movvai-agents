@@ -25,6 +25,7 @@ const GROUPS: Group[] = [
       { key: "PM_MODEL", label: "PM (refino)", placeholder: "anthropic:claude-sonnet-4-6" },
       { key: "DEV_MODEL", label: "Dev (código)", placeholder: "anthropic:claude-opus-4-8" },
       { key: "QA_MODEL", label: "QA (revisão)", placeholder: "anthropic:claude-sonnet-4-6" },
+      { key: "MARKETING_MODEL", label: "Marketing (squad)", placeholder: "anthropic:claude-sonnet-4-6" },
       { key: "CHEAP_MODEL", label: "Barato (tarefas simples)", placeholder: "anthropic:claude-haiku-4-5" },
     ],
   },
@@ -71,6 +72,15 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: "Notion (squad de marketing)",
+    hint: "Board do marketing: briefs e entregáveis. Preencha o database OU a página-mãe.",
+    fields: [
+      { key: "NOTION_API_KEY", label: "API Key (integração interna)", type: "secret", placeholder: "ntn_..." },
+      { key: "NOTION_DATABASE_ID", label: "Database ID (um item por brief)" },
+      { key: "NOTION_PARENT_PAGE_ID", label: "Página-mãe (alternativa ao database)" },
+    ],
+  },
+  {
     title: "GitHub",
     fields: [
       { key: "GITHUB_TOKEN", label: "Token (PAT)", type: "secret", placeholder: "github_pat_..." },
@@ -92,6 +102,31 @@ const GROUPS: Group[] = [
     fields: [
       { key: "LINEAR_WEBHOOK_SECRET", label: "Linear Webhook Secret", type: "secret" },
       { key: "AGENT_TRIGGER_LABEL", label: "Label que aciona o time", placeholder: "agent" },
+    ],
+  },
+  {
+    title: "Publicação (pós-aprovação)",
+    hint: "Transforma entregável aprovado em resultado: blog, e-mail e social via automação.",
+    fields: [
+      { key: "WORDPRESS_BASE_URL", label: "WordPress URL", placeholder: "https://blog.suamarca.com" },
+      { key: "WORDPRESS_USERNAME", label: "WordPress usuário" },
+      { key: "WORDPRESS_APP_PASSWORD", label: "WordPress app password", type: "secret" },
+      { key: "WORDPRESS_STATUS", label: "Status do post", type: "select", options: ["draft", "publish"] },
+      { key: "RESEND_API_KEY", label: "Resend API Key (e-mail)", type: "secret", placeholder: "re_..." },
+      { key: "EMAIL_FROM", label: "Remetente", placeholder: "news@suamarca.com" },
+      { key: "EMAIL_TO", label: "Lista (e-mails, vírgula)" },
+      { key: "PUBLISH_WEBHOOK_URL", label: "Webhook social/ads (Zapier/Make/n8n)" },
+    ],
+  },
+  {
+    title: "Métricas (Google) & assets",
+    hint: "Nina lê GA4/Search Console (service account). Criativos exigem OPENAI_API_KEY.",
+    fields: [
+      { key: "GOOGLE_SERVICE_ACCOUNT_JSON", label: "Service account (caminho do .json ou JSON)", type: "secret" },
+      { key: "GA4_PROPERTY_ID", label: "GA4 Property ID", placeholder: "123456789" },
+      { key: "GSC_SITE_URL", label: "Search Console site", placeholder: "https://suamarca.com/" },
+      { key: "ASSETS_DIR", label: "Pasta de assets", placeholder: "assets" },
+      { key: "PUBLIC_BASE_URL", label: "URL pública do painel (p/ links de asset)" },
     ],
   },
   {
@@ -140,6 +175,15 @@ function health() {
       name: "Dev abre PR",
       ready: hasModel && isSet("GITHUB_TOKEN") && sandboxOk,
       hint: !isSet("GITHUB_TOKEN") ? "Falta o GitHub Token" : !sandboxOk ? "Sandbox e2b sem E2B_API_KEY" : "",
+    },
+    {
+      name: "Marketing entrega no Notion",
+      ready: hasModel && isSet("NOTION_API_KEY") && (isSet("NOTION_DATABASE_ID") || isSet("NOTION_PARENT_PAGE_ID")),
+      hint: !isSet("NOTION_API_KEY")
+        ? "Falta a NOTION_API_KEY"
+        : !(isSet("NOTION_DATABASE_ID") || isSet("NOTION_PARENT_PAGE_ID"))
+          ? "Falta o database OU a página-mãe do Notion"
+          : "",
     },
     {
       name: "Time no Slack",
