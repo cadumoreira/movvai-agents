@@ -9,7 +9,9 @@ import {
   getConversation,
   hasConversation,
   resetConversations,
+  initConversations,
 } from "../src/messaging/conversations.js";
+import { conversationStore } from "../src/board/store.js";
 import { PanelMessenger } from "../src/messaging/messenger.js";
 import { dispatchMention } from "../src/connectors/dispatch.js";
 import { listPending, resolvePending } from "../src/approvals/registry.js";
@@ -43,6 +45,14 @@ test("appendMessage ignora entradas vazias", () => {
   appendMessage("", "x", "y");
   appendMessage("t", "x", "");
   assert.equal(getConversation("t").length, 0);
+});
+
+test("persistência: sem Redis o store é no-op e initConversations não apaga o que está em memória", async () => {
+  // MemoryStore (sem REDIS_URL nos testes): loadAll vazio, save no-op.
+  assert.deepEqual(await conversationStore.loadAll(), {});
+  appendMessage("t-init", "Ana (PM)", "mensagem viva");
+  await initConversations(); // não deve limpar nem lançar
+  assert.equal(getConversation("t-init")[0].text, "mensagem viva");
 });
 
 // ── PanelMessenger ──────────────────────────────────────────────────────────

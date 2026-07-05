@@ -22,6 +22,12 @@ const MAX_THREADS = 500;
 
 const threads = new Map<string, ConvMessage[]>();
 
+/** Import do store cacheado (dinâmico para evitar ciclo conversations↔store). */
+let storeModule: Promise<typeof import("../board/store.js")> | null = null;
+function store(): Promise<typeof import("../board/store.js")> {
+  return (storeModule ??= import("../board/store.js"));
+}
+
 /** Anexa uma mensagem ao thread (cria se não existir). Poda o excesso. */
 export function appendMessage(threadKey: string, from: string, text: string, human = false): void {
   if (!threadKey || !text) return;
@@ -37,6 +43,18 @@ export function appendMessage(threadKey: string, from: string, text: string, hum
   }
   msgs.push({ from, text, at: new Date().toISOString(), human });
   if (msgs.length > MAX_PER_THREAD) msgs.shift();
+  // Persiste a thread (write-through, best-effort — não trava o fluxo).
+  const snapshot = [...msgs];
+  void store().then(({ conversationStore }) => conversationStore.save(threadKey, snapshot));
+}
+
+/** Restaura as conversas da persistência (Redis), se houver. Chamado no boot. */
+export async function initConversations(): Promise<void> {
+  const { conversationStore } = await store();
+  const all = await conversationStore.loadAll();
+  for (const [key, msgs] of Object.entries(all)) {
+    if (!threads.has(key)) threads.set(key, msgs);
+  }
 }
 
 /** Mensagens de um thread (ordem cronológica). */

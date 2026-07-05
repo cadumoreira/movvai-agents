@@ -2,6 +2,7 @@ import { createPMAgent } from "./agents/pm.js";
 import { createSlackApp } from "./connectors/slack.js";
 import { dispatchMention } from "./connectors/dispatch.js";
 import { PanelMessenger, type Messenger } from "./messaging/messenger.js";
+import { initConversations } from "./messaging/conversations.js";
 import { splitThreadKey } from "./approvals/reminders.js";
 import { createThreadMemory } from "./memory/thread-memory.js";
 import { startDevWorker } from "./workers/dev-worker.js";
@@ -33,6 +34,7 @@ import { config } from "./config.js";
 async function main() {
   initTelemetry(); // antes de qualquer chamada de modelo
   await initBoard(); // restaura o board da persistência (Redis), se houver
+  await initConversations(); // restaura as conversas (thread interna) do Redis, se houver
 
   // Vigia: frente parada em fila/execução além do limite vira falha explícita.
   if (config.jobs.staleCardMinutes > 0) {
