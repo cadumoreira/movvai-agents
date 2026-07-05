@@ -11,6 +11,10 @@ import { publishTools, type PublishGate } from "../tools/publish-tools.js";
 import { imageTools } from "../tools/image.js";
 import { analyticsTools } from "../tools/analytics.js";
 import { brandPromptBlock, brandTools } from "../brand/context.js";
+import { learningTools, recordLesson } from "../learn/lessons.js";
+import { webTools } from "../tools/web.js";
+import { teamStatsTools } from "../digest/digest.js";
+import { askQuestion } from "../approvals/questions.js";
 import { createMarketingReviewerAgent, parseReviewVerdict } from "./marketing-reviewer.js";
 import { runAgent } from "../agent-runtime/run.js";
 import type { Approver } from "../approvals/gate.js";
@@ -92,7 +96,10 @@ ${p.craft}
 ## Como se comportar
 - Português brasileiro, tom de colega, objetivo. O entregável é o produto — capriche NELE.
 - Nunca invente dados, métricas ou links. Sem o Notion configurado, entregue o material na
-  própria thread e diga o que ficou pendente.`;
+  própria thread e diga o que ficou pendente.
+- **Aprenda com resultado real:** recusa do humano vira lição automaticamente; quando VOCÊ
+  descobrir algo por conta própria (A/B medido, padrão que funcionou), use \`record_lesson\`;
+  material aprovado com elogio → \`save_reference\`. Consulte licoes.md/referencias.md nas skills.`;
 }
 
 export interface MarketingSpecialistContext {
@@ -166,6 +173,25 @@ function publishApprovalTool(
         });
         // Destrava (ou trava) as ferramentas de publicação desta execução.
         gate.approved = decision.approved;
+
+        // O time que APRENDE: recusa vira entrevista automática ("por quê?") e a
+        // resposta vira lição permanente do papel — cada "não" melhora o time.
+        if (!decision.approved && ctx.thread) {
+          await ctx.thread.slack.chat.postMessage({
+            channel: ctx.thread.channel,
+            thread_ts: ctx.thread.threadTs,
+            text:
+              `:memo: Recusado — para eu aprender: *o que devo ajustar?*\n` +
+              `_Responda mencionando o bot nesta thread (vira lição permanente do papel)._`,
+          });
+          const feedback = await askQuestion(ctx.thread.threadKey, "Motivo da recusa da publicação", persona.name);
+          recordLesson(persona.id, `Recusa em "${summary.slice(0, 80)}": ${feedback}`);
+          return {
+            approved: false,
+            feedback,
+            next_step: "Ajuste o entregável conforme o feedback (já registrado como lição) e peça aprovação de novo.",
+          };
+        }
         return { approved: decision.approved };
       },
     }),
@@ -191,7 +217,9 @@ export function createMarketingSpecialistAgent(
       ...publishApprovalTool(discipline, ctx, gate),
       ...publishTools(discipline, { gate, personaId: persona.id, threadKey: ctx.thread?.threadKey, cardKey }),
       ...(discipline !== "seo" ? imageTools(persona.id) : {}),
-      ...(discipline === "seo" ? analyticsTools() : {}),
+      ...(discipline === "seo" ? { ...analyticsTools(), ...teamStatsTools() } : {}),
+      ...(discipline === "seo" || discipline === "conteudo" ? webTools() : {}),
+      ...learningTools(persona.id),
       ...memoryTools(persona.id),
       ...skillTools(persona.id),
       ...brandTools(),

@@ -1,5 +1,11 @@
 [
   {
+    "name": "Bom-dia do time",
+    "cron": "0 9 * * 1-5",
+    "target": "digest",
+    "instructions": "(ignorado — o digest é determinístico: concluídas, em andamento, esperando você, custo e publicações)"
+  },
+  {
     "name": "Relatório semanal de SEO",
     "cron": "0 9 * * 1",
     "target": "seo",
@@ -16,5 +22,17 @@
     "cron": "0 17 * * 5",
     "target": "produto",
     "instructions": "Monte um resumo do que o time entregou nesta semana (PRs abertos, tickets fechados) e registre como comentário nos tickets relevantes. Responda na thread com o resumo."
+  },
+  {
+    "name": "Radar de concorrência",
+    "cron": "0 10 * * 3",
+    "target": "seo",
+    "instructions": "Radar semanal de concorrência: siga o playbook radar-de-concorrencia. Leia os sites dos concorrentes listados no brief/manual da marca com fetch_url, compare com o que você registrou nas lições anteriores e reporte só o que MUDOU (preço, feature, campanha, posicionamento). Grave mudanças relevantes com record_lesson."
+  },
+  {
+    "name": "Relatório mensal executivo",
+    "cron": "0 9 1 * *",
+    "target": "marketing",
+    "instructions": "Monte o relatório mensal executivo: use team_stats (números reais do time), list_recent_publications e, se disponível, delegue à Nina as métricas de GA4/Search Console. Estruture: entregas do mês, publicações, resultados medidos, custo e recomendações. Registre no Notion e resuma na thread."
   }
 ]
