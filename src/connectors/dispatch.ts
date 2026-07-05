@@ -84,17 +84,17 @@ export async function dispatchMention(userText: string, thread: ThreadRef, deps:
   }
 
   // 4) Fluxo normal: Ana (PM), com a memória da thread.
-  const cardKey = `${threadKey}:pm`;
+  //    NÃO cria card aqui — conversar não é uma "frente" no board. O board só ganha
+  //    card quando há TRABALHO delegado: se a Ana delegar, as ferramentas de delegação
+  //    e os workers criam os cards das frentes (dev/techlead/marketing/ops). Assim,
+  //    bate-papo e respostas não viram cards que piscam direto para "Concluído".
   try {
     const agent = deps.agentFactory({ channel, threadTs, threadKey, messenger: deps.messenger }, text);
-    track(cardKey, { title: text.slice(0, 80), agent: agent.name, squad: "produto", column: "execucao" }, "mensagem recebida");
     await deps.memory.append(threadKey, { role: "user", content: text });
     const { text: reply, newMessages } = await runAgent(agent, await deps.memory.get(threadKey));
     await deps.memory.append(threadKey, ...(newMessages as ModelMessage[]));
-    track(cardKey, { column: "concluido", outcome: "ok" }, "respondeu na thread");
     await deps.messenger.post({ channel, threadTs }, reply || "(sem resposta)", agent.name);
   } catch (err) {
-    track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao processar a mensagem");
     console.error("Erro ao processar mensagem:", err);
     await deps.messenger.post(
       { channel, threadTs },

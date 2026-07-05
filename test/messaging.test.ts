@@ -120,6 +120,17 @@ test("dispatchMention: nome de agente roteia direto (enfileira o job certo)", as
   assert.ok(listBoard().some((c) => c.key === "painel:x:mkt-social"));
 });
 
+test("dispatchMention: conversa normal (PM) NÃO cria card no board", async () => {
+  const r = await dispatchMention(
+    "olá, tudo bem?",
+    { channel: "painel", threadTs: "z", threadKey: "painel:z" },
+    deps(),
+  );
+  assert.equal(r, "pm");
+  // Conversa não é uma frente: nenhum card :pm deve aparecer no board.
+  assert.ok(!listBoard().some((c) => c.key === "painel:z:pm"), "conversa não deve virar card");
+});
+
 test("dispatchMention: responde uma pergunta pendente da thread", async () => {
   const answered = askQuestion("painel:q", "Qual o público?", "Malu");
   const r = await dispatchMention("PMEs de tecnologia", { channel: "painel", threadTs: "q", threadKey: "painel:q" }, deps());
