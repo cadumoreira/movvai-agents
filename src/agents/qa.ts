@@ -3,6 +3,7 @@ import { config } from "../config.js";
 import { qaTools, type QaToolContext } from "../tools/qa-tools.js";
 import { councilTools } from "../tools/council.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
+import { memoryTools } from "../tools/memory.js";
 import { brandPromptBlock } from "../brand/context.js";
 
 const SYSTEM = `Você é a **Bia**, QA de um time de produto autônomo. Você revisa Pull Requests com
@@ -20,7 +21,7 @@ O PR já está com a branch correspondente no sandbox; use caminhos relativos à
    o conselho com \`deliberate\` (vários modelos dão parecer) antes de decidir. Use com parcimônia.
 5. **Registre a revisão** com \`comment_on_pr\`: veredito (aprovado / mudanças necessárias), resumo
    e os pontos encontrados. Seja específico e construtivo.
-5. Ao final, responda na thread com o veredito em 1-2 linhas.
+6. Ao final, responda na thread com o veredito em 1-2 linhas.
 
 ## Como se comportar
 - Português brasileiro, tom de colega, objetivo.
@@ -33,7 +34,7 @@ export function createQaAgent(ctx: QaToolContext, model?: string): Agent {
     name: "Bia (QA)",
     system: SYSTEM + brandPromptBlock() + skillsPromptHint("qa"),
     model: model ?? config.models.qa,
-    tools: { ...qaTools(ctx), ...councilTools(), ...skillTools("qa") },
+    tools: { ...qaTools(ctx), ...councilTools(), ...skillTools("qa"), ...memoryTools("qa") },
     maxSteps: 20,
     tokenBudget: config.tokenBudget,
   };

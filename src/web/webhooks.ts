@@ -34,7 +34,10 @@ export function parseGithubIssue(
   const labels = Array.isArray(issue.labels)
     ? (issue.labels as Array<{ name?: string }>).map((l) => l.name)
     : [];
-  const labeledForAgent = action === "labeled" && labels.includes(triggerLabel);
+  // Em "labeled", o gatilho é o label ADICIONADO agora — não os que a issue já tinha
+  // (senão marcar "p1" numa issue já processada re-dispararia o time inteiro).
+  const addedLabel = (body.label as { name?: string } | undefined)?.name;
+  const labeledForAgent = action === "labeled" && addedLabel === triggerLabel;
   const openedForAgent = action === "opened" && (!triggerLabel || labels.includes(triggerLabel));
   if (!labeledForAgent && !openedForAgent) return null;
 

@@ -5,7 +5,8 @@ import { createTechLeadAgent } from "../agents/tech-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
-import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
+import { formatPreflight } from "../deps/preflight.js";
+import { preflightOrAbort } from "./support.js";
 
 /**
  * Worker do Tech Lead: consome "techlead-task", desenha a abordagem (sem sandbox —
@@ -17,13 +18,8 @@ export function startTechLeadWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
     const cardKey = `${task.threadKey}:techlead`;
-    const checks = preflight("techlead");
-    const missing = missingRequired(checks);
-    if (missing.length) {
-      track(cardKey, { title: task.ticket.title, agent: "Rui (Tech Lead)", squad: "produto", column: "concluido", outcome: "falha" }, "dependências essenciais ausentes");
-      await post(`:warning: Não consigo desenhar *${task.ticket.title}* — falta: ${missing.map((m) => `${m.label} (${m.hint})`).join("; ")}.`);
-      return;
-    }
+    const checks = await preflightOrAbort("techlead", { cardKey, title: task.ticket.title, agent: "Rui (Tech Lead)", squad: "produto" }, post);
+    if (!checks) return;
     try {
       track(
         cardKey,

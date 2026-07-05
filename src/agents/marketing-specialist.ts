@@ -7,7 +7,7 @@ import { notionTools } from "../tools/notion.js";
 import { memoryTools } from "../tools/memory.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools, type AskThread } from "../tools/ask.js";
-import { publishTools, type PublishGate } from "../tools/publish-tools.js";
+import { publishTools, normalizeForApproval, type PublishGate } from "../tools/publish-tools.js";
 import { imageTools } from "../tools/image.js";
 import { analyticsTools } from "../tools/analytics.js";
 import { brandPromptBlock, brandTools } from "../brand/context.js";
@@ -72,7 +72,21 @@ const PERSONAS: Record<MarketingDiscipline, Persona> = {
   },
 };
 
-function buildSystem(p: Persona): string {
+function buildSystem(p: Persona, discipline: MarketingDiscipline): string {
+  // Passos extras só para quem RECEBE as ferramentas (citar tool inexistente induz chamada inválida).
+  const extras = [
+    discipline !== "seo"
+      ? `6. Precisa de criativo? Gere um rascunho com \`generate_image\` ANTES de pedir
+   aprovação, e inclua a URL no material.`
+      : "",
+    discipline === "conteudo"
+      ? `7. **Artigo aprovado rende mais:** se for um artigo de blog, use \`spawn_derivatives\`
+   para derivar thread de X, carrossel de IG e newsletter a partir dele — cada
+   derivado vira uma frente própria com sua aprovação.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
   return `Você é **${p.name}**, ${p.headline} de um squad de marketing autônomo. Você recebe uma
 frente de um brief (criado pela Malu, a Head de Marketing) e produz o entregável no Notion.
 
@@ -92,11 +106,7 @@ ${p.craft}
    se nenhuma estiver configurada, o material fica pronto no Notion — diga isso na thread.
    Registre o desfecho na página (\`notion_comment\`) e responda na thread com os links.
    Se recusado pelo humano, pergunte o que ajustar em vez de insistir.
-6. Precisa de criativo? Gere um rascunho com \`generate_image\` (se disponível) ANTES de pedir
-   aprovação, e inclua a URL no material.
-7. **Artigo aprovado rende mais:** se for um artigo de blog e \`spawn_derivatives\` estiver
-   disponível, ofereça/derive thread de X, carrossel de IG e newsletter a partir dele — cada
-   derivado vira uma frente própria com sua aprovação.
+${extras}
 
 ## Como se comportar
 - Português brasileiro, tom de colega, objetivo. O entregável é o produto — capriche NELE.
@@ -176,8 +186,10 @@ function publishApprovalTool(
           detail: summary.slice(0, 200),
           meta: { url: page_url },
         });
-        // Destrava (ou trava) as ferramentas de publicação desta execução.
+        // Destrava (ou trava) as ferramentas de publicação desta execução —
+        // vinculado ao entregável EXATO aprovado: aprovar "X" não autoriza publicar "Y".
         gate.approved = decision.approved;
+        gate.approvedContent = decision.approved ? normalizeForApproval(deliverable_markdown) : undefined;
 
         // O time que APRENDE: recusa vira entrevista automática ("por quê?") e a
         // resposta vira lição permanente do papel — cada "não" melhora o time.
@@ -275,7 +287,7 @@ export function createMarketingSpecialistAgent(
   return {
     id: persona.id,
     name: persona.name,
-    system: buildSystem(persona) + brandPromptBlock() + skillsPromptHint(persona.id),
+    system: buildSystem(persona, discipline) + brandPromptBlock() + skillsPromptHint(persona.id),
     model: model ?? config.models.marketing,
     tools: {
       ...notionTools(persona.id),

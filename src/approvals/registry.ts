@@ -33,6 +33,11 @@ export function register(text: string, threadKey?: string): { id: string; promis
   return { id, promise };
 }
 
+/** Remove uma pendência SEM decidir (ex.: falhou ao postar os botões no Slack). */
+export function unregister(id: string): void {
+  pending.delete(id);
+}
+
 export function listPending(): Array<{ id: string; text: string; createdAt: string; threadKey?: string }> {
   return [...pending.values()].map(({ id, text, createdAt, threadKey }) => ({ id, text, createdAt, threadKey }));
 }

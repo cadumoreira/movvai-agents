@@ -1,6 +1,6 @@
 import type { App } from "@slack/bolt";
 import type { WebClient } from "@slack/web-api";
-import { register, resolvePending, type ApprovalDecision } from "./registry.js";
+import { register, resolvePending, unregister, type ApprovalDecision } from "./registry.js";
 import { canApprove } from "../auth/rbac.js";
 
 export type { ApprovalDecision } from "./registry.js";
@@ -27,6 +27,23 @@ export async function requestApproval(
 ): Promise<ApprovalDecision> {
   const { id, promise } = register(opts.text, `${opts.channel}:${opts.threadTs}`);
 
+  try {
+    await postApprovalButtons(client, opts, id);
+  } catch (err) {
+    // Sem botões não há como decidir — remove a pendência para não virar
+    // fantasma no painel (e alvo eterno dos lembretes).
+    unregister(id);
+    throw err;
+  }
+
+  return promise;
+}
+
+async function postApprovalButtons(
+  client: WebClient,
+  opts: { channel: string; threadTs: string; text: string },
+  id: string,
+): Promise<void> {
   await client.chat.postMessage({
     channel: opts.channel,
     thread_ts: opts.threadTs,
@@ -54,8 +71,6 @@ export async function requestApproval(
       },
     ],
   });
-
-  return promise;
 }
 
 /** Registra o handler dos botões de aprovação no app do Slack. */
@@ -80,7 +95,19 @@ export function registerApprovalHandlers(app: App): void {
       return;
     }
 
-    resolvePending(a.value ?? "", { approved: decision === "approve" }, `slack:${userId}`);
+    const applied = resolvePending(a.value ?? "", { approved: decision === "approve" }, `slack:${userId}`);
+
+    // Já decidido (outro clique/painel chegou antes)? Não reescreve o desfecho real.
+    if (!applied) {
+      if (b.channel) {
+        await client.chat.postEphemeral({
+          channel: b.channel.id,
+          user: userId,
+          text: "Essa aprovação já tinha sido decidida (por outro clique ou pelo painel).",
+        });
+      }
+      return;
+    }
 
     // Atualiza a mensagem para registrar quem decidiu o quê.
     if (b.channel && b.message) {

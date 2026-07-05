@@ -66,7 +66,7 @@
 - **E2E harness**: `try:marketing` roda demanda→Malu→Sofia→Vera→aprovação→entregável sem Slack
   (terminal + painel); provider `mock:` no gateway permite dry-run do encanamento sem chave/custo.
   AUTO_APPROVE=off deixa a decisão para o painel.
-- **Qualidade**: 105 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 129 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -79,7 +79,7 @@ npm run dev                                       # time completo no Slack + pai
 npm run demo:board                                # kanban demo (sem chaves) em :3000
 npm run try:marketing -- "peça pro Instagram"     # E2E marketing sem Slack (chave real)
 # sem chave nenhuma (dry-run do encanamento): MARKETING_MODEL=mock:marketing CHEAP_MODEL=mock:marketing npm run try:marketing
-npm test                                          # 105 testes
+npm test                                          # 129 testes
 ```
 
 ## Pendências (backlog priorizado)

@@ -2,6 +2,7 @@ import type { Agent } from "./types.js";
 import { config } from "../config.js";
 import { devTools, type DevToolContext } from "../tools/dev-tools.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
+import { memoryTools } from "../tools/memory.js";
 import { brandPromptBlock } from "../brand/context.js";
 
 const SYSTEM = `Você é o **Téo**, desenvolvedor de um time de produto autônomo. Você recebe demandas
@@ -32,7 +33,7 @@ export function createDevAgent(ctx: DevToolContext, model?: string): Agent {
     name: "Téo (Dev)",
     system: SYSTEM + brandPromptBlock() + skillsPromptHint("dev"),
     model: model ?? config.models.dev,
-    tools: { ...devTools(ctx), ...skillTools("dev") },
+    tools: { ...devTools(ctx), ...skillTools("dev"), ...memoryTools("dev") },
     maxSteps: 30,
     tokenBudget: config.tokenBudget,
   };

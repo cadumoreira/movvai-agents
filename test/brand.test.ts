@@ -62,6 +62,9 @@ test("diretório de marca inexistente = tudo vazio, sem lançar", () => {
 
 import { writeBrandDoc, brandAuthoringTools } from "../src/brand/context.js";
 
+// Auditoria em tmp: testes não escrevem o audit.log REAL do repo.
+process.env.AUDIT_LOG_PATH = join(mkdtempSync(join(tmpdir(), "audit-brand-")), "audit.log");
+
 test("writeBrandDoc grava com id seguro e bloqueia traversal", () => {
   const root = mkdtempSync(join(tmpdir(), "brand-w-"));
   assert.equal(writeBrandDoc("perfil", "# Novo perfil", root), true);

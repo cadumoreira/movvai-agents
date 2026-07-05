@@ -6,7 +6,8 @@ import { slackApprover, type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
-import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
+import { formatPreflight } from "../deps/preflight.js";
+import { preflightOrAbort } from "./support.js";
 
 /**
  * Worker das especialistas de marketing: consome "marketing-work", instancia a persona
@@ -19,6 +20,12 @@ export function startMarketingWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
     const cardKey = `${task.threadKey}:mkt-${task.discipline}`;
+    const checks = await preflightOrAbort(
+      task.discipline,
+      { cardKey, title: task.brief.title, agent: specialistName(task.discipline), squad: "marketing" },
+      post,
+    );
+    if (!checks) return;
     try {
       track(
         cardKey,
@@ -56,7 +63,7 @@ export function startMarketingWorker(slack: WebClient): void {
         `Produza o entregável da sua frente para o brief "${task.brief.title}".` +
         `${briefRef ? `\n${briefRef}` : ""}\n\n${task.instructions}\n\n` +
         `Registre o entregável no Notion e chame request_publish_approval antes de dá-lo como aprovado.` +
-        formatPreflight(preflight(task.discipline));
+        formatPreflight(checks);
 
       const { text } = await runAgent(specialist, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "entregável finalizado");

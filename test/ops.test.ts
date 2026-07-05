@@ -1,3 +1,4 @@
+import { until } from "./helpers.js";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { resolveAgentMention } from "../src/connectors/routing.js";
@@ -35,10 +36,11 @@ test("delegate_to_ops enfileira o job certo e cria o card do squad operações",
     { discipline: "suporte", title: "Responder cliente X", instructions: "texto do cliente..." },
     {},
   );
-  await new Promise((r) => setTimeout(r, 30));
+  await until(() => received.length > 0);
 
   assert.equal(res.ok, true);
-  assert.equal(res.delegated_to, "Lia (Suporte)");
+  assert.equal(res.delegated_to, "suporte");
+  assert.equal(res.specialist, "Lia (Suporte)");
   assert.deepEqual(received, [{ discipline: "suporte", threadKey: "C7:7.7" }]);
   const card = listBoard().find((c) => c.key === "C7:7.7:ops-suporte");
   assert.equal(card?.squad, "operacoes");

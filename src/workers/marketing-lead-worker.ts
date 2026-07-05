@@ -5,7 +5,8 @@ import { createMarketingLeadAgent } from "../agents/marketing-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
-import { preflight, missingRequired, formatPreflight } from "../deps/preflight.js";
+import { formatPreflight } from "../deps/preflight.js";
+import { preflightOrAbort } from "./support.js";
 
 /**
  * Worker da Head de Marketing: consome "marketing-task", cria o brief no Notion e
@@ -17,6 +18,12 @@ export function startMarketingLeadWorker(slack: WebClient): void {
       slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
 
     const cardKey = `${task.threadKey}:marketing-lead`;
+    const checks = await preflightOrAbort(
+      "marketing-lead",
+      { cardKey, title: task.brief.title, agent: "Malu (Head de Marketing)", squad: "marketing" },
+      post,
+    );
+    if (!checks) return;
     try {
       track(
         cardKey,
@@ -37,7 +44,7 @@ export function startMarketingLeadWorker(slack: WebClient): void {
         `Planeje a demanda de marketing a seguir: crie o brief no Notion e delegue as frentes ` +
         `necessárias com assign_marketing_work (uma chamada por frente, com o page_id do brief).\n\n` +
         `Demanda: ${task.brief.title}\n\n${task.instructions}` +
-        formatPreflight(preflight("marketing-lead"));
+        formatPreflight(checks);
 
       const { text } = await runAgent(lead, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "brief pronto e frentes acionadas");

@@ -4,13 +4,7 @@ import type { AgentContext } from "../agents/context.js";
 import { queue } from "../queue/index.js";
 import type { MarketingDiscipline } from "../queue/types.js";
 import { track } from "../board/board.js";
-
-const SPECIALIST_LABEL: Record<MarketingDiscipline, string> = {
-  conteudo: "Caio (Conteúdo)",
-  social: "Sofia (Social)",
-  ads: "Leo (Performance)",
-  seo: "Nina (SEO & Analytics)",
-};
+import { specialistName } from "../agents/marketing-specialist.js";
 
 /**
  * Normaliza a disciplina pedida (aceita sinônimos comuns em PT/EN) para o
@@ -90,7 +84,7 @@ export function assignMarketingWork(
         }
         track(
           `${ctx.threadKey}:mkt-${discipline}`,
-          { title: brief.title, agent: SPECIALIST_LABEL[discipline], squad: "marketing", column: "fila" },
+          { title: brief.title, agent: specialistName(discipline), squad: "marketing", column: "fila" },
           "frente delegada pela Head de Marketing",
         );
         await queue.enqueue("marketing-work", {

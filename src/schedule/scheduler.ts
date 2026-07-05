@@ -6,6 +6,7 @@ import { track } from "../board/board.js";
 import { audit } from "../audit/log.js";
 import { config } from "../config.js";
 import type { MarketingDiscipline } from "../queue/types.js";
+import { specialistName } from "../agents/marketing-specialist.js";
 
 /**
  * Rotinas agendadas: o time trabalha PROATIVAMENTE, não só quando provocado.
@@ -71,13 +72,6 @@ export function parseSchedules(raw: string): { schedules: Schedule[]; errors: st
   return { schedules, errors };
 }
 
-const SPECIALIST_LABEL: Record<MarketingDiscipline, string> = {
-  conteudo: "Caio (Conteúdo)",
-  social: "Sofia (Social)",
-  ads: "Leo (Performance)",
-  seo: "Nina (SEO & Analytics)",
-};
-
 async function fire(slack: WebClient, s: Schedule): Promise<void> {
   const channel = s.channel || config.slack.defaultChannel;
   if (!channel) {
@@ -110,7 +104,7 @@ async function fire(slack: WebClient, s: Schedule): Promise<void> {
     track(`${threadKey}:delivery`, { title: s.name, agent: "Dani (Delivery)", squad: "produto", column: "fila" }, "rotina agendada");
     await queue.enqueue("delivery-task", { ...base, title: s.name, instructions: s.instructions });
   } else {
-    track(`${threadKey}:mkt-${s.target}`, { title: s.name, agent: SPECIALIST_LABEL[s.target], squad: "marketing", column: "fila" }, "rotina agendada");
+    track(`${threadKey}:mkt-${s.target}`, { title: s.name, agent: specialistName(s.target), squad: "marketing", column: "fila" }, "rotina agendada");
     await queue.enqueue("marketing-work", { ...base, discipline: s.target, brief: { title: s.name }, instructions: s.instructions });
   }
 }
@@ -130,8 +124,12 @@ export function startScheduler(slack: WebClient): void {
       const key = `${s.name}@${minute}`;
       if (fired.has(key) || !matchesCron(s.cron, now)) continue;
       fired.add(key);
-      if (fired.size > 1000) fired.clear(); // higiene: chaves têm o minuto, não colidem após clear
       fire(slack, s).catch((err) => console.error(`Rotina "${s.name}" falhou:`, err));
+    }
+    // Higiene: só descarta chaves de minutos PASSADOS — limpar a do minuto
+    // corrente faria o próximo tick (30s) disparar a mesma rotina em dobro.
+    if (fired.size > 1000) {
+      for (const k of fired) if (!k.endsWith(`@${minute}`)) fired.delete(k);
     }
   };
 

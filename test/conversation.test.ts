@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { resolveAgentMention } from "../src/connectors/routing.js";
 import { askQuestion, answerQuestion, listQuestions, resetQuestions } from "../src/approvals/questions.js";
 import { parseReviewVerdict } from "../src/agents/marketing-reviewer.js";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// Auditoria em tmp: testes não escrevem o audit.log REAL do repo.
+process.env.AUDIT_LOG_PATH = join(mkdtempSync(join(tmpdir(), "audit-conv-")), "audit.log");
 
 // ── Roteamento de follow-up na thread ────────────────────────────────────────
 

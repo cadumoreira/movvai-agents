@@ -2,14 +2,25 @@ import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import type { AgentContext } from "../agents/context.js";
 import { queue } from "../queue/index.js";
-import { track } from "../board/board.js";
 import type { OpsDiscipline } from "../queue/types.js";
+import { track } from "../board/board.js";
+import { opsSpecialistName } from "../agents/ops-specialist.js";
 
-const OPS_LABEL: Record<OpsDiscipline, string> = {
-  sdr: "Igor (SDR)",
-  suporte: "Lia (Suporte)",
-  financeiro: "Otto (Financeiro)",
-};
+/**
+ * Normaliza a disciplina de operações (aceita sinônimos comuns em PT/EN), no mesmo
+ * padrão do marketing. Retorna null se não reconhecer — quem chama decide o erro.
+ */
+export function normalizeOpsDiscipline(input: string): OpsDiscipline | null {
+  const s = input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos ("prospecção" → "prospeccao")
+    .trim();
+  if (/(sdr|venda|prospec|lead|outbound|cold)/.test(s)) return "sdr";
+  if (/(suporte|atendimento|ticket|cliente|support|help)/.test(s)) return "suporte";
+  if (/(financeiro|cobranca|fatura|boleto|pagamento|billing|finance)/.test(s)) return "financeiro";
+  return null;
+}
 
 /** Delegação PM → squad de Operações (vendas, atendimento, financeiro). */
 export function delegateToOps(ctx: AgentContext): ToolSet {
@@ -20,16 +31,20 @@ export function delegateToOps(ctx: AgentContext): ToolSet {
         "suporte (responder cliente/ticket — Lia) ou financeiro (cobrança/follow-up — Otto). " +
         "Nada é enviado sem aprovação humana. Inclua TODO o contexto (destinatário, valores, o texto do cliente…).",
       inputSchema: z.object({
-        discipline: z.enum(["sdr", "suporte", "financeiro"]).describe("Quem cuida da demanda."),
+        discipline: z.string().describe('Quem cuida da demanda: "sdr", "suporte" ou "financeiro".'),
         title: z.string().describe("Título curto da demanda."),
         instructions: z
           .string()
           .describe("Contexto completo: quem, o quê, valores/prazos, e o texto original do cliente se houver."),
       }),
-      execute: async ({ discipline, title, instructions }) => {
+      execute: async (t) => {
+        const discipline = normalizeOpsDiscipline(t.discipline);
+        if (!discipline) {
+          return { ok: false, error: `Disciplina "${t.discipline}" não reconhecida. Use: sdr, suporte ou financeiro.` };
+        }
         track(
           `${ctx.threadKey}:ops-${discipline}`,
-          { title, agent: OPS_LABEL[discipline], squad: "operacoes", column: "fila" },
+          { title: t.title, agent: opsSpecialistName(discipline), squad: "operacoes", column: "fila" },
           "demanda delegada às operações",
         );
         await queue.enqueue("ops-task", {
@@ -37,10 +52,10 @@ export function delegateToOps(ctx: AgentContext): ToolSet {
           threadTs: ctx.threadTs,
           threadKey: ctx.threadKey,
           discipline,
-          title,
-          instructions,
+          title: t.title,
+          instructions: t.instructions,
         });
-        return { ok: true, delegated_to: OPS_LABEL[discipline] };
+        return { ok: true, delegated_to: discipline, specialist: opsSpecialistName(discipline) };
       },
     }),
   };

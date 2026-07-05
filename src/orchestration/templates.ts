@@ -71,7 +71,7 @@ export function renderStep(instructions: string, demand: string): string {
 const STEP_AGENT: Record<TemplateTarget, { agent: string; squad: "produto" | "marketing"; suffix: string }> = {
   produto: { agent: "Rui (Tech Lead)", squad: "produto", suffix: "techlead" },
   marketing: { agent: "Malu (Head de Marketing)", squad: "marketing", suffix: "marketing-lead" },
-  delivery: { agent: "Dani (Delivery)", squad: "produto", suffix: "delivery" },
+  delivery: { agent: "Dani (Delivery)", squad: "produto", suffix: "delivery-task" },
   conteudo: { agent: "Caio (Conteúdo)", squad: "marketing", suffix: "mkt-conteudo" },
   social: { agent: "Sofia (Social)", squad: "marketing", suffix: "mkt-social" },
   ads: { agent: "Leo (Performance)", squad: "marketing", suffix: "mkt-ads" },
@@ -90,6 +90,9 @@ export async function fireTemplate(
   for (const step of t.steps) {
     const meta = STEP_AGENT[step.target];
     const instructions = renderStep(step.instructions, demand);
+    // Limite conhecido: dois steps do MESMO target dividem o card no board (a key é
+    // por disciplina, e o worker recalcula a mesma key). Corrigir = levar cardKey no
+    // payload do job, ponta a ponta — fica para uma mudança dedicada.
     track(
       `${ctx.threadKey}:${meta.suffix}`,
       { title, agent: meta.agent, squad: meta.squad, column: "fila" },

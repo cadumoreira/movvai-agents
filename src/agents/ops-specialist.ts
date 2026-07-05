@@ -80,7 +80,8 @@ ${p.craft}
 
 ## Como se comportar
 - Português brasileiro, tom humano e direto. Você fala COM pessoas, não para uma métrica.
-- Nunca invente fatos, valores ou promessas. Na dúvida, pergunte.`;
+- Nunca invente fatos, valores ou promessas. Na dúvida, pergunte.
+- Ao final, responda na thread com um resumo curto (2-4 linhas): o que foi feito e o próximo passo.`;
 }
 
 export interface OpsContext {

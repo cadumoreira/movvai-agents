@@ -51,15 +51,30 @@ const cards = new Map<string, BoardCard>();
 
 /** Restaura o board da persistência (Redis) no boot. No-op sem REDIS_URL. */
 export async function initBoard(): Promise<void> {
-  const { boardStore } = await import("./store.js");
+  const { boardStore } = await store();
   for (const card of await boardStore.loadAll()) {
     if (!cards.has(card.key)) cards.set(card.key, card);
   }
+  // Aprovações são promises em memória: um card restaurado em "aprovacao" não tem
+  // mais quem o destrave (o registry nasce vazio). Marca como falha com nota clara
+  // em vez de exibir "Aguardando humano" para sempre; se a fila durável reentregar
+  // o job, a frente re-tracka e volta ao fluxo normal.
+  for (const card of cards.values()) {
+    if (card.column === "aprovacao") {
+      track(card.key, { column: "concluido", outcome: "falha" }, "aprovação perdida no restart — reabra a demanda na thread");
+    }
+  }
 }
 
-/** Persiste um card (best-effort; import dinâmico evita ciclo board↔store). */
+/** Import do store cacheado (dinâmico para evitar ciclo board↔store). */
+let storeModule: Promise<typeof import("./store.js")> | null = null;
+function store(): Promise<typeof import("./store.js")> {
+  return (storeModule ??= import("./store.js"));
+}
+
+/** Persiste um card (best-effort — a persistência não trava o fluxo). */
 function persist(card: BoardCard): void {
-  void import("./store.js").then(({ boardStore }) => boardStore.save(card));
+  void store().then(({ boardStore }) => boardStore.save(card));
 }
 
 /**
@@ -128,7 +143,7 @@ function evict(): void {
   if (cards.size <= MAX_CARDS) return;
   const drop = (key: string) => {
     cards.delete(key);
-    void import("./store.js").then(({ boardStore }) => boardStore.remove(key));
+    void store().then(({ boardStore }) => boardStore.remove(key));
   };
   const done = [...cards.values()]
     .filter((c) => c.column === "concluido")
