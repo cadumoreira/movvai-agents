@@ -31,7 +31,7 @@ test("delegate_to_ops enfileira o job certo e cria o card do squad operações",
   const received: Array<{ discipline: string; threadKey: string }> = [];
   queue.process("ops-task", async (d) => void received.push({ discipline: d.discipline, threadKey: d.threadKey }));
 
-  const tools = delegateToOps({ channel: "C7", threadTs: "7.7", threadKey: "C7:7.7", slack: {} as never });
+  const tools = delegateToOps({ channel: "C7", threadTs: "7.7", threadKey: "C7:7.7", messenger: {} as never });
   const res = await (tools.delegate_to_ops as { execute: Function }).execute(
     { discipline: "suporte", title: "Responder cliente X", instructions: "texto do cliente..." },
     {},

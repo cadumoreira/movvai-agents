@@ -114,11 +114,11 @@ function sendApprovalTool(discipline: OpsDiscipline, ctx: OpsContext): ToolSet {
         if (!decision.approved) {
           let feedback = decision.feedback ?? "";
           if (!feedback && ctx.thread) {
-            await ctx.thread.slack.chat.postMessage({
-              channel: ctx.thread.channel,
-              thread_ts: ctx.thread.threadTs,
-              text: `:memo: Recusado — para eu aprender: *o que devo ajustar?*\n_Responda mencionando o bot nesta thread._`,
-            });
+            await ctx.thread.messenger.post(
+              { channel: ctx.thread.channel, threadTs: ctx.thread.threadTs },
+              `:memo: Recusado — para eu aprender: *o que devo ajustar?*\n_Responda nesta thread (Slack) ou pelo chat do card (painel)._`,
+              persona.name,
+            );
             feedback = await askQuestion(ctx.thread.threadKey, "Motivo da recusa do envio", persona.name);
             recordLesson(persona.id, `Recusa em "${subject.slice(0, 60)}": ${feedback}`);
           }

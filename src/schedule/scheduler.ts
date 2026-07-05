@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from "node:fs";
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { matchesCron } from "./cron.js";
 import { queue } from "../queue/index.js";
 import { track } from "../board/board.js";
@@ -72,26 +72,24 @@ export function parseSchedules(raw: string): { schedules: Schedule[]; errors: st
   return { schedules, errors };
 }
 
-async function fire(slack: WebClient, s: Schedule): Promise<void> {
-  const channel = s.channel || config.slack.defaultChannel;
-  if (!channel) {
-    console.warn(`Rotina "${s.name}" ignorada: defina SLACK_DEFAULT_CHANNEL (ou "channel" na rotina).`);
-    return;
-  }
+async function fire(messenger: Messenger, s: Schedule): Promise<void> {
   // Bom-dia determinístico: posta o resumo direto, sem fila nem agente (zero tokens).
   if (s.target === "digest") {
     const { collectDigest, formatDigest } = await import("../digest/digest.js");
-    await slack.chat.postMessage({ channel, text: formatDigest(collectDigest()) });
+    const opened = await messenger.openThread(formatDigest(collectDigest()), { channel: s.channel });
+    if (!opened) {
+      console.warn(`Rotina "${s.name}" (digest) ignorada: defina SLACK_DEFAULT_CHANNEL (ou use o painel).`);
+      return;
+    }
     audit({ kind: "schedule_fired", actor: "scheduler", detail: s.name, meta: { target: "digest" } });
     return;
   }
-  const posted = await slack.chat.postMessage({
-    channel,
-    text: `:alarm_clock: Rotina *${s.name}* — acionando o time.`,
-  });
-  const threadTs = String(posted.ts);
-  const threadKey = `${channel}:${threadTs}`;
-  const base = { channel, threadTs, threadKey };
+  const base = await messenger.openThread(`:alarm_clock: Rotina *${s.name}* — acionando o time.`, { channel: s.channel });
+  if (!base) {
+    console.warn(`Rotina "${s.name}" ignorada: defina SLACK_DEFAULT_CHANNEL (ou "channel" na rotina) — ou rode o painel.`);
+    return;
+  }
+  const { threadKey } = base;
   audit({ kind: "schedule_fired", actor: "scheduler", detail: s.name, meta: { target: s.target } });
 
   if (s.target === "marketing") {
@@ -110,7 +108,7 @@ async function fire(slack: WebClient, s: Schedule): Promise<void> {
 }
 
 /** Sobe o agendador: relê o arquivo e checa os crons a cada meio minuto. */
-export function startScheduler(slack: WebClient): void {
+export function startScheduler(messenger: Messenger): void {
   const fired = new Set<string>(); // dedupe: "nome@minuto"
   const tick = async () => {
     const path = config.schedulesPath;
@@ -124,7 +122,7 @@ export function startScheduler(slack: WebClient): void {
       const key = `${s.name}@${minute}`;
       if (fired.has(key) || !matchesCron(s.cron, now)) continue;
       fired.add(key);
-      fire(slack, s).catch((err) => console.error(`Rotina "${s.name}" falhou:`, err));
+      fire(messenger, s).catch((err) => console.error(`Rotina "${s.name}" falhou:`, err));
     }
     // Higiene: só descarta chaves de minutos PASSADOS — limpar a do minuto
     // corrente faria o próximo tick (30s) disparar a mesma rotina em dobro.

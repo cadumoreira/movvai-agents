@@ -8,7 +8,6 @@ import { councilTools } from "../tools/council.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools } from "../tools/ask.js";
 import { brandPromptBlock, brandTools, brandAuthoringTools } from "../brand/context.js";
-import { slackApprover } from "../approvals/gate.js";
 import { learningTools } from "../learn/lessons.js";
 import { webTools } from "../tools/web.js";
 import { teamStatsTools } from "../digest/digest.js";
@@ -73,12 +72,15 @@ export function createMarketingLeadAgent(
       ...councilTools(),
       ...skillTools("marketing-lead"),
       ...brandTools(),
-      ...brandAuthoringTools(slackApprover(ctx.slack, ctx.channel, ctx.threadTs), "marketing-lead"),
+      ...brandAuthoringTools(
+        ctx.messenger.approver({ channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey }),
+        "marketing-lead",
+      ),
       ...learningTools("marketing-lead"),
       ...webTools(),
       ...teamStatsTools(),
       ...askTools(
-        { channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey, slack: ctx.slack },
+        { channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey, messenger: ctx.messenger },
         "Malu (Head de Marketing)",
         `${ctx.threadKey}:marketing-lead`,
       ),

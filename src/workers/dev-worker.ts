@@ -1,9 +1,9 @@
-import type { WebClient } from "@slack/web-api";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createDevAgent } from "../agents/dev.js";
 import { createRepoSandbox, parseRepo, type Sandbox } from "../sandbox/index.js";
-import { slackApprover, type Approver } from "../approvals/gate.js";
+import { type Approver } from "../approvals/gate.js";
+import type { Messenger } from "../messaging/messenger.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
@@ -14,10 +14,9 @@ import { preflightOrAbort } from "./support.js";
  * Worker do Dev: consome jobs "dev-task", sobe um sandbox efêmero, roda o agente Dev
  * e encerra o sandbox. Toda a comunicação acontece na mesma thread do Slack.
  */
-export function startDevWorker(slack: WebClient): void {
+export function startDevWorker(messenger: Messenger): void {
   queue.process("dev-task", async (task) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: task.channel, threadTs: task.threadTs }, text, "Téo (Dev)");
 
     const cardKey = `${task.threadKey}:dev`;
     // Preflight: dependência ESSENCIAL ausente aborta ANTES de subir sandbox/gastar tokens.
@@ -37,7 +36,7 @@ export function startDevWorker(slack: WebClient): void {
 
       sandbox = await createRepoSandbox(target);
       const model = routeModel(config.models.dev, { text: task.instructions });
-      const baseApprove = slackApprover(slack, task.channel, task.threadTs);
+      const baseApprove = messenger.approver({ channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey });
       const approve: Approver = async (opts) => {
         track(cardKey, { column: "aprovacao" }, "pediu OK humano para abrir o PR");
         const decision = await baseApprove(opts);

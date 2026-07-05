@@ -1,4 +1,4 @@
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createMarketingLeadAgent } from "../agents/marketing-lead.js";
@@ -12,10 +12,9 @@ import { preflightOrAbort } from "./support.js";
  * Worker da Head de Marketing: consome "marketing-task", cria o brief no Notion e
  * delega as frentes às especialistas (jobs "marketing-work"). Tudo na mesma thread.
  */
-export function startMarketingLeadWorker(slack: WebClient): void {
+export function startMarketingLeadWorker(messenger: Messenger): void {
   queue.process("marketing-task", async (task) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: task.channel, threadTs: task.threadTs }, text, "Malu (Head de Marketing)");
 
     const cardKey = `${task.threadKey}:marketing-lead`;
     const checks = await preflightOrAbort(
@@ -35,7 +34,7 @@ export function startMarketingLeadWorker(slack: WebClient): void {
       );
       const model = routeModel(config.models.marketing, { text: task.instructions });
       const lead = createMarketingLeadAgent(
-        { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, slack },
+        { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, messenger },
         task.brief,
         model,
       );

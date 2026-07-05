@@ -1,4 +1,4 @@
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createDeliveryAgent } from "../agents/delivery.js";
@@ -8,10 +8,9 @@ import { track } from "../board/board.js";
  * Worker do Delivery Manager: consome "delivery-summary" (acionado após a revisão do QA)
  * e publica um resumo de entrega na thread (e no ticket, quando houver).
  */
-export function startDeliveryWorker(slack: WebClient): void {
+export function startDeliveryWorker(messenger: Messenger): void {
   queue.process("delivery-summary", async (job) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: job.channel, threadTs: job.threadTs }, text, "Dani (Delivery)");
 
     const cardKey = `${job.threadKey}:delivery`;
     try {
@@ -45,8 +44,7 @@ export function startDeliveryWorker(slack: WebClient): void {
 
   // Tarefa genérica da Dani (ex.: changelog compilado dos PRs mergeados, via rotina).
   queue.process("delivery-task", async (job) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: job.channel, threadTs: job.threadTs }, text, "Dani (Delivery)");
     // Sufixo próprio: a MESMA thread pode ter um delivery-summary — não dividir o card.
     const cardKey = `${job.threadKey}:delivery-task`;
     try {

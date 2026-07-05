@@ -1,11 +1,11 @@
 import "dotenv/config";
-import type { WebClient } from "@slack/web-api";
 import { queue } from "../queue/index.js";
 import { startMarketingLeadWorker } from "../workers/marketing-lead-worker.js";
 import { startMarketingWorker } from "../workers/marketing-worker.js";
 import { startDashboard } from "../web/server.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
 import { listBoard } from "../board/board.js";
+import { PanelMessenger } from "../messaging/messenger.js";
 import { config } from "../config.js";
 
 /**
@@ -25,17 +25,14 @@ const instructions =
     `e levar visita ao site. Use o perfil e o brand book da marca. Uma peça única (legenda + criativo descrito).`;
 const autoApprove = process.env.AUTO_APPROVE !== "off";
 
-// Slack fake: mensagens do time caem no terminal (mesma assinatura usada pelos workers).
-let fakeTs = 1;
-const slack = {
-  chat: {
-    postMessage: async (m: { channel: string; thread_ts?: string; text?: string }) => {
-      console.log(`\n💬 [${m.channel}${m.thread_ts ? " › thread" : ""}] ${m.text ?? ""}`);
-      return { ok: true, ts: String(fakeTs++) };
-    },
-  },
-  reactions: { add: async () => ({ ok: true }) },
-} as unknown as WebClient;
+// Sem Slack: o PanelMessenger grava a conversa na thread interna (visível no painel);
+// aqui também espelhamos no terminal para acompanhar o fluxo.
+const messenger = new PanelMessenger();
+const origPost = messenger.post.bind(messenger);
+messenger.post = async (target, text, from) => {
+  console.log(`\n💬 [${from ?? "sistema"}] ${text}`);
+  return origPost(target, text, from);
+};
 
 async function main() {
   console.log(`\n▶ E2E marketing: "${title}"`);
@@ -43,8 +40,8 @@ async function main() {
   console.log(`  aprovação: ${autoApprove ? "automática (simulando seu clique)" : "manual — decida no painel :" + config.dashboard.port}\n`);
 
   startDashboard(config.dashboard.port); // acompanhe o board ao vivo
-  startMarketingLeadWorker(slack);
-  startMarketingWorker(slack);
+  startMarketingLeadWorker(messenger);
+  startMarketingWorker(messenger);
 
   // Simula (ou delega ao painel) o clique humano no portão de aprovação.
   const approver = setInterval(() => {

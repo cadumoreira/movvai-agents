@@ -1,4 +1,4 @@
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createTechLeadAgent } from "../agents/tech-lead.js";
@@ -12,10 +12,9 @@ import { preflightOrAbort } from "./support.js";
  * Worker do Tech Lead: consome "techlead-task", desenha a abordagem (sem sandbox —
  * trabalha por leitura do GitHub + Linear) e delega ao Dev. Tudo na mesma thread.
  */
-export function startTechLeadWorker(slack: WebClient): void {
+export function startTechLeadWorker(messenger: Messenger): void {
   queue.process("techlead-task", async (task) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: task.channel, threadTs: task.threadTs }, text, "Rui (Tech Lead)");
 
     const cardKey = `${task.threadKey}:techlead`;
     const checks = await preflightOrAbort("techlead", { cardKey, title: task.ticket.title, agent: "Rui (Tech Lead)", squad: "produto" }, post);
@@ -31,7 +30,7 @@ export function startTechLeadWorker(slack: WebClient): void {
       );
       const model = routeModel(config.models.dev, { text: task.instructions });
       const techLead = createTechLeadAgent(
-        { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, slack },
+        { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, messenger },
         model,
       );
 

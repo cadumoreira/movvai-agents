@@ -1,8 +1,8 @@
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createMarketingSpecialistAgent, specialistName } from "../agents/marketing-specialist.js";
-import { slackApprover, type Approver } from "../approvals/gate.js";
+import { type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
@@ -14,10 +14,9 @@ import { preflightOrAbort } from "./support.js";
  * da disciplina (Caio/Sofia/Leo/Nina), produz o entregável no Notion e pede aprovação
  * humana antes de dá-lo como publicável. Tudo na mesma thread do Slack.
  */
-export function startMarketingWorker(slack: WebClient): void {
+export function startMarketingWorker(messenger: Messenger): void {
   queue.process("marketing-work", async (task) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: task.channel, threadTs: task.threadTs }, text, specialistName(task.discipline));
 
     const cardKey = `${task.threadKey}:mkt-${task.discipline}`;
     const checks = await preflightOrAbort(
@@ -36,7 +35,7 @@ export function startMarketingWorker(slack: WebClient): void {
         `:art: ${specialistName(task.discipline)} aqui — peguei a frente de *${task.brief.title}*. Produzindo o entregável…`,
       );
       const model = routeModel(config.models.marketing, { text: task.instructions });
-      const baseApprove = slackApprover(slack, task.channel, task.threadTs);
+      const baseApprove = messenger.approver({ channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey });
       const approve: Approver = async (opts) => {
         track(cardKey, { column: "aprovacao" }, "pediu OK humano para publicar");
         const decision = await baseApprove(opts);
@@ -47,7 +46,7 @@ export function startMarketingWorker(slack: WebClient): void {
         task.discipline,
         {
           approve,
-          thread: { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, slack },
+          thread: { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, messenger },
         },
         model,
       );
