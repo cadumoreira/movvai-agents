@@ -40,8 +40,9 @@ export function pendingItems(): PendingItem[] {
       createdAt: a.createdAt,
       summary: a.text.split("\n")[0].slice(0, 120),
     })),
-    ...listQuestions().map((q, i) => ({
-      id: `q:${q.threadKey}:${i}`,
+    // id estável por createdAt (índice do FIFO muda quando outra pergunta é respondida)
+    ...listQuestions().map((q) => ({
+      id: `q:${q.threadKey}:${q.createdAt}`,
       kind: "pergunta" as const,
       threadKey: q.threadKey,
       createdAt: q.createdAt,

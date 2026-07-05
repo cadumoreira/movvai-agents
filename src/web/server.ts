@@ -45,7 +45,7 @@ function safeParse(raw: string): Record<string, unknown> {
 }
 
 export function startDashboard(port: number, onInbound?: InboundHandler, onDemand?: DemandHandler): http.Server {
-  const server = http.createServer(async (req, res) => {
+  const handle = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
     const url = new URL(req.url ?? "/", `http://localhost:${port}`);
     const path = url.pathname;
 
@@ -188,6 +188,16 @@ export function startDashboard(port: number, onInbound?: InboundHandler, onDeman
     }
 
     json(res, 404, { error: "not found" });
+  };
+
+  // Rota que estourar não pode derrubar o processo (unhandled rejection) nem
+  // deixar a requisição pendurada — vira 500 e o time segue vivo.
+  const server = http.createServer((req, res) => {
+    void handle(req, res).catch((err) => {
+      console.error("Erro no painel:", err);
+      if (!res.headersSent) json(res, 500, { error: "erro interno" });
+      else res.end();
+    });
   });
 
   server.listen(port, () => {

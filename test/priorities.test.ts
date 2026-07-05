@@ -143,6 +143,25 @@ test("POST /api/demand: 503 quando o painel roda sem handler (modo demo)", async
   });
 });
 
+test("painel: exceção numa rota vira 500, sem derrubar o processo", async () => {
+  await withDashboard(
+    async () => {
+      throw new Error("slack fora do ar");
+    },
+    async (base) => {
+      const res = await fetch(`${base}/api/demand`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ squad: "produto", text: "algo" }),
+      });
+      assert.equal(res.status, 500);
+      // servidor continua respondendo depois do erro
+      const alive = await fetch(`${base}/api/board`);
+      assert.equal(alive.status, 200);
+    },
+  );
+});
+
 test("POST /api/demand: erro do handler vira 400 com a mensagem", async () => {
   await withDashboard(
     async () => ({ ok: false, error: "Defina SLACK_DEFAULT_CHANNEL" }),
