@@ -31,9 +31,31 @@ export interface DeliverySummaryRequested {
   ticketIdentifier?: string;
 }
 
+/** Disciplinas do squad de marketing (cada uma tem uma persona especialista). */
+export type MarketingDiscipline = "conteudo" | "social" | "ads" | "seo";
+
+export interface MarketingTaskRequested {
+  channel: string;
+  threadTs: string;
+  threadKey: string;
+  brief: { title: string; url?: string; pageId?: string };
+  instructions: string;
+}
+
+export interface MarketingWorkRequested {
+  channel: string;
+  threadTs: string;
+  threadKey: string;
+  discipline: MarketingDiscipline;
+  brief: { title: string; url?: string; pageId?: string };
+  instructions: string;
+}
+
 export interface JobMap {
   "techlead-task": DevTaskRequested;
   "dev-task": DevTaskRequested;
   "qa-review": QaReviewRequested;
   "delivery-summary": DeliverySummaryRequested;
+  "marketing-task": MarketingTaskRequested;
+  "marketing-work": MarketingWorkRequested;
 }

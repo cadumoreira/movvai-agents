@@ -5,10 +5,14 @@ import { startDevWorker } from "./workers/dev-worker.js";
 import { startQaWorker } from "./workers/qa-worker.js";
 import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
+import { startMarketingLeadWorker } from "./workers/marketing-lead-worker.js";
+import { startMarketingWorker } from "./workers/marketing-worker.js";
+import { startScheduler } from "./schedule/scheduler.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
 import { startDashboard, type InboundHandler } from "./web/server.js";
 import { queue } from "./queue/index.js";
+import { track } from "./board/board.js";
 import { config } from "./config.js";
 
 /**
@@ -35,6 +39,13 @@ async function main() {
   startQaWorker(app.client);
   startDeliveryWorker(app.client);
 
+  // Squad de marketing (Malu coordena; Caio/Sofia/Leo/Nina executam no Notion).
+  startMarketingLeadWorker(app.client);
+  startMarketingWorker(app.client);
+
+  // Rotinas agendadas (cron): o time trabalha proativamente (schedules.json).
+  startScheduler(app.client);
+
   // Webhooks de entrada (GitHub/Linear) → posta no canal padrão e aciona o Tech Lead.
   const handleInbound: InboundHandler = async (source, task) => {
     const channel = config.slack.defaultChannel;
@@ -47,6 +58,11 @@ async function main() {
       text: `:inbox_tray: Recebi do ${source}: *${task.title}* — passando pro time.`,
     });
     const threadTs = String(posted.ts);
+    track(
+      `${channel}:${threadTs}:techlead`,
+      { title: task.title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" },
+      `demanda recebida por webhook (${source})`,
+    );
     await queue.enqueue("techlead-task", {
       channel,
       threadTs,
@@ -63,8 +79,17 @@ async function main() {
     JSON.stringify({
       level: "info",
       kind: "startup",
-      message: "Dream team online — Ana (PM), Rui (Tech Lead), Téo (Dev), Bia (QA) e Dani (Delivery) no Slack.",
-      models: { pm: config.models.pm, dev: config.models.dev, qa: config.models.qa, cheap: config.models.cheap },
+      message:
+        "Dream team online — Ana (PM), Rui (Tech Lead), Téo (Dev), Bia (QA) e Dani (Delivery) no Slack; " +
+        "squad de marketing: Malu (Head), Caio (Conteúdo), Sofia (Social), Leo (Ads) e Nina (SEO).",
+      models: {
+        pm: config.models.pm,
+        dev: config.models.dev,
+        qa: config.models.qa,
+        marketing: config.models.marketing,
+        cheap: config.models.cheap,
+      },
+      marketingBoard: config.notion.apiKey ? "notion" : "off",
       queue: config.redisUrl ? "bullmq" : "in-process",
       memory: config.databaseUrl ? "pgvector" : "off",
       at: new Date().toISOString(),

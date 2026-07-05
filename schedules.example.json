@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Relatório semanal de SEO",
+    "cron": "0 9 * * 1",
+    "target": "seo",
+    "instructions": "Prepare o relatório semanal de SEO: evolução das keywords prioritárias, páginas com queda de tráfego orgânico e as 3 ações recomendadas da semana. Registre no Notion e resuma na thread."
+  },
+  {
+    "name": "Calendário social da próxima semana",
+    "cron": "0 15 * * 5",
+    "target": "marketing",
+    "instructions": "Planeje o calendário de social media da próxima semana: proponha os temas com base no que foi publicado recentemente (busque no Notion), crie o brief e delegue à Sofia."
+  },
+  {
+    "name": "Resumo semanal de entregas",
+    "cron": "0 17 * * 5",
+    "target": "produto",
+    "instructions": "Monte um resumo do que o time entregou nesta semana (PRs abertos, tickets fechados) e registre como comentário nos tickets relevantes. Responda na thread com o resumo."
+  }
+]

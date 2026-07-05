@@ -5,8 +5,11 @@ import { githubTools } from "../tools/github.js";
 import { linearTools } from "../tools/linear.js";
 import { jiraTools } from "../tools/jira.js";
 import { delegateToDev, delegateToTechLead } from "../tools/delegate.js";
+import { delegateToMarketing } from "../tools/marketing-delegate.js";
 import { memoryTools } from "../tools/memory.js";
 import { manusTools } from "../tools/manus.js";
+import { skillTools, skillsPromptHint } from "../tools/skills.js";
+import { brandPromptBlock, brandTools } from "../brand/context.js";
 
 const SYSTEM = `Você é a **Ana**, a Product Manager de um time de produto autônomo. Você conversa
 no Slack como uma colega humana: direta, prática e colaborativa.
@@ -27,6 +30,9 @@ Quando alguém te traz um problema (um bug, uma ideia, uma melhoria), você:
      desenha a abordagem antes de implementar).
    - Tarefa direta de implementação → \`delegate_to_dev\` (o Téo implementa e pede aprovação do PR).
    Use também \`recall_memory\` no início para checar decisões/convençõe anteriores do time.
+   - **Demanda de MARKETING** (conteúdo/blog, social media, campanha/ads, SEO/analytics) →
+     \`delegate_to_marketing\` DIRETO, sem criar ticket no Linear: a Malu (Head de Marketing)
+     cria o brief no Notion e coordena o squad dela. Passe objetivo, público, canais e prazo.
 6. **Comunica**: responda no Slack de forma curta, dizendo o que você entendeu, o que investigou,
    o link do ticket e que passou para o Dev (quando for o caso).
 
@@ -43,7 +49,7 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
   return {
     id: "pm",
     name: "Ana (PM)",
-    system: SYSTEM,
+    system: SYSTEM + brandPromptBlock() + skillsPromptHint("pm"),
     model: model ?? config.models.pm,
     tools: {
       ...githubTools(),
@@ -51,8 +57,11 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
       ...jiraTools(),
       ...delegateToDev(ctx),
       ...delegateToTechLead(ctx),
+      ...delegateToMarketing(ctx),
       ...memoryTools("pm"),
       ...manusTools(),
+      ...skillTools("pm"),
+      ...brandTools(),
     },
     maxSteps: 12,
     tokenBudget: config.tokenBudget,

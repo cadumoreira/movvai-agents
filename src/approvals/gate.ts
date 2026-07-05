@@ -25,7 +25,7 @@ export async function requestApproval(
   client: WebClient,
   opts: { channel: string; threadTs: string; text: string },
 ): Promise<ApprovalDecision> {
-  const { id, promise } = register(opts.text);
+  const { id, promise } = register(opts.text, `${opts.channel}:${opts.threadTs}`);
 
   await client.chat.postMessage({
     channel: opts.channel,
