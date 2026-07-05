@@ -66,7 +66,7 @@
 - **E2E harness**: `try:marketing` roda demanda→Malu→Sofia→Vera→aprovação→entregável sem Slack
   (terminal + painel); provider `mock:` no gateway permite dry-run do encanamento sem chave/custo.
   AUTO_APPROVE=off deixa a decisão para o painel.
-- **Qualidade**: 101 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 105 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -79,7 +79,7 @@ npm run dev                                       # time completo no Slack + pai
 npm run demo:board                                # kanban demo (sem chaves) em :3000
 npm run try:marketing -- "peça pro Instagram"     # E2E marketing sem Slack (chave real)
 # sem chave nenhuma (dry-run do encanamento): MARKETING_MODEL=mock:marketing CHEAP_MODEL=mock:marketing npm run try:marketing
-npm test                                          # 101 testes
+npm test                                          # 105 testes
 ```
 
 ## Pendências (backlog priorizado)
@@ -88,6 +88,14 @@ npm test                                          # 101 testes
 3. **MCP no perímetro** / **A2A** (interoperabilidade).
 4. **GitLab**, **conselho modo debate**, mais papéis (Suporte/CS, Security, Financeiro).
 5. **RAG/indexação do codebase**, **Next.js** (upgrade do painel), identidade Slack por agente.
+
+## Squad de Operações (feito)
+- Igor (SDR, com fetch_url), Lia (Suporte, fatos só do brand doc produto), Otto (Financeiro,
+  régua de cobrança). Job ops-task + worker; delegate_to_ops na Ana; roteamento por nome
+  (igor/lia/otto); preflight (Resend opcional → envio manual); squad "operacoes" no board
+  (teal #0D9488, tripla validada) + chip no painel; skills de exemplo por papel.
+- request_send_approval: NENHUM e-mail sai sem aprovação (prévia completa); aprovado+Resend
+  envia; recusa → entrevista → lição (mesmo loop do marketing). OPS_MODEL configura o modelo.
 
 ## Orquestração cross-squad (feito)
 - Templates (src/orchestration, templates/*.json ao vivo): Ana dispara produto+marketing na

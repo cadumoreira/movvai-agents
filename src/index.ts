@@ -7,6 +7,7 @@ import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
 import { startMarketingLeadWorker } from "./workers/marketing-lead-worker.js";
 import { startMarketingWorker } from "./workers/marketing-worker.js";
+import { startOpsWorker } from "./workers/ops-worker.js";
 import { startScheduler } from "./schedule/scheduler.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
@@ -53,6 +54,9 @@ async function main() {
   startMarketingLeadWorker(app.client);
   startMarketingWorker(app.client);
 
+  // Squad de operações (Igor/SDR, Lia/Suporte, Otto/Financeiro).
+  startOpsWorker(app.client);
+
   // Rotinas agendadas (cron): o time trabalha proativamente (schedules.json).
   startScheduler(app.client);
 
@@ -91,7 +95,7 @@ async function main() {
       kind: "startup",
       message:
         "Dream team online — Ana (PM), Rui (Tech Lead), Téo (Dev), Bia (QA) e Dani (Delivery) no Slack; " +
-        "squad de marketing: Malu (Head), Caio (Conteúdo), Sofia (Social), Leo (Ads) e Nina (SEO).",
+        "squad de marketing: Malu, Caio, Sofia, Leo e Nina; operações: Igor (SDR), Lia (Suporte) e Otto (Financeiro).",
       models: {
         pm: config.models.pm,
         dev: config.models.dev,

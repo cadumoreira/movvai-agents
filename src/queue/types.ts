@@ -34,6 +34,18 @@ export interface DeliverySummaryRequested {
 /** Disciplinas do squad de marketing (cada uma tem uma persona especialista). */
 export type MarketingDiscipline = "conteudo" | "social" | "ads" | "seo";
 
+/** Disciplinas do squad de OPERAÇÕES: vendas, atendimento e financeiro. */
+export type OpsDiscipline = "sdr" | "suporte" | "financeiro";
+
+export interface OpsTaskRequested {
+  channel: string;
+  threadTs: string;
+  threadKey: string;
+  discipline: OpsDiscipline;
+  title: string;
+  instructions: string;
+}
+
 export interface MarketingTaskRequested {
   channel: string;
   threadTs: string;
@@ -68,4 +80,5 @@ export interface JobMap {
   "delivery-task": DeliveryTaskRequested;
   "marketing-task": MarketingTaskRequested;
   "marketing-work": MarketingWorkRequested;
+  "ops-task": OpsTaskRequested;
 }

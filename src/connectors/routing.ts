@@ -1,4 +1,4 @@
-import type { MarketingDiscipline } from "../queue/types.js";
+import type { MarketingDiscipline, OpsDiscipline } from "../queue/types.js";
 
 /**
  * Roteamento de follow-up na thread: mensagem começando com o nome de um agente vai
@@ -12,6 +12,7 @@ import type { MarketingDiscipline } from "../queue/types.js";
 export type RoutedTarget =
   | { kind: "lead" }
   | { kind: "specialist"; discipline: MarketingDiscipline }
+  | { kind: "ops"; discipline: OpsDiscipline }
   | { kind: "pm" };
 
 const NAME_MAP: Record<string, RoutedTarget> = {
@@ -25,6 +26,9 @@ const NAME_MAP: Record<string, RoutedTarget> = {
   sofia: { kind: "specialist", discipline: "social" },
   leo: { kind: "specialist", discipline: "ads" },
   nina: { kind: "specialist", discipline: "seo" },
+  igor: { kind: "ops", discipline: "sdr" },
+  lia: { kind: "ops", discipline: "suporte" },
+  otto: { kind: "ops", discipline: "financeiro" },
 };
 
 /** Alvo quando a mensagem começa com o nome de um agente; null = sem endereçamento. */

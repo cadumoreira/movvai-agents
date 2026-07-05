@@ -13,7 +13,9 @@ import type { MarketingDiscipline } from "../queue/types.js";
  * Generaliza o Brand Center: mesma ideia para integrações, skills e afins.
  */
 
-export type WorkKind = "techlead" | "dev" | "qa" | "marketing-lead" | MarketingDiscipline;
+import type { OpsDiscipline } from "../queue/types.js";
+
+export type WorkKind = "techlead" | "dev" | "qa" | "marketing-lead" | MarketingDiscipline | OpsDiscipline;
 
 export interface DependencyCheck {
   id: string;
@@ -109,6 +111,21 @@ export function preflight(kind: WorkKind): DependencyCheck[] {
         check("imagem", "Geração de criativo (OPENAI_API_KEY)", Boolean(process.env.OPENAI_API_KEY), false, "sem geração, descreva o criativo em texto"),
         ...commonBrand(kind === "social" ? "mkt-social" : "mkt-ads"),
       ];
+    case "sdr":
+    case "suporte":
+    case "financeiro": {
+      const agentId = `ops-${kind}`;
+      return [
+        check(
+          "email",
+          "Envio de e-mail (Resend)",
+          Boolean(config.publish.resend.apiKey) && Boolean(config.publish.resend.from),
+          false,
+          "sem Resend, entregue o texto aprovado na thread para envio manual",
+        ),
+        ...commonBrand(agentId),
+      ];
+    }
     case "seo":
       return [
         notionCheck(),
