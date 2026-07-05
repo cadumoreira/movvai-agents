@@ -66,7 +66,7 @@
 - **E2E harness**: `try:marketing` roda demanda→Malu→Sofia→Vera→aprovação→entregável sem Slack
   (terminal + painel); provider `mock:` no gateway permite dry-run do encanamento sem chave/custo.
   AUTO_APPROVE=off deixa a decisão para o painel.
-- **Qualidade**: 89 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 95 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -79,7 +79,7 @@ npm run dev                                       # time completo no Slack + pai
 npm run demo:board                                # kanban demo (sem chaves) em :3000
 npm run try:marketing -- "peça pro Instagram"     # E2E marketing sem Slack (chave real)
 # sem chave nenhuma (dry-run do encanamento): MARKETING_MODEL=mock:marketing CHEAP_MODEL=mock:marketing npm run try:marketing
-npm test                                          # 89 testes
+npm test                                          # 95 testes
 ```
 
 ## Pendências (backlog priorizado)
@@ -88,6 +88,15 @@ npm test                                          # 89 testes
 3. **MCP no perímetro** / **A2A** (interoperabilidade).
 4. **GitLab**, **conselho modo debate**, mais papéis (Suporte/CS, Security, Financeiro).
 5. **RAG/indexação do codebase**, **Next.js** (upgrade do painel), identidade Slack por agente.
+
+## Aprendizado & informação (feito)
+- Recusa no portão de publicação → entrevista automática na thread → lição gravada em
+  skills/<papel>/licoes.md (circuito das skills) + memória + auditoria (lesson_recorded).
+- Tools record_lesson/save_reference (todas as personas de marketing); referencias.md.
+- Digest determinístico (src/digest): target "digest" no scheduler posta o bom-dia sem tokens;
+  team_stats dá números reais p/ relatórios (Malu/Nina).
+- fetch_url (src/tools/web) com guarda anti-SSRF (Nina/Caio/Malu) — radar de concorrência
+  (skill + rotina de exemplo); relatório mensal executivo (rotina de exemplo).
 
 ## Resiliência (feito)
 - Board persistido em Redis (REDIS_URL) e restaurado no boot; com BullMQ os jobs sobrevivem a

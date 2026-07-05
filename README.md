@@ -91,6 +91,15 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **O time que APRENDE:** cada recusa sua dispara uma entrevista automática ("o que devo
+  ajustar?") e a resposta vira **lição permanente** em `skills/<papel>/licoes.md` — entra no
+  circuito das skills e é considerada nas próximas execuções. Agentes também consolidam sozinhos
+  (`record_lesson` para A/B medido, `save_reference` para material elogiado). Cada "não" melhora
+  o time para sempre.
+- **O time que INFORMA:** rotina `"target": "digest"` posta o **bom-dia do time** (concluídas,
+  em andamento, esperando você, custo, publicações) — 100% determinístico, zero tokens. **Radar
+  de concorrência**: Nina lê páginas públicas com `fetch_url` (guarda anti-SSRF) e reporta só o
+  que mudou. **Relatório mensal executivo**: Malu compila com `team_stats` (números reais).
 - **Resiliência:** com `REDIS_URL`, o **board é persistido e restaurado no boot** e os jobs
   (BullMQ) sobrevivem a restart com **retry/backoff**; sem Redis, a fila em processo retenta
   erros transientes (`JOB_RETRIES`). Um **vigia** marca como falha frentes paradas além de

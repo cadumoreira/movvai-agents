@@ -9,6 +9,9 @@ import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools } from "../tools/ask.js";
 import { brandPromptBlock, brandTools, brandAuthoringTools } from "../brand/context.js";
 import { slackApprover } from "../approvals/gate.js";
+import { learningTools } from "../learn/lessons.js";
+import { webTools } from "../tools/web.js";
+import { teamStatsTools } from "../digest/digest.js";
 
 const SYSTEM = `Você é a **Malu**, Head de Marketing de um time autônomo. Você recebe demandas de
 marketing (conteúdo, social, campanhas/ads, SEO/analytics), transforma em um **brief acionável no
@@ -71,6 +74,9 @@ export function createMarketingLeadAgent(
       ...skillTools("marketing-lead"),
       ...brandTools(),
       ...brandAuthoringTools(slackApprover(ctx.slack, ctx.channel, ctx.threadTs), "marketing-lead"),
+      ...learningTools("marketing-lead"),
+      ...webTools(),
+      ...teamStatsTools(),
       ...askTools(
         { channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey, slack: ctx.slack },
         "Malu (Head de Marketing)",

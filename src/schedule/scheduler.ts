@@ -19,7 +19,8 @@ import type { MarketingDiscipline } from "../queue/types.js";
  */
 
 const DISCIPLINES: MarketingDiscipline[] = ["conteudo", "social", "ads", "seo"];
-export type ScheduleTarget = "marketing" | "produto" | MarketingDiscipline;
+/** "digest" = bom-dia determinístico (zero tokens); demais acionam um agente. */
+export type ScheduleTarget = "marketing" | "produto" | "digest" | MarketingDiscipline;
 
 export interface Schedule {
   name: string;
@@ -49,7 +50,7 @@ export function parseSchedules(raw: string): { schedules: Schedule[]; errors: st
       errors.push(`rotina ${where}: faltam campos (name, cron, target, instructions)`);
       continue;
     }
-    if (s.target !== "marketing" && s.target !== "produto" && !DISCIPLINES.includes(s.target as MarketingDiscipline)) {
+    if (s.target !== "marketing" && s.target !== "produto" && s.target !== "digest" && !DISCIPLINES.includes(s.target as MarketingDiscipline)) {
       errors.push(`rotina ${where}: target "${s.target}" inválido`);
       continue;
     }
@@ -75,6 +76,13 @@ async function fire(slack: WebClient, s: Schedule): Promise<void> {
   const channel = s.channel || config.slack.defaultChannel;
   if (!channel) {
     console.warn(`Rotina "${s.name}" ignorada: defina SLACK_DEFAULT_CHANNEL (ou "channel" na rotina).`);
+    return;
+  }
+  // Bom-dia determinístico: posta o resumo direto, sem fila nem agente (zero tokens).
+  if (s.target === "digest") {
+    const { collectDigest, formatDigest } = await import("../digest/digest.js");
+    await slack.chat.postMessage({ channel, text: formatDigest(collectDigest()) });
+    audit({ kind: "schedule_fired", actor: "scheduler", detail: s.name, meta: { target: "digest" } });
     return;
   }
   const posted = await slack.chat.postMessage({
