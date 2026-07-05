@@ -11,12 +11,15 @@ import { dashboardAuthorized } from "../auth/rbac.js";
 import { config } from "../config.js";
 import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
 import { listDocs, readDoc, writeDoc, type DocRef } from "./docs-api.js";
+import { getConversation } from "../messaging/conversations.js";
 
 export type InboundHandler = (source: "github" | "linear", task: InboundTask) => Promise<void>;
 export type DemandHandler = (
   squad: "produto" | "marketing" | "sdr" | "suporte" | "financeiro",
   text: string,
 ) => Promise<{ ok: boolean; error?: string }>;
+/** Mensagem do humano no chat de uma thread (mesmo pipeline de uma menção no Slack). */
+export type ChatHandler = (threadKey: string, text: string) => Promise<{ ok: boolean; error?: string }>;
 
 /**
  * Painel web leve (HTTP nativo, sem dependências). Mostra atividade recente do time e
@@ -44,7 +47,12 @@ function safeParse(raw: string): Record<string, unknown> {
   }
 }
 
-export function startDashboard(port: number, onInbound?: InboundHandler, onDemand?: DemandHandler): http.Server {
+export function startDashboard(
+  port: number,
+  onInbound?: InboundHandler,
+  onDemand?: DemandHandler,
+  onChat?: ChatHandler,
+): http.Server {
   const handle = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
     const url = new URL(req.url ?? "/", `http://localhost:${port}`);
     const path = url.pathname;
@@ -161,6 +169,23 @@ export function startDashboard(port: number, onInbound?: InboundHandler, onDeman
       }
       const result = await onDemand(squad as Parameters<DemandHandler>[0], text);
       return json(res, result.ok ? 200 : 400, result);
+    }
+    // Conversa (thread interna): ler o histórico e escrever no chat do card.
+    if (path === "/api/conversation") {
+      if (req.method === "GET") {
+        const threadKey = url.searchParams.get("threadKey") ?? "";
+        return json(res, 200, { threadKey, messages: getConversation(threadKey) });
+      }
+      if (req.method === "POST") {
+        if (!dashboardAuthorized(req.headers.authorization)) return json(res, 401, { error: "não autorizado" });
+        if (!onChat) return json(res, 503, { error: "chat indisponível neste modo (rode npm run dev)" });
+        const body = safeParse(await readBody(req));
+        const threadKey = String(body.threadKey ?? "");
+        const text = String(body.text ?? "").trim();
+        if (!threadKey || !text) return json(res, 400, { error: "threadKey e text são obrigatórios" });
+        const result = await onChat(threadKey, text);
+        return json(res, result.ok ? 200 : 400, result);
+      }
     }
     if (req.method === "GET" && path === "/api/questions") {
       return json(res, 200, listQuestions());
@@ -300,6 +325,18 @@ const PAGE = `<!doctype html>
   .reject:hover { border-color: var(--err); color: var(--err); }
   .empty { color: var(--ink-3); font-style: italic; font-size: 13px; }
   a { color: var(--brand); text-decoration: none; }
+  /* Chat da thread (conversa com o time — funciona sem Slack) */
+  .chat { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .chat h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 700; }
+  .chatlog { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+  .msg { max-width: 82%; padding: 8px 11px; border-radius: 12px; font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; }
+  .msg .who { display: block; font-size: 10px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
+  .msg.agent { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
+  .msg.sys { align-self: center; background: transparent; color: var(--ink-3); font-size: 12px; max-width: 100%; text-align: center; padding: 2px; }
+  .msg.human { align-self: flex-end; background: var(--brand); color: #fff; }
+  .chatbox { display: flex; gap: 8px; margin-top: 10px; }
+  .chatbox input { flex: 1; padding: 8px 11px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; }
+  .chatbox input:focus { outline: none; border-color: var(--brand); }
   a:hover { text-decoration: underline; }
   /* ── Board ──────────────────────────────────────────────────────────── */
   .toolbar { display: flex; gap: 8px; align-items: center; margin: 16px 0 4px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; }
@@ -353,9 +390,9 @@ const PAGE = `<!doctype html>
   /* ── Modal (dossiê) ─────────────────────────────────────────────────── */
   #overlay { position: fixed; inset: 0; background: rgba(41, 45, 52, 0.40); display: none; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 10; overflow-y: auto; }
   #overlay.open { display: flex; }
-  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 640px; width: 100%; box-shadow: 0 20px 56px rgba(41, 45, 52, 0.22); }
+  #modal { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 14px; padding: 22px; max-width: 640px; width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 20px 56px rgba(41, 45, 52, 0.22); }
   #modal h3 { margin: 0; font-size: 16px; font-weight: 700; }
-  .timeline { margin: 14px 0 0; padding: 0; list-style: none; border-left: 2px solid var(--border); }
+  .timeline { margin: 14px 0 0; padding: 0; list-style: none; border-left: 2px solid var(--border); max-height: 200px; overflow-y: auto; }
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
   .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--brand); }
   .timeline .muted { display: block; }
@@ -478,8 +515,8 @@ const PAGE = `<!doctype html>
 </div>
 <div id="overlay"><div id="modal"></div></div>
 <script>
-let state = { board: { columns: [], cards: [] }, approvals: [], questions: [], billing: [], activity: [], audit: [] };
-let filterSquad = 'todos', searchQ = '', openCardKey = null, onlyColumn = null;
+let state = { board: { columns: [], cards: [] }, approvals: [], questions: [], billing: [], activity: [], audit: [], conversation: null };
+let filterSquad = 'todos', searchQ = '', openCardKey = null, onlyColumn = null, chatDraft = '';
 
 // Leitura autenticada: usa o token salvo (sem prompt); 401 vira lista vazia.
 const authedGet = (url, fallback) => fetch(url, {
@@ -495,7 +532,13 @@ async function refresh() {
     authedGet('/api/billing', { total: 0, byAgent: [] }),
     fetch('/api/board').then(r => r.json()),
   ]);
-  state = { board, approvals: aps, questions: qs, activity: act, audit: aud, billing: bil };
+  let conversation = null;
+  if (openCardKey) {
+    const tk = threadKeyOf(openCardKey);
+    const conv = await fetch('/api/conversation?threadKey=' + encodeURIComponent(tk)).then(r => r.json()).catch(() => null);
+    conversation = conv && conv.messages ? { threadKey: tk, messages: conv.messages } : { threadKey: tk, messages: [] };
+  }
+  state = { board, approvals: aps, questions: qs, activity: act, audit: aud, billing: bil, conversation };
   render();
 }
 
@@ -663,6 +706,53 @@ function renderModal() {
   }
   if (!c.notes.length) tl.innerHTML = '<li class="empty">Sem registros.</li>';
   modal.append(tl);
+
+  // ── Conversa da thread (chat com o time — funciona sem Slack) ──
+  const tk = threadKeyOf(c.key);
+  const wasTyping = document.activeElement && document.activeElement.id === 'chatinput';
+  const chat = document.createElement('div'); chat.className = 'chat';
+  const ch4 = document.createElement('h4'); ch4.textContent = 'Conversa'; chat.append(ch4);
+  const log = document.createElement('div'); log.className = 'chatlog';
+  const msgs = (state.conversation && state.conversation.threadKey === tk) ? state.conversation.messages : [];
+  for (const m of msgs) {
+    const el = document.createElement('div');
+    const kind = m.human ? 'human' : (m.from === 'sistema' ? 'sys' : 'agent');
+    el.className = 'msg ' + kind;
+    if (kind !== 'sys') el.innerHTML = '<span class="who">' + escapeHtml(m.human ? 'Você' : m.from) + '</span>' + linkify(m.text);
+    else el.innerHTML = linkify(m.text);
+    log.append(el);
+  }
+  if (!msgs.length) { const e = document.createElement('div'); e.className = 'msg sys'; e.textContent = 'Sem mensagens ainda — fale com o time aqui.'; log.append(e); }
+  chat.append(log);
+
+  const box = document.createElement('div'); box.className = 'chatbox';
+  const input = document.createElement('input'); input.id = 'chatinput';
+  input.placeholder = 'Escreva para o time (ex.: "Sofia, deixa mais curto")…';
+  input.value = chatDraft;
+  input.oninput = () => { chatDraft = input.value; };
+  const send = document.createElement('button'); send.className = 'approve'; send.textContent = 'Enviar';
+  const doSend = async () => {
+    const text = input.value.trim(); if (!text) return;
+    send.disabled = true;
+    const res = await fetch('/api/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + dashToken() },
+      body: JSON.stringify({ threadKey: tk, text }),
+    });
+    send.disabled = false;
+    if (res.status === 401) { localStorage.removeItem('dashToken'); alert('Token inválido — tente de novo.'); return; }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) { chatDraft = ''; input.value = ''; refresh(); }
+    else { alert(data.error || 'Não foi possível enviar.'); }
+  };
+  send.onclick = doSend;
+  input.onkeydown = e => { if (e.key === 'Enter') doSend(); };
+  box.append(input, send);
+  chat.append(box);
+  modal.append(chat);
+
+  log.scrollTop = log.scrollHeight;
+  if (wasTyping) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
 }
 document.getElementById('overlay').onclick = e => { if (e.target.id === 'overlay') { openCardKey = null; renderModal(); } };
 

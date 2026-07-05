@@ -194,13 +194,12 @@ function publishApprovalTool(
         // O time que APRENDE: recusa vira entrevista automática ("por quê?") e a
         // resposta vira lição permanente do papel — cada "não" melhora o time.
         if (!decision.approved && ctx.thread) {
-          await ctx.thread.slack.chat.postMessage({
-            channel: ctx.thread.channel,
-            thread_ts: ctx.thread.threadTs,
-            text:
-              `:memo: Recusado — para eu aprender: *o que devo ajustar?*\n` +
-              `_Responda mencionando o bot nesta thread (vira lição permanente do papel)._`,
-          });
+          await ctx.thread.messenger.post(
+            { channel: ctx.thread.channel, threadTs: ctx.thread.threadTs },
+            `:memo: Recusado — para eu aprender: *o que devo ajustar?*\n` +
+              `_Responda nesta thread (Slack) ou pelo chat do card (painel) — vira lição permanente do papel._`,
+            persona.name,
+          );
           const feedback = await askQuestion(ctx.thread.threadKey, "Motivo da recusa da publicação", persona.name);
           recordLesson(persona.id, `Recusa em "${summary.slice(0, 80)}": ${feedback}`);
           return {

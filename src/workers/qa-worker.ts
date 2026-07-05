@@ -1,4 +1,4 @@
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createQaAgent } from "../agents/qa.js";
@@ -14,10 +14,9 @@ import { preflightOrAbort } from "./support.js";
  * Worker do QA: consome jobs "qa-review" (acionados quando o Dev abre um PR), sobe um
  * sandbox com a branch do PR, roda a verificação determinística (testes) e a revisão.
  */
-export function startQaWorker(slack: WebClient): void {
+export function startQaWorker(messenger: Messenger): void {
   queue.process("qa-review", async (job) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: job.channel, threadTs: job.threadTs }, text, "Bia (QA)");
 
     const cardKey = `${job.threadKey}:qa`;
     const checks = await preflightOrAbort("qa", { cardKey, title: job.title, agent: "Bia (QA)", squad: "produto" }, post);

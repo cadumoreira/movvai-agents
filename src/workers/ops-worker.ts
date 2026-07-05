@@ -1,8 +1,8 @@
-import type { WebClient } from "@slack/web-api";
 import { queue } from "../queue/index.js";
 import { runAgent } from "../agent-runtime/run.js";
 import { createOpsSpecialistAgent, opsSpecialistName } from "../agents/ops-specialist.js";
-import { slackApprover, type Approver } from "../approvals/gate.js";
+import { type Approver } from "../approvals/gate.js";
+import type { Messenger } from "../messaging/messenger.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { track } from "../board/board.js";
@@ -13,10 +13,9 @@ import { preflightOrAbort } from "./support.js";
  * Worker do squad de Operações: consome "ops-task", instancia a persona da disciplina
  * (Igor/Lia/Otto) e trabalha na thread — com portão de aprovação antes de qualquer envio.
  */
-export function startOpsWorker(slack: WebClient): void {
+export function startOpsWorker(messenger: Messenger): void {
   queue.process("ops-task", async (task) => {
-    const post = (text: string) =>
-      slack.chat.postMessage({ channel: task.channel, thread_ts: task.threadTs, text });
+    const post = (text: string) => messenger.post({ channel: task.channel, threadTs: task.threadTs }, text, opsSpecialistName(task.discipline));
 
     const cardKey = `${task.threadKey}:ops-${task.discipline}`;
     const checks = await preflightOrAbort(
@@ -34,7 +33,7 @@ export function startOpsWorker(slack: WebClient): void {
       await post(`:briefcase: ${opsSpecialistName(task.discipline)} aqui — peguei *${task.title}*.`);
 
       const model = routeModel(config.models.ops, { text: task.instructions });
-      const baseApprove = slackApprover(slack, task.channel, task.threadTs);
+      const baseApprove = messenger.approver({ channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey });
       const approve: Approver = async (opts) => {
         track(cardKey, { column: "aprovacao" }, "pediu OK humano para enviar");
         const decision = await baseApprove(opts);
@@ -43,7 +42,7 @@ export function startOpsWorker(slack: WebClient): void {
       };
       const specialist = createOpsSpecialistAgent(
         task.discipline,
-        { approve, thread: { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, slack } },
+        { approve, thread: { channel: task.channel, threadTs: task.threadTs, threadKey: task.threadKey, messenger } },
         model,
       );
 

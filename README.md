@@ -1,8 +1,9 @@
 # movvai-agents — Dream Team Autônomo
 
-Um time autônomo de agentes de IA com quem você **conversa em linguagem natural** no Slack e que
-trabalham nas mesmas ferramentas que humanos (Linear, GitHub). Você comanda falando; eles entendem,
-investigam, organizam e executam — com **aprovação sua nos pontos-chave**.
+Um time autônomo de agentes de IA com quem você **conversa em linguagem natural** — no Slack **ou
+direto no painel web** (Slack é opcional) — e que trabalham nas mesmas ferramentas que humanos
+(Linear, GitHub, Notion). Você comanda falando; eles entendem, investigam, organizam e executam —
+com **aprovação sua nos pontos-chave**.
 
 Arquitetura **agnóstica de provedor** (Claude, OpenAI, Gemini, open-source) e desenhada para escalar
 com custo baixo. Veja o racional completo em [`docs/PESQUISA-ARQUITETURA.md`](./docs/PESQUISA-ARQUITETURA.md)
@@ -44,6 +45,14 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   agnóstico, ligado por `LANGFUSE_*` ou `OTEL_EXPORTER_OTLP_ENDPOINT`.
 - **Provedores:** Anthropic, OpenAI, Google e **Ollama** (modelos locais — `ollama:modelo`) via o
   gateway; **Manus** integrado como **agente externo** (tarefa assíncrona), não como modelo de chat.
+- **Slack é OPCIONAL — o painel faz tudo sozinho.** Uma abstração de mensageria (`Messenger`) separa
+  "como o time fala" de "onde": com as chaves do Slack, ele é a superfície; sem elas, o time roda
+  100% pelo painel (`npm run try:panel` sobe nesse modo). Toda mensagem de agente também é gravada
+  numa **thread interna**, então a conversa aparece no painel mesmo sem Slack.
+- **Chat no card (painel):** cada card tem uma aba **Conversa** — você fala com o time ali
+  ("Sofia, deixa mais curto", responder uma pergunta, pedir ajuste) e passa **pelo mesmo pipeline**
+  de uma menção no Slack (`dispatchMention`): resposta a pergunta → `status` → roteia pra pessoa
+  certa → Ana (PM). Follow-up e a entrevista de lição pós-recusa funcionam sem Slack.
 - **Painel web** (`http://localhost:3000`, `DASHBOARD_PORT`): vê a atividade do time (custo/cache por
   execução) e as **aprovações pendentes** — você pode **aprovar/recusar fora do Slack**. Mesma fonte de
   verdade dos botões do Slack (registro central), então aprovar em qualquer lugar destrava o agente.

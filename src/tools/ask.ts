@@ -1,6 +1,6 @@
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { askQuestion } from "../approvals/questions.js";
 import { track } from "../board/board.js";
 
@@ -8,13 +8,13 @@ export interface AskThread {
   channel: string;
   threadTs: string;
   threadKey: string;
-  slack: WebClient;
+  messenger: Messenger;
 }
 
 /**
  * Briefing interativo: quando falta informação ESSENCIAL, o agente pergunta na thread
  * e pausa até a resposta (interrupção durável, como a aprovação). O humano responde
- * mencionando o bot na mesma thread.
+ * mencionando o bot na thread (Slack) ou pelo chat do card (painel).
  */
 export function askTools(thread: AskThread, askerLabel: string, cardKey?: string): ToolSet {
   return {
@@ -27,11 +27,11 @@ export function askTools(thread: AskThread, askerLabel: string, cardKey?: string
         question: z.string().describe("A pergunta, curta e específica. Uma por vez."),
       }),
       execute: async ({ question }) => {
-        await thread.slack.chat.postMessage({
-          channel: thread.channel,
-          thread_ts: thread.threadTs,
-          text: `:question: *${askerLabel}* pergunta:\n${question}\n_Responda mencionando o bot nesta thread._`,
-        });
+        await thread.messenger.post(
+          { channel: thread.channel, threadTs: thread.threadTs },
+          `:question: *${askerLabel}* pergunta:\n${question}\n_Responda nesta thread (Slack) ou pelo chat do card (painel)._`,
+          askerLabel,
+        );
         if (cardKey) track(cardKey, { column: "aprovacao" }, `perguntou: ${question.slice(0, 80)}`);
         const answer = await askQuestion(thread.threadKey, question, askerLabel);
         if (cardKey) track(cardKey, { column: "execucao" }, "resposta recebida — continuando");

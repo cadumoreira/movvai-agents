@@ -1,4 +1,4 @@
-import type { WebClient } from "@slack/web-api";
+import type { Messenger } from "../messaging/messenger.js";
 import { listPending } from "./registry.js";
 import { listQuestions } from "./questions.js";
 import { config } from "../config.js";
@@ -59,7 +59,7 @@ export function splitThreadKey(threadKey: string): { channel: string; threadTs: 
 }
 
 /** Liga o loop de lembretes (no-op com APPROVAL_REMINDER_MINUTES=0). */
-export function startReminders(slack: WebClient): void {
+export function startReminders(messenger: Messenger): void {
   const intervalMs = config.jobs.approvalReminderMinutes * 60_000;
   if (intervalMs <= 0) return;
 
@@ -78,12 +78,12 @@ export function startReminders(slack: WebClient): void {
       if (!dest) continue;
       reminded.set(item.id, now);
       const waitingMin = Math.round((now - Date.parse(item.createdAt)) / 60_000);
-      await slack.chat
-        .postMessage({
-          channel: dest.channel,
-          thread_ts: dest.threadTs,
-          text: `:hourglass_flowing_sand: Lembrete: ${item.kind === "aprovacao" ? "aprovação" : "pergunta"} esperando você há ~${waitingMin}min — ${item.summary}`,
-        })
+      await messenger
+        .post(
+          { channel: dest.channel, threadTs: dest.threadTs },
+          `:hourglass_flowing_sand: Lembrete: ${item.kind === "aprovacao" ? "aprovação" : "pergunta"} esperando você há ~${waitingMin}min — ${item.summary}`,
+          "sistema",
+        )
         .catch(() => undefined); // lembrete é best-effort
     }
   };

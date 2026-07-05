@@ -191,17 +191,25 @@ export const config = {
     allowInternet: optional("SANDBOX_ALLOW_INTERNET", "true") !== "false",
   },
   slack: {
+    // Slack é OPCIONAL: sem as três chaves, o time roda só pelo painel + webhooks + rotinas.
+    get enabled() {
+      return Boolean(
+        process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN && process.env.SLACK_SIGNING_SECRET,
+      );
+    },
     get botToken() {
-      return required("SLACK_BOT_TOKEN");
+      return optional("SLACK_BOT_TOKEN");
     },
     get appToken() {
-      return required("SLACK_APP_TOKEN");
+      return optional("SLACK_APP_TOKEN");
     },
     get signingSecret() {
-      return required("SLACK_SIGNING_SECRET");
+      return optional("SLACK_SIGNING_SECRET");
     },
     // Canal para onde o time reporta quando o trabalho vem de webhook (sem thread do Slack).
-    defaultChannel: optional("SLACK_DEFAULT_CHANNEL"),
+    get defaultChannel() {
+      return optional("SLACK_DEFAULT_CHANNEL");
+    },
   },
   linear: {
     get apiKey() {

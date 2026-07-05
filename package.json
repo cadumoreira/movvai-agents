@@ -10,6 +10,7 @@
     "start": "tsx src/index.ts",
     "demo:board": "tsx src/scripts/demo-board.ts",
     "try:marketing": "tsx src/scripts/try-marketing.ts",
+    "try:panel": "tsx src/scripts/try-panel.ts",
     "try:pm": "tsx src/scripts/try-pm.ts",
     "try:dev": "tsx src/scripts/try-dev.ts",
     "test": "node --import tsx --test test/*.test.ts",

@@ -1,5 +1,8 @@
 import { createPMAgent } from "./agents/pm.js";
 import { createSlackApp } from "./connectors/slack.js";
+import { dispatchMention } from "./connectors/dispatch.js";
+import { PanelMessenger, type Messenger } from "./messaging/messenger.js";
+import { splitThreadKey } from "./approvals/reminders.js";
 import { createThreadMemory } from "./memory/thread-memory.js";
 import { startDevWorker } from "./workers/dev-worker.js";
 import { startQaWorker } from "./workers/qa-worker.js";
@@ -12,7 +15,7 @@ import { startScheduler } from "./schedule/scheduler.js";
 import { startReminders } from "./approvals/reminders.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
-import { startDashboard, type InboundHandler } from "./web/server.js";
+import { startDashboard, type InboundHandler, type ChatHandler } from "./web/server.js";
 import { queue } from "./queue/index.js";
 import { track, initBoard, sweepStaleCards } from "./board/board.js";
 import { opsSpecialistName } from "./agents/ops-specialist.js";
@@ -42,66 +45,66 @@ async function main() {
   const memory = createThreadMemory();
 
   // O PM é roteado por custo: tarefas simples vão para um modelo barato.
-  const app = createSlackApp(
-    (ctx, userText) => createPMAgent(ctx, routeModel(config.models.pm, { text: userText })),
-    memory,
-  );
+  const agentFactory = (ctx: import("./agents/context.js").AgentContext, userText: string) =>
+    createPMAgent(ctx, routeModel(config.models.pm, { text: userText }));
 
-  // Workers reagem aos jobs (PM→Tech Lead→Dev→QA→Delivery) na mesma thread do Slack.
-  startTechLeadWorker(app.client);
-  startDevWorker(app.client);
-  startQaWorker(app.client);
-  startDeliveryWorker(app.client);
+  // Slack é OPCIONAL. Com as chaves, o Slack é a superfície (e o messenger). Sem elas,
+  // o time roda 100% pelo painel (PanelMessenger) + webhooks + rotinas.
+  let messenger: Messenger;
+  let slackApp: ReturnType<typeof createSlackApp>["app"] | undefined;
+  if (config.slack.enabled) {
+    const created = createSlackApp(agentFactory, memory);
+    slackApp = created.app;
+    messenger = created.messenger;
+  } else {
+    messenger = new PanelMessenger();
+    console.warn(
+      JSON.stringify({ level: "info", kind: "surface", message: "Slack desativado — rodando em modo painel.", at: new Date().toISOString() }),
+    );
+  }
+
+  // Workers reagem aos jobs (PM→Tech Lead→Dev→QA→Delivery) na mesma thread.
+  startTechLeadWorker(messenger);
+  startDevWorker(messenger);
+  startQaWorker(messenger);
+  startDeliveryWorker(messenger);
 
   // Squad de marketing (Malu coordena; Caio/Sofia/Leo/Nina executam no Notion).
-  startMarketingLeadWorker(app.client);
-  startMarketingWorker(app.client);
+  startMarketingLeadWorker(messenger);
+  startMarketingWorker(messenger);
 
   // Squad de operações (Igor/SDR, Lia/Suporte, Otto/Financeiro).
-  startOpsWorker(app.client);
+  startOpsWorker(messenger);
 
   // Rotinas agendadas (cron): o time trabalha proativamente (schedules.json).
-  startScheduler(app.client);
+  startScheduler(messenger);
 
   // Lembretes de pendência humana (aprovações/perguntas paradas ganham cutucada).
-  startReminders(app.client);
+  startReminders(messenger);
 
-  // Webhooks de entrada (GitHub/Linear) → posta no canal padrão e aciona o Tech Lead.
+  // Webhooks de entrada (GitHub/Linear) → abre uma thread (Slack ou interna) e aciona o Tech Lead.
   const handleInbound: InboundHandler = async (source, task) => {
-    const channel = config.slack.defaultChannel;
-    if (!channel) {
-      console.warn(`Webhook do ${source} ignorado: defina SLACK_DEFAULT_CHANNEL para rotear.`);
+    const base = await messenger.openThread(`:inbox_tray: Recebi do ${source}: *${task.title}* — passando pro time.`);
+    if (!base) {
+      console.warn(`Webhook do ${source} ignorado: sem canal para ancorar (defina SLACK_DEFAULT_CHANNEL ou rode o painel).`);
       return;
     }
-    const posted = await app.client.chat.postMessage({
-      channel,
-      text: `:inbox_tray: Recebi do ${source}: *${task.title}* — passando pro time.`,
-    });
-    const threadTs = String(posted.ts);
     track(
-      `${channel}:${threadTs}:techlead`,
+      `${base.threadKey}:techlead`,
       { title: task.title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" },
       `demanda recebida por webhook (${source})`,
     );
     await queue.enqueue("techlead-task", {
-      channel,
-      threadTs,
-      threadKey: `${channel}:${threadTs}`,
+      ...base,
       ticket: { title: task.title, url: task.url, identifier: task.identifier },
       instructions: task.instructions,
     });
   };
 
-  // Nova demanda PELO PAINEL: âncora no canal padrão + squad certo (sem menção no Slack).
+  // Nova demanda PELO PAINEL: abre a thread (interna no modo painel, real no Slack) + squad certo.
   const handleDemand = async (squad: "produto" | "marketing" | OpsDiscipline, text: string) => {
-    const channel = config.slack.defaultChannel;
-    if (!channel) return { ok: false as const, error: "Defina SLACK_DEFAULT_CHANNEL para disparar pelo painel." };
-    const posted = await app.client.chat.postMessage({
-      channel,
-      text: `:desktop_computer: Demanda criada pelo painel: *${text.slice(0, 120)}*`,
-    });
-    const threadTs = String(posted.ts);
-    const base = { channel, threadTs, threadKey: `${channel}:${threadTs}` };
+    const base = await messenger.openThread(`:desktop_computer: Demanda criada pelo painel: *${text.slice(0, 120)}*`);
+    if (!base) return { ok: false as const, error: "Sem canal para ancorar: defina SLACK_DEFAULT_CHANNEL ou rode em modo painel." };
     const title = text.slice(0, 80);
     if (squad === "produto") {
       track(`${base.threadKey}:techlead`, { title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" }, "demanda criada pelo painel");
@@ -116,7 +119,19 @@ async function main() {
     return { ok: true as const };
   };
 
-  startDashboard(config.dashboard.port, handleInbound, handleDemand);
+  // Chat pelo painel: mesma lógica de uma menção no Slack (dispatchMention), na thread do card.
+  const handleChat: ChatHandler = async (threadKey, text) => {
+    const parts = splitThreadKey(threadKey);
+    if (!parts) return { ok: false, error: "thread inválida" };
+    await dispatchMention(
+      text,
+      { channel: parts.channel, threadTs: parts.threadTs, threadKey },
+      { messenger, agentFactory, memory, actor: "painel", humanLabel: "você" },
+    );
+    return { ok: true };
+  };
+
+  startDashboard(config.dashboard.port, handleInbound, handleDemand, handleChat);
 
   // Defaults abertos são para uso LOCAL: em produção, avise alto.
   if (!config.security.dashboardToken || config.security.approverSlackIds.length === 0) {
@@ -132,14 +147,15 @@ async function main() {
     );
   }
 
-  await app.start();
+  if (slackApp) await slackApp.start();
   console.log(
     JSON.stringify({
       level: "info",
       kind: "startup",
       message:
-        "Dream team online — Ana (PM), Rui (Tech Lead), Téo (Dev), Bia (QA) e Dani (Delivery) no Slack; " +
+        "Dream team online — Ana (PM), Rui (Tech Lead), Téo (Dev), Bia (QA) e Dani (Delivery); " +
         "squad de marketing: Malu, Caio, Sofia, Leo e Nina; operações: Igor (SDR), Lia (Suporte) e Otto (Financeiro).",
+      surface: config.slack.enabled ? "slack+painel" : "painel",
       models: {
         pm: config.models.pm,
         dev: config.models.dev,
