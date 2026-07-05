@@ -39,6 +39,13 @@ export const config = {
     synthModel: optional("COUNCIL_SYNTH_MODEL"),
   },
   redisUrl: optional("REDIS_URL"),
+  // Robustez dos jobs: retentativas com backoff, e vigia de cards órfãos no board.
+  jobs: {
+    retries: Number(optional("JOB_RETRIES", "1")),
+    retryDelayMs: Number(optional("JOB_RETRY_DELAY_MS", "30000")),
+    // Card parado em fila/execução além disso vira falha (0 = vigia desligado).
+    staleCardMinutes: Number(optional("STALE_CARD_MINUTES", "30")),
+  },
   dashboard: {
     port: Number(optional("DASHBOARD_PORT", "3000")),
   },
@@ -66,7 +73,9 @@ export const config = {
     orgId: optional("ORG_ID", "default"),
   },
   // Skills: playbooks em Markdown carregados sob demanda pelos agentes (skills/<papel>/*.md).
-  skillsDir: optional("SKILLS_DIR", "skills"),
+  get skillsDir() {
+    return optional("SKILLS_DIR", "skills");
+  },
   // Brand Center: contexto da empresa em todo fluxo (brand/perfil.md + docs + assets).
   get brandDir() {
     return optional("BRAND_DIR", "brand");

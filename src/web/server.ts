@@ -10,6 +10,7 @@ import { billingSummary } from "../billing/meter.js";
 import { dashboardAuthorized } from "../auth/rbac.js";
 import { config } from "../config.js";
 import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
+import { listDocs, readDoc, writeDoc, type DocRef } from "./docs-api.js";
 
 export type InboundHandler = (source: "github" | "linear", task: InboundTask) => Promise<void>;
 
@@ -112,6 +113,29 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
     }
     if (req.method === "GET" && path === "/api/billing") {
       return json(res, 200, billingSummary());
+    }
+    // ── Curadoria: playbooks (skills) e manual da marca pelo painel ─────────
+    if (req.method === "GET" && path === "/api/docs") {
+      return json(res, 200, listDocs());
+    }
+    if (path === "/api/docs/content") {
+      const ref: DocRef = {
+        type: url.searchParams.get("type") === "brand" ? "brand" : "skill",
+        id: url.searchParams.get("id") ?? "",
+      };
+      if (req.method === "GET") {
+        const content = readDoc(ref);
+        return content === null ? json(res, 404, { error: "not found" }) : json(res, 200, { content });
+      }
+      if (req.method === "PUT") {
+        if (!dashboardAuthorized(req.headers.authorization)) {
+          return json(res, 401, { error: "não autorizado" });
+        }
+        const body = safeParse(await readBody(req));
+        const content = String(body.content ?? "");
+        if (!content.trim()) return json(res, 400, { error: "conteúdo vazio" });
+        return writeDoc(ref, content) ? json(res, 200, { ok: true }) : json(res, 400, { error: "id inválido" });
+      }
     }
     if (req.method === "GET" && path === "/api/questions") {
       return json(res, 200, listQuestions());
@@ -278,6 +302,15 @@ const PAGE = `<!doctype html>
   .timeline li { margin: 0 0 10px 14px; font-size: 13px; position: relative; }
   .timeline li::before { content: ""; position: absolute; left: -19.5px; top: 6px; width: 7px; height: 7px; border-radius: 99px; background: var(--brand); }
   .timeline .muted { display: block; }
+  /* ── Editor de playbooks ────────────────────────────────────────────── */
+  .docs { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px; margin-top: 14px; align-items: start; }
+  @media (max-width: 900px) { .docs { grid-template-columns: 1fr; } }
+  .doclist { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px; max-height: 70vh; overflow-y: auto; }
+  .doclist a { display: block; padding: 7px 10px; border-radius: 7px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+  .doclist a:hover { background: #F3F4F6; color: var(--ink); }
+  .doclist a.active { background: rgba(123, 104, 238, 0.10); color: var(--brand); font-weight: 600; }
+  .doceditor textarea { width: 100%; min-height: 60vh; margin-top: 10px; font: 13px/1.6 ui-monospace, "Cascadia Code", Menlo, monospace; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--ink); resize: vertical; outline: none; }
+  .doceditor textarea:focus { border-color: var(--brand); }
   /* ── Polimento ──────────────────────────────────────────────────────── */
   .navlabel { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 4px 10px 6px; }
   .side nav a { position: relative; transition: background .12s, color .12s; }
@@ -316,6 +349,7 @@ const PAGE = `<!doctype html>
       <a data-view="atividade"><span class="lchip" style="background:#4194F6">T</span> Atividade</a>
       <a data-view="custo"><span class="lchip" style="background:#DB2777">C</span> Custo</a>
       <a data-view="auditoria"><span class="lchip" style="background:#98A1AC">L</span> Auditoria</a>
+      <a data-view="playbooks"><span class="lchip" style="background:#0EA5E9">✎</span> Playbooks</a>
     </nav>
     <div class="side-foot"><span class="livedot"></span> ao vivo · atualiza a cada 2s</div>
   </aside>
@@ -356,6 +390,19 @@ const PAGE = `<!doctype html>
     <section id="view-auditoria" class="view hidden">
       <h2>Auditoria</h2>
       <div id="audit"></div>
+    </section>
+
+    <section id="view-playbooks" class="view hidden">
+      <h2>Playbooks &amp; manual da marca</h2>
+      <p class="muted">Edite o comportamento do time sem tocar em código: os agentes leem estes arquivos ao vivo.</p>
+      <div class="docs">
+        <div id="doclist" class="doclist"></div>
+        <div class="doceditor">
+          <div class="row"><strong id="docname" class="muted">Selecione um documento…</strong>
+            <button id="docsave" disabled>Salvar</button></div>
+          <textarea id="docbody" spellcheck="false" placeholder="Conteúdo em Markdown…"></textarea>
+        </div>
+      </div>
     </section>
   </main>
 </div>
@@ -542,7 +589,7 @@ function renderModal() {
 document.getElementById('overlay').onclick = e => { if (e.target.id === 'overlay') { openCardKey = null; renderModal(); } };
 
 // ── Navegação (views) ────────────────────────────────────────────────────
-const VIEW_TITLES = { board: 'Board', aprovacoes: 'Aprovações', perguntas: 'Perguntas', atividade: 'Atividade', custo: 'Custo', auditoria: 'Auditoria' };
+const VIEW_TITLES = { board: 'Board', aprovacoes: 'Aprovações', perguntas: 'Perguntas', atividade: 'Atividade', custo: 'Custo', auditoria: 'Auditoria', playbooks: 'Playbooks' };
 for (const item of document.querySelectorAll('#nav a')) {
   item.onclick = () => {
     for (const i of document.querySelectorAll('#nav a')) i.classList.toggle('active', i === item);
@@ -644,7 +691,41 @@ function renderTeam() {
   for (const name of seen.slice(0, 8)) { const a = avatarEl(name); a.title = name; el.append(a); }
 }
 
-function render() { renderBoard(); renderLists(); renderStats(); renderTeam(); renderModal(); }
+// ── Editor de playbooks/marca ───────────────────────────────────────────
+let currentDoc = null, docsLoaded = false;
+async function loadDocs() {
+  const docs = await fetch('/api/docs').then(r => r.json());
+  const list = document.getElementById('doclist');
+  list.innerHTML = '';
+  for (const d of docs) {
+    const a = document.createElement('a');
+    a.textContent = d.title;
+    a.onclick = async () => {
+      const res = await fetch('/api/docs/content?type=' + d.type + '&id=' + encodeURIComponent(d.id)).then(r => r.json());
+      currentDoc = d;
+      document.getElementById('docname').textContent = d.title;
+      document.getElementById('docbody').value = res.content || '';
+      document.getElementById('docsave').disabled = false;
+      for (const x of list.children) x.className = x === a ? 'active' : '';
+    };
+    list.append(a);
+  }
+  docsLoaded = true;
+}
+document.getElementById('docsave').onclick = async () => {
+  if (!currentDoc) return;
+  const res = await fetch('/api/docs/content?type=' + currentDoc.type + '&id=' + encodeURIComponent(currentDoc.id), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + dashToken() },
+    body: JSON.stringify({ content: document.getElementById('docbody').value }),
+  });
+  if (res.status === 401) { localStorage.removeItem('dashToken'); alert('Token inválido — tente de novo.'); return; }
+  const btn = document.getElementById('docsave');
+  btn.textContent = res.ok ? 'Salvo ✓' : 'Erro ao salvar';
+  setTimeout(() => { btn.textContent = 'Salvar'; }, 1600);
+};
+
+function render() { renderBoard(); renderLists(); renderStats(); renderTeam(); renderModal(); if (!docsLoaded) loadDocs(); }
 refresh(); setInterval(refresh, 2000);
 </script>
 </body>

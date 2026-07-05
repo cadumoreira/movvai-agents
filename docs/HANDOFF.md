@@ -66,7 +66,7 @@
 - **E2E harness**: `try:marketing` roda demanda→Malu→Sofia→Vera→aprovação→entregável sem Slack
   (terminal + painel); provider `mock:` no gateway permite dry-run do encanamento sem chave/custo.
   AUTO_APPROVE=off deixa a decisão para o painel.
-- **Qualidade**: 84 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 89 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -79,16 +79,24 @@ npm run dev                                       # time completo no Slack + pai
 npm run demo:board                                # kanban demo (sem chaves) em :3000
 npm run try:marketing -- "peça pro Instagram"     # E2E marketing sem Slack (chave real)
 # sem chave nenhuma (dry-run do encanamento): MARKETING_MODEL=mock:marketing CHEAP_MODEL=mock:marketing npm run try:marketing
-npm test                                          # 84 testes
+npm test                                          # 89 testes
 ```
 
 ## Pendências (backlog priorizado)
-1. **Validação real** — rodar com chaves de verdade (o maior valor).
-2. **Multi-tenancy plena** (config isolada por org) — hoje só `ORG_ID` tagueia.
-3. **Persistência**: aprovações/atividade/billing-totais em Redis (hoje memória; audit/billing já em arquivo).
-4. **MCP no perímetro** / **A2A** (interoperabilidade).
-5. **GitLab**, **conselho modo debate**, mais papéis (Security/Docs), agentes agendados.
-6. **RAG/indexação do codebase**, **Next.js** (upgrade do painel).
+1. **Validação real** — rodar com chaves de verdade (o maior valor). `npm run try:marketing`.
+2. **Multi-tenancy plena** (config isolada por org) — hoje só `ORG_ID` tagueia. Só se for vender.
+3. **MCP no perímetro** / **A2A** (interoperabilidade).
+4. **GitLab**, **conselho modo debate**, mais papéis (Suporte/CS, Security, Financeiro).
+5. **RAG/indexação do codebase**, **Next.js** (upgrade do painel), identidade Slack por agente.
+
+## Resiliência (feito)
+- Board persistido em Redis (REDIS_URL) e restaurado no boot; com BullMQ os jobs sobrevivem a
+  restart e são retentados (attempts/backoff). Fila em processo retenta com espera (JOB_RETRIES).
+- Vigia (STALE_CARD_MINUTES): frente parada em fila/execução vira falha explícita no board.
+- Aprovações/perguntas NÃO são persistidas por design: pertencem ao run; com fila durável o job
+  reentregue as recria (ver src/board/store.ts).
+- **Editor no painel** (view Playbooks): skills/ e brand/ editáveis pela web (escrita com token,
+  auditada) — curadoria sem tocar em arquivo.
 
 ## Limitações conhecidas
 - Estado volátil em memória (acima) exceto logs de auditoria/billing (JSONL).
