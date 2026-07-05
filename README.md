@@ -206,6 +206,13 @@ roteamento/caching/custo, aponte `MODEL_GATEWAY_BASE_URL` para um LiteLLM self-h
    cp .env.example .env   # e preencha as chaves
    ```
 
+   Diagnóstico da config a qualquer momento — diz o que já está pronto e o que falta,
+   canal por canal (com `--ping` testa as credenciais de verdade):
+   ```bash
+   npm run doctor              # só presença (offline)
+   npm run doctor -- --ping    # + valida cada credencial na rede
+   ```
+
 2. **Modelo:** preencha pelo menos uma chave de provedor (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`
    ou `GOOGLE_GENERATIVE_AI_API_KEY`) compatível com `PM_MODEL`.
 
