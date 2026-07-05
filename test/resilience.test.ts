@@ -33,6 +33,12 @@ test("sweepStaleCards não mexe em frente recente", () => {
 // ── Retry da fila em processo ────────────────────────────────────────────────
 
 test("InProcessQueue retenta handler que lança e desiste após o limite", async () => {
+  // Polling (não espera fixa): runners de CI atrasam o event loop e flakeiam sleeps curtos.
+  const until = async (cond: () => boolean, ms = 5000) => {
+    const end = Date.now() + ms;
+    while (!cond() && Date.now() < end) await new Promise((r) => setTimeout(r, 10));
+  };
+
   const q = new InProcessQueue({ retries: 2, retryDelayMs: 5 });
   let calls = 0;
   q.process("dev-task", async () => {
@@ -40,7 +46,7 @@ test("InProcessQueue retenta handler que lança e desiste após o limite", async
     if (calls < 3) throw new Error("transiente");
   });
   await q.enqueue("dev-task", { channel: "c", threadTs: "1", threadKey: "c:1", ticket: { title: "x" }, instructions: "y" });
-  await new Promise((r) => setTimeout(r, 80));
+  await until(() => calls >= 3);
   assert.equal(calls, 3); // 1 tentativa + 2 retries → sucesso na 3ª
 
   // Falha permanente: para no teto, sem loop infinito.
@@ -51,7 +57,8 @@ test("InProcessQueue retenta handler que lança e desiste após o limite", async
     throw new Error("sempre falha");
   });
   await q2.enqueue("qa-review", { channel: "c", threadTs: "1", threadKey: "c:1", repo: "o/r", branch: "b", prUrl: "u", prNumber: 1, title: "t" });
-  await new Promise((r) => setTimeout(r, 60));
+  await until(() => calls2 >= 2);
+  await new Promise((r) => setTimeout(r, 40)); // folga: NÃO deve haver 3ª tentativa
   assert.equal(calls2, 2);
 });
 
