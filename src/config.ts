@@ -82,6 +82,10 @@ export const config = {
   },
   // Rotinas agendadas (cron) — arquivo JSON relido a cada tick; ausente = sem rotinas.
   schedulesPath: optional("SCHEDULES_PATH", "schedules.json"),
+  // Templates de demanda cross-squad (templates/*.json, lidos ao vivo).
+  get templatesDir() {
+    return optional("TEMPLATES_DIR", "templates");
+  },
   // Revisora de marketing (Vera) valida entregáveis contra os playbooks antes do humano.
   marketingReview: optional("MARKETING_REVIEW", "on") !== "off",
   // Publicação real (pós-aprovação): blog, e-mail e social/automação via webhook.

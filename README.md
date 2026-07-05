@@ -91,6 +91,14 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Orquestração CROSS-SQUAD:** templates de demanda (`templates/*.json`, lidos ao vivo) fazem
+  UM pedido disparar os dois squads coordenados **na mesma thread** — "lançar a feature X" =
+  Rui/Téo implementam E a Malu prepara o anúncio, lado a lado no board; o portão de aprovação é o
+  sincronizador (o anúncio nunca sai antes do seu OK). A Ana reconhece e usa (`launch_template`).
+  **Derivação de conteúdo**: artigo aprovado vira thread de X, carrossel de IG e newsletter
+  (`spawn_derivatives`, destravado só após a aprovação — cada derivado tem a própria).
+  **Changelog automático**: rotina `"target": "delivery"` — a Dani compila os PRs mergeados
+  (`list_merged_prs`) em changelog para o cliente (benefício, não título técnico).
 - **O time que APRENDE:** cada recusa sua dispara uma entrevista automática ("o que devo
   ajustar?") e a resposta vira **lição permanente** em `skills/<papel>/licoes.md` — entra no
   circuito das skills e é considerada nas próximas execuções. Agentes também consolidam sozinhos

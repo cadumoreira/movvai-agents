@@ -42,4 +42,25 @@ export function startDeliveryWorker(slack: WebClient): void {
       await post(`Tive um problema ao resumir a entrega: ${err instanceof Error ? err.message : String(err)}`);
     }
   });
+
+  // Tarefa genérica da Dani (ex.: changelog compilado dos PRs mergeados, via rotina).
+  queue.process("delivery-task", async (job) => {
+    const post = (text: string) =>
+      slack.chat.postMessage({ channel: job.channel, thread_ts: job.threadTs, text });
+    const cardKey = `${job.threadKey}:delivery`;
+    try {
+      track(
+        cardKey,
+        { title: job.title, agent: "Dani (Delivery)", squad: "produto", column: "execucao" },
+        "trabalhando na tarefa",
+      );
+      const { text } = await runAgent(createDeliveryAgent(), [{ role: "user", content: job.instructions }]);
+      track(cardKey, { column: "concluido", outcome: "ok" }, "tarefa concluída");
+      if (text) await post(text);
+    } catch (err) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "erro na tarefa");
+      console.error("Erro no worker do Delivery (task):", err);
+      await post(`Tive um problema na tarefa: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  });
 }

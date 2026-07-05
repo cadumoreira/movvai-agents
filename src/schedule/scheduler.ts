@@ -20,7 +20,7 @@ import type { MarketingDiscipline } from "../queue/types.js";
 
 const DISCIPLINES: MarketingDiscipline[] = ["conteudo", "social", "ads", "seo"];
 /** "digest" = bom-dia determinístico (zero tokens); demais acionam um agente. */
-export type ScheduleTarget = "marketing" | "produto" | "digest" | MarketingDiscipline;
+export type ScheduleTarget = "marketing" | "produto" | "delivery" | "digest" | MarketingDiscipline;
 
 export interface Schedule {
   name: string;
@@ -50,7 +50,13 @@ export function parseSchedules(raw: string): { schedules: Schedule[]; errors: st
       errors.push(`rotina ${where}: faltam campos (name, cron, target, instructions)`);
       continue;
     }
-    if (s.target !== "marketing" && s.target !== "produto" && s.target !== "digest" && !DISCIPLINES.includes(s.target as MarketingDiscipline)) {
+    if (
+      s.target !== "marketing" &&
+      s.target !== "produto" &&
+      s.target !== "delivery" &&
+      s.target !== "digest" &&
+      !DISCIPLINES.includes(s.target as MarketingDiscipline)
+    ) {
       errors.push(`rotina ${where}: target "${s.target}" inválido`);
       continue;
     }
@@ -100,6 +106,9 @@ async function fire(slack: WebClient, s: Schedule): Promise<void> {
   } else if (s.target === "produto") {
     track(`${threadKey}:techlead`, { title: s.name, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" }, "rotina agendada");
     await queue.enqueue("techlead-task", { ...base, ticket: { title: s.name }, instructions: s.instructions });
+  } else if (s.target === "delivery") {
+    track(`${threadKey}:delivery`, { title: s.name, agent: "Dani (Delivery)", squad: "produto", column: "fila" }, "rotina agendada");
+    await queue.enqueue("delivery-task", { ...base, title: s.name, instructions: s.instructions });
   } else {
     track(`${threadKey}:mkt-${s.target}`, { title: s.name, agent: SPECIALIST_LABEL[s.target], squad: "marketing", column: "fila" }, "rotina agendada");
     await queue.enqueue("marketing-work", { ...base, discipline: s.target, brief: { title: s.name }, instructions: s.instructions });

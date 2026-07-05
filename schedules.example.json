@@ -34,5 +34,11 @@
     "cron": "0 9 1 * *",
     "target": "marketing",
     "instructions": "Monte o relatório mensal executivo: use team_stats (números reais do time), list_recent_publications e, se disponível, delegue à Nina as métricas de GA4/Search Console. Estruture: entregas do mês, publicações, resultados medidos, custo e recomendações. Registre no Notion e resuma na thread."
+  },
+  {
+    "name": "Changelog quinzenal",
+    "cron": "0 11 1,15 * *",
+    "target": "delivery",
+    "instructions": "Compile o changelog público das últimas 2 semanas: liste os PRs mergeados (list_merged_prs, since_days=14), agrupe por tema e traduza cada item em benefício para o cliente. Registre no Notion (se disponível) e responda na thread com o resumo. Nunca invente item."
   }
 ]

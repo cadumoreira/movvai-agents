@@ -10,6 +10,44 @@ import { config } from "../config.js";
  * Nota de segurança: o conteúdo retornado (código, READMEs) é entrada NÃO confiável.
  * Ele entra no contexto do modelo, então mantenha o PM sem ferramentas destrutivas.
  */
+/** Leitura de PRs mergeados — insumo do changelog automático da Dani. */
+export function githubDeliveryTools(): ToolSet {
+  if (!config.github.token) return {};
+  const octokit = new Octokit({ auth: config.github.token });
+
+  return {
+    list_merged_prs: tool({
+      description:
+        "Lista os PRs MERGEADOS do repositório num período — a matéria-prima do changelog. " +
+        "Retorna título, número, URL, data de merge e labels.",
+      inputSchema: z.object({
+        since_days: z.number().int().min(1).max(90).optional().describe("Janela em dias (default 14)."),
+        repo: z.string().optional().describe('Repositório "owner/repo" (default: o configurado).'),
+      }),
+      execute: async ({ since_days, repo }) => {
+        const full = repo || config.github.defaultRepo;
+        if (!full) return { ok: false, error: "Defina GITHUB_DEFAULT_REPO ou informe o repo." };
+        const since = new Date(Date.now() - (since_days ?? 14) * 86_400_000).toISOString().slice(0, 10);
+        const res = await octokit.rest.search.issuesAndPullRequests({
+          q: `repo:${full} is:pr is:merged merged:>=${since}`,
+          sort: "updated",
+          order: "desc",
+          per_page: 30,
+        });
+        return {
+          ok: true,
+          prs: res.data.items.map((i) => ({
+            number: i.number,
+            title: i.title,
+            url: i.html_url,
+            labels: i.labels?.map((l) => (typeof l === "string" ? l : l.name)).filter(Boolean),
+          })),
+        };
+      },
+    }),
+  };
+}
+
 export function githubTools(): ToolSet {
   if (!config.github.token) return {};
   const octokit = new Octokit({ auth: config.github.token });

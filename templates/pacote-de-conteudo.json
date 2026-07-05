@@ -1,0 +1,14 @@
+{
+  "name": "Pacote de conteúdo",
+  "description": "Um tema vira o pacote completo: artigo de blog + posts de social derivados + análise de keywords, tudo na mesma thread.",
+  "steps": [
+    {
+      "target": "seo",
+      "instructions": "Pesquise keywords e ângulo de busca para o tema a seguir e registre as recomendações na thread (título sugerido, keyword principal, secundárias) — o Caio vai usar.\n\nTema: {demanda}"
+    },
+    {
+      "target": "conteudo",
+      "instructions": "Escreva o artigo de blog sobre o tema a seguir (considere as recomendações de SEO da Nina nesta thread, se já disponíveis). Após a aprovação, use spawn_derivatives para gerar thread de X e carrossel de IG a partir do artigo.\n\nTema: {demanda}"
+    }
+  ]
+}
