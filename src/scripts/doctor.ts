@@ -47,6 +47,30 @@ const CHECKS: Check[] = [
     desbloqueia: "OBRIGATÓRIO — os agentes pensam",
     need: [],
     anyOf: ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "MODEL_GATEWAY_API_KEY"],
+    // Valida a chave de VERDADE (presença não basta: "invalid x-api-key" só aparece no runtime).
+    live: async () => {
+      if (has("ANTHROPIC_API_KEY")) {
+        const r = await withTimeout(
+          fetch("https://api.anthropic.com/v1/models", {
+            headers: { "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+          }),
+        );
+        if (r.status === 401 || r.status === 403) throw new Error("Anthropic recusou a chave (invalid x-api-key)");
+        if (!r.ok) throw new Error(`Anthropic respondeu ${r.status}`);
+        return "Anthropic — chave válida";
+      }
+      if (has("OPENAI_API_KEY")) {
+        const r = await withTimeout(fetch("https://api.openai.com/v1/models", { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }));
+        if (!r.ok) throw new Error(`OpenAI respondeu ${r.status}`);
+        return "OpenAI — chave válida";
+      }
+      if (has("GOOGLE_GENERATIVE_AI_API_KEY")) {
+        const r = await withTimeout(fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GOOGLE_GENERATIVE_AI_API_KEY}`));
+        if (!r.ok) throw new Error(`Google respondeu ${r.status}`);
+        return "Google — chave válida";
+      }
+      return "gateway configurado (não verificado)";
+    },
   },
   {
     canal: "Linear",
