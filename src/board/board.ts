@@ -49,6 +49,19 @@ const MAX_NOTES = 20;
 
 const cards = new Map<string, BoardCard>();
 
+/** Restaura o board da persistência (Redis) no boot. No-op sem REDIS_URL. */
+export async function initBoard(): Promise<void> {
+  const { boardStore } = await import("./store.js");
+  for (const card of await boardStore.loadAll()) {
+    if (!cards.has(card.key)) cards.set(card.key, card);
+  }
+}
+
+/** Persiste um card (best-effort; import dinâmico evita ciclo board↔store). */
+function persist(card: BoardCard): void {
+  void import("./store.js").then(({ boardStore }) => boardStore.save(card));
+}
+
 /**
  * Cria/atualiza o card de uma frente de trabalho. Idempotente: chamar de novo com a
  * mesma chave só aplica o patch (e registra a nota) — quem chega primeiro cria.
@@ -81,8 +94,24 @@ export function track(key: string, patch: TrackPatch, note?: string): BoardCard 
     card.notes.push({ time: now, text: note });
     if (card.notes.length > MAX_NOTES) card.notes.shift();
   }
+  persist(card);
   evict();
   return card;
+}
+
+/**
+ * Vigia de frentes órfãs: card parado em "fila"/"execucao" além do limite (worker
+ * morto, processo reiniciado) vira "concluido/falha" com nota explícita — nada fica
+ * girando para sempre no board. Retorna os cards varridos (para log/teste).
+ */
+export function sweepStaleCards(maxAgeMs: number, now = Date.now()): BoardCard[] {
+  const stale = [...cards.values()].filter(
+    (c) => (c.column === "execucao" || c.column === "fila") && now - Date.parse(c.updatedAt) > maxAgeMs,
+  );
+  for (const c of stale) {
+    track(c.key, { column: "concluido", outcome: "falha" }, "sem progresso — marcada como falha pelo vigia (worker possivelmente reiniciado)");
+  }
+  return stale;
 }
 
 /** Todos os cards, mais recentes primeiro (o front agrupa por coluna). */
@@ -97,17 +126,21 @@ export function resetBoard(): void {
 
 function evict(): void {
   if (cards.size <= MAX_CARDS) return;
+  const drop = (key: string) => {
+    cards.delete(key);
+    void import("./store.js").then(({ boardStore }) => boardStore.remove(key));
+  };
   const done = [...cards.values()]
     .filter((c) => c.column === "concluido")
     .sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1));
   for (const c of done) {
     if (cards.size <= MAX_CARDS) return;
-    cards.delete(c.key);
+    drop(c.key);
   }
   // Ainda acima do teto (tudo ativo)? Descarta os mais antigos.
   const oldest = [...cards.values()].sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1));
   for (const c of oldest) {
     if (cards.size <= MAX_CARDS) return;
-    cards.delete(c.key);
+    drop(c.key);
   }
 }

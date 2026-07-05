@@ -91,6 +91,12 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Resiliência:** com `REDIS_URL`, o **board é persistido e restaurado no boot** e os jobs
+  (BullMQ) sobrevivem a restart com **retry/backoff**; sem Redis, a fila em processo retenta
+  erros transientes (`JOB_RETRIES`). Um **vigia** marca como falha frentes paradas além de
+  `STALE_CARD_MINUTES` — nada gira órfão no board.
+- **Editor no painel (view Playbooks):** skills e manual da marca editáveis pela web — quem não
+  é técnico cura o comportamento do time; escrita protegida pelo token do painel e auditada.
 - **Preflight de dependências (todo trabalho, não só marca):** antes de o agente começar, o worker
   verifica deterministicamente as dependências DAQUELE tipo de trabalho — conhecimento (brand,
   skills), integrações (Notion, WordPress, webhook, GA4, GitHub, sandbox) — e entrega o **mapa no

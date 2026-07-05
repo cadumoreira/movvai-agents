@@ -12,7 +12,7 @@ import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
 import { startDashboard, type InboundHandler } from "./web/server.js";
 import { queue } from "./queue/index.js";
-import { track } from "./board/board.js";
+import { track, initBoard, sweepStaleCards } from "./board/board.js";
 import { config } from "./config.js";
 
 /**
@@ -25,6 +25,16 @@ import { config } from "./config.js";
  */
 async function main() {
   initTelemetry(); // antes de qualquer chamada de modelo
+  await initBoard(); // restaura o board da persistência (Redis), se houver
+
+  // Vigia: frente parada em fila/execução além do limite vira falha explícita.
+  if (config.jobs.staleCardMinutes > 0) {
+    setInterval(() => {
+      const swept = sweepStaleCards(config.jobs.staleCardMinutes * 60_000);
+      if (swept.length) console.warn(`[vigia] ${swept.length} frente(s) órfã(s) marcadas como falha.`);
+    }, 60_000);
+  }
+
   const memory = createThreadMemory();
 
   // O PM é roteado por custo: tarefas simples vão para um modelo barato.

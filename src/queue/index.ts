@@ -31,6 +31,13 @@ export interface JobQueue {
 
 export class InProcessQueue implements JobQueue {
   private emitter = new EventEmitter();
+  private retries: number;
+  private retryDelayMs: number;
+
+  constructor(opts?: { retries?: number; retryDelayMs?: number }) {
+    this.retries = opts?.retries ?? config.jobs.retries;
+    this.retryDelayMs = opts?.retryDelayMs ?? config.jobs.retryDelayMs;
+  }
 
   async enqueue<K extends keyof JobMap>(name: K, data: JobMap[K]): Promise<void> {
     setImmediate(() => this.emitter.emit(name, data));
@@ -38,8 +45,23 @@ export class InProcessQueue implements JobQueue {
 
   process<K extends keyof JobMap>(name: K, handler: (data: JobMap[K]) => Promise<void>): void {
     this.emitter.on(name, (data: JobMap[K]) => {
-      void handler(data).catch((err) => console.error(`job "${String(name)}" falhou:`, err));
+      void this.runWithRetry(String(name), handler, data);
     });
+  }
+
+  /** Handler que lança (erro transiente de rede/modelo) é retentado com espera. */
+  private async runWithRetry<T>(name: string, handler: (data: T) => Promise<void>, data: T): Promise<void> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await handler(data);
+        return;
+      } catch (err) {
+        const last = attempt >= this.retries;
+        console.error(`job "${name}" falhou (tentativa ${attempt + 1}/${this.retries + 1})${last ? " — desistindo" : ""}:`, err);
+        if (last) return;
+        await new Promise((r) => setTimeout(r, this.retryDelayMs));
+      }
+    }
   }
 }
 
@@ -61,7 +83,13 @@ class BullMQQueue implements JobQueue {
   }
 
   async enqueue<K extends keyof JobMap>(name: K, data: JobMap[K]): Promise<void> {
-    await this.queueFor(name).add(name, data);
+    // Durabilidade real: job sobrevive a restart e é retentado com backoff exponencial.
+    await this.queueFor(name).add(name, data, {
+      attempts: 1 + config.jobs.retries,
+      backoff: { type: "exponential", delay: config.jobs.retryDelayMs },
+      removeOnComplete: 1000,
+      removeOnFail: 5000,
+    });
   }
 
   process<K extends keyof JobMap>(name: K, handler: (data: JobMap[K]) => Promise<void>): void {
