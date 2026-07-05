@@ -31,6 +31,11 @@ const NAME_MAP: Record<string, RoutedTarget> = {
   otto: { kind: "ops", discipline: "financeiro" },
 };
 
+/** "status" (sozinho ou no começo) = pedir o digest instantâneo do time. */
+export function isStatusCommand(text: string): boolean {
+  return /^@?status\b/i.test(text.trim());
+}
+
 /** Alvo quando a mensagem começa com o nome de um agente; null = sem endereçamento. */
 export function resolveAgentMention(text: string): RoutedTarget | null {
   const first = text

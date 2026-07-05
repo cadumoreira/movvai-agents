@@ -8,8 +8,9 @@ import { runAgent } from "../agent-runtime/run.js";
 import { registerApprovalHandlers } from "../approvals/gate.js";
 import { answerQuestion } from "../approvals/questions.js";
 import { track, listBoard } from "../board/board.js";
-import { resolveAgentMention } from "./routing.js";
+import { resolveAgentMention, isStatusCommand } from "./routing.js";
 import { specialistName } from "../agents/marketing-specialist.js";
+import { collectDigest, formatDigest } from "../digest/digest.js";
 import { opsSpecialistName } from "../agents/ops-specialist.js";
 import { queue } from "../queue/index.js";
 
@@ -60,7 +61,13 @@ export function createSlackApp(
       return;
     }
 
-    // 2) Mensagem endereçada a alguém dos squads ("Sofia, troca o tom..." / "Lia, responde...")
+    // 2) "status" → digest determinístico na hora (zero tokens).
+    if (isStatusCommand(userText)) {
+      await client.chat.postMessage({ channel, thread_ts: threadTs, text: formatDigest(collectDigest()) });
+      return;
+    }
+
+    // 3) Mensagem endereçada a alguém dos squads ("Sofia, troca o tom..." / "Lia, responde...")
     //    vai DIRETO para a pessoa certa, com o contexto da frente existente na thread.
     const routed = resolveAgentMention(userText);
     if (routed && routed.kind !== "pm") {
@@ -103,7 +110,7 @@ export function createSlackApp(
       return;
     }
 
-    // 3) Fluxo normal: Ana (PM), com a memória da thread.
+    // 4) Fluxo normal: Ana (PM), com a memória da thread.
     const cardKey = `${threadKey}:pm`;
     try {
       const agent = agentFactory({ channel, threadTs, threadKey, slack: client }, userText);

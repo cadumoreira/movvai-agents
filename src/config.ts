@@ -47,6 +47,8 @@ export const config = {
     retryDelayMs: Number(optional("JOB_RETRY_DELAY_MS", "30000")),
     // Card parado em fila/execução além disso vira falha (0 = vigia desligado).
     staleCardMinutes: Number(optional("STALE_CARD_MINUTES", "30")),
+    // Aprovação/pergunta esperando você além disso ganha lembrete na thread (0 = off).
+    approvalReminderMinutes: Number(optional("APPROVAL_REMINDER_MINUTES", "30")),
   },
   dashboard: {
     port: Number(optional("DASHBOARD_PORT", "3000")),

@@ -115,6 +115,16 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   em andamento, esperando você, custo, publicações) — 100% determinístico, zero tokens. **Radar
   de concorrência**: Nina lê páginas públicas com `fetch_url` (guarda anti-SSRF) e reporta só o
   que mudou. **Relatório mensal executivo**: Malu compila com `team_stats` (números reais).
+- **Lembrete de pendências humanas:** aprovação ou pergunta esperando você além de
+  `APPROVAL_REMINDER_MINUTES` (default 30; 0 desliga) ganha lembrete na própria thread — e
+  re-lembrete no mesmo intervalo até ser decidida. Determinístico, zero tokens.
+- **Comando `status` no Slack:** mencione o bot com "status" e receba o digest do time na hora
+  (mesmo formato do bom-dia) — sem passar por agente, zero tokens.
+- **Nova demanda pelo painel:** campo no topo do board dispara demanda direto para o squad
+  escolhido (produto, marketing, SDR, suporte ou financeiro); a âncora da thread nasce no
+  `SLACK_DEFAULT_CHANNEL` e o card aparece na fila. Protegido pelo token do painel.
+- **Tema claro/escuro no painel** (persistido), toolbar fixa, colunas com scroll próprio e
+  tiles de resumo clicáveis que filtram o board pela coluna.
 - **Resiliência:** com `REDIS_URL`, o **board é persistido e restaurado no boot** e os jobs
   (BullMQ) sobrevivem a restart com **retry/backoff**; sem Redis, a fila em processo retenta
   erros transientes (`JOB_RETRIES`). Um **vigia** marca como falha frentes paradas além de

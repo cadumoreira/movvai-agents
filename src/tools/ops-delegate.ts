@@ -3,13 +3,7 @@ import { z } from "zod";
 import type { AgentContext } from "../agents/context.js";
 import { queue } from "../queue/index.js";
 import { track } from "../board/board.js";
-import type { OpsDiscipline } from "../queue/types.js";
-
-const OPS_LABEL: Record<OpsDiscipline, string> = {
-  sdr: "Igor (SDR)",
-  suporte: "Lia (Suporte)",
-  financeiro: "Otto (Financeiro)",
-};
+import { opsSpecialistName } from "../agents/ops-specialist.js";
 
 /** Delegação PM → squad de Operações (vendas, atendimento, financeiro). */
 export function delegateToOps(ctx: AgentContext): ToolSet {
@@ -29,7 +23,7 @@ export function delegateToOps(ctx: AgentContext): ToolSet {
       execute: async ({ discipline, title, instructions }) => {
         track(
           `${ctx.threadKey}:ops-${discipline}`,
-          { title, agent: OPS_LABEL[discipline], squad: "operacoes", column: "fila" },
+          { title, agent: opsSpecialistName(discipline), squad: "operacoes", column: "fila" },
           "demanda delegada às operações",
         );
         await queue.enqueue("ops-task", {
@@ -40,7 +34,7 @@ export function delegateToOps(ctx: AgentContext): ToolSet {
           title,
           instructions,
         });
-        return { ok: true, delegated_to: OPS_LABEL[discipline] };
+        return { ok: true, delegated_to: opsSpecialistName(discipline) };
       },
     }),
   };

@@ -13,6 +13,10 @@ import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask 
 import { listDocs, readDoc, writeDoc, type DocRef } from "./docs-api.js";
 
 export type InboundHandler = (source: "github" | "linear", task: InboundTask) => Promise<void>;
+export type DemandHandler = (
+  squad: "produto" | "marketing" | "sdr" | "suporte" | "financeiro",
+  text: string,
+) => Promise<{ ok: boolean; error?: string }>;
 
 /**
  * Painel web leve (HTTP nativo, sem dependências). Mostra atividade recente do time e
@@ -40,7 +44,7 @@ function safeParse(raw: string): Record<string, unknown> {
   }
 }
 
-export function startDashboard(port: number, onInbound?: InboundHandler): void {
+export function startDashboard(port: number, onInbound?: InboundHandler, onDemand?: DemandHandler): http.Server {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://localhost:${port}`);
     const path = url.pathname;
@@ -137,6 +141,21 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
         return writeDoc(ref, content) ? json(res, 200, { ok: true }) : json(res, 400, { error: "id inválido" });
       }
     }
+    // Nova demanda pelo painel (âncora no canal padrão + squad certo).
+    if (req.method === "POST" && path === "/api/demand") {
+      if (!dashboardAuthorized(req.headers.authorization)) {
+        return json(res, 401, { error: "não autorizado" });
+      }
+      if (!onDemand) return json(res, 503, { error: "indisponível neste modo (rode npm run dev)" });
+      const body = safeParse(await readBody(req));
+      const squad = String(body.squad ?? "");
+      const text = String(body.text ?? "").trim();
+      if (!text || !["produto", "marketing", "sdr", "suporte", "financeiro"].includes(squad)) {
+        return json(res, 400, { error: "informe squad válido e texto" });
+      }
+      const result = await onDemand(squad as Parameters<DemandHandler>[0], text);
+      return json(res, result.ok ? 200 : 400, result);
+    }
     if (req.method === "GET" && path === "/api/questions") {
       return json(res, 200, listQuestions());
     }
@@ -176,6 +195,7 @@ export function startDashboard(port: number, onInbound?: InboundHandler): void {
       JSON.stringify({ level: "info", kind: "dashboard", url: `http://localhost:${port}`, at: new Date().toISOString() }),
     );
   });
+  return server;
 }
 
 const PAGE = `<!doctype html>
@@ -215,6 +235,15 @@ const PAGE = `<!doctype html>
     --ok: #27AE60;
     --err: #E0362C;
     --warn: #D97706;
+  }
+  body.dark {
+    --bg: #131417;
+    --surface: #1C1E23;
+    --border: #2A2D34;
+    --border-strong: #3A3E47;
+    --ink: #E8EAED;
+    --ink-2: #A8AFBA;
+    --ink-3: #6E7683;
   }
   * { box-sizing: border-box; }
   body {
@@ -257,7 +286,7 @@ const PAGE = `<!doctype html>
   a { color: var(--brand); text-decoration: none; }
   a:hover { text-decoration: underline; }
   /* ── Board ──────────────────────────────────────────────────────────── */
-  .toolbar { display: flex; gap: 8px; align-items: center; margin: 16px 0 4px; flex-wrap: wrap; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 16px 0 4px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; }
   .toolbar input[type=search] { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); min-width: 250px; background: var(--surface); color: var(--ink); outline: none; box-shadow: 0 1px 2px rgba(41, 45, 52, 0.03); }
   .toolbar input[type=search]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(123, 104, 238, 0.15); }
   .chip { font-size: 12.5px; font-weight: 600; padding: 6px 16px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); }
@@ -266,6 +295,16 @@ const PAGE = `<!doctype html>
   .kanban { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 14px; align-items: start; }
   @media (max-width: 1100px) { .kanban { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .kcol h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .kcards { max-height: calc(100vh - 320px); overflow-y: auto; padding: 2px; }
+  .stat { cursor: pointer; transition: border-color .15s; }
+  .stat:hover { border-color: var(--brand); }
+  .stat.active { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(123, 104, 238, 0.15); }
+  .demand { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .demand input { flex: 1; min-width: 260px; font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); outline: none; }
+  .demand input:focus { border-color: var(--brand); }
+  .demand select { font: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); }
+  .demand button.go { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .themebtn { margin-top: 8px; width: 100%; text-align: left; font-size: 12.5px; color: var(--ink-3); background: transparent; border: 1px solid var(--border); }
   .colpill { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; padding: 3px 10px; border-radius: 5px; }
   .colpill.fila { background: var(--col-fila); }
   .colpill.execucao { background: var(--col-execucao); }
@@ -354,11 +393,23 @@ const PAGE = `<!doctype html>
       <a data-view="playbooks"><span class="lchip" style="background:#0EA5E9">✎</span> Playbooks</a>
     </nav>
     <div class="side-foot"><span class="livedot"></span> ao vivo · atualiza a cada 2s</div>
+    <button class="themebtn" id="themebtn">🌙 Modo escuro</button>
   </aside>
   <main>
     <header class="top"><span class="crumb">Espaço · <b>Marketing &amp; Produto</b> · <span id="viewtitle">Board</span></span><div class="facepile" id="team" title="Agentes ativos"></div></header>
 
     <section id="view-board" class="view">
+      <div class="demand">
+        <input id="dtext" placeholder="Nova demanda… (ex.: campanha de lançamento do plano Pro)" />
+        <select id="dsquad">
+          <option value="marketing">Marketing (Malu)</option>
+          <option value="produto">Produto (Rui)</option>
+          <option value="sdr">Vendas (Igor)</option>
+          <option value="suporte">Suporte (Lia)</option>
+          <option value="financeiro">Financeiro (Otto)</option>
+        </select>
+        <button class="go" id="dgo">Disparar</button>
+      </div>
       <div id="stats" class="stats"></div>
       <div class="toolbar">
         <input type="search" id="q" placeholder="Buscar por título ou agente…" />
@@ -412,7 +463,7 @@ const PAGE = `<!doctype html>
 <div id="overlay"><div id="modal"></div></div>
 <script>
 let state = { board: { columns: [], cards: [] }, approvals: [], questions: [], billing: [], activity: [], audit: [] };
-let filterSquad = 'todos', searchQ = '', openCardKey = null;
+let filterSquad = 'todos', searchQ = '', openCardKey = null, onlyColumn = null;
 
 async function refresh() {
   const [aps, qs, act, aud, bil, board] = await Promise.all([
@@ -513,12 +564,15 @@ function questionWidget(q) {
 function renderBoard() {
   const el = document.getElementById('board');
   el.innerHTML = '';
+  el.style.gridTemplateColumns = onlyColumn ? 'minmax(0, 1fr)' : '';
   for (const col of state.board.columns) {
     const cards = state.board.cards.filter(c => c.column === col.id && matchesFilter(c));
     const kcol = document.createElement('div'); kcol.className = 'kcol';
+    if (onlyColumn && col.id !== onlyColumn) continue;
     kcol.innerHTML = '<h3><span class="colpill ' + col.id + '">' + escapeHtml(col.label) + '</span>' +
       '<span class="count">' + cards.length + '</span></h3>';
-    if (!cards.length) kcol.innerHTML += '<div class="kempty">Sem frentes aqui</div>';
+    const wrap = document.createElement('div'); wrap.className = 'kcards'; kcol.append(wrap);
+    if (!cards.length) wrap.innerHTML = '<div class="kempty">Sem frentes aqui</div>';
     for (const c of cards) {
       const k = document.createElement('div'); k.className = 'kcard ' + c.squad;
       const head = document.createElement('div'); head.className = 'khead';
@@ -543,7 +597,7 @@ function renderBoard() {
         for (const q of cardQuestions(c)) k.append(questionWidget(q));
       }
       k.onclick = () => { openCardKey = c.key; renderModal(); };
-      kcol.append(k);
+      wrap.append(k);
     }
     el.append(kcol);
   }
@@ -682,9 +736,13 @@ function renderStats() {
     { n: doneToday, l: 'Concluídas hoje', c: 'var(--col-concluido)' },
     { n: count('fila'), l: 'Na fila', c: 'var(--col-fila)' },
   ];
-  document.getElementById('stats').innerHTML = tiles.map(t =>
-    '<div class="stat"><div class="num">' + t.n + '</div>' +
+  const cols = ['execucao', 'aprovacao', 'concluido', 'fila'];
+  document.getElementById('stats').innerHTML = tiles.map((t, i) =>
+    '<div class="stat' + (onlyColumn === cols[i] ? ' active' : '') + '" data-col="' + cols[i] + '"><div class="num">' + t.n + '</div>' +
     '<div class="lbl"><span class="dot" style="background:' + t.c + '"></span>' + t.l + '</div></div>').join('');
+  for (const el of document.querySelectorAll('.stat')) {
+    el.onclick = () => { onlyColumn = onlyColumn === el.dataset.col ? null : el.dataset.col; renderBoard(); renderStats(); };
+  }
 }
 function renderTeam() {
   const seen = [];
@@ -727,6 +785,33 @@ document.getElementById('docsave').onclick = async () => {
   btn.textContent = res.ok ? 'Salvo ✓' : 'Erro ao salvar';
   setTimeout(() => { btn.textContent = 'Salvar'; }, 1600);
 };
+
+// ── Tema claro/escuro (persistido) ───────────────────────────────────────
+function applyTheme(dark) {
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('themebtn').textContent = dark ? '☀️ Modo claro' : '🌙 Modo escuro';
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+}
+document.getElementById('themebtn').onclick = () => applyTheme(!document.body.classList.contains('dark'));
+applyTheme(localStorage.getItem('theme') === 'dark');
+
+// ── Nova demanda pelo painel ─────────────────────────────────────────────
+document.getElementById('dgo').onclick = async () => {
+  const text = document.getElementById('dtext').value.trim();
+  if (!text) return;
+  const res = await fetch('/api/demand', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + dashToken() },
+    body: JSON.stringify({ squad: document.getElementById('dsquad').value, text }),
+  });
+  const data = await res.json().catch(() => ({}));
+  const btn = document.getElementById('dgo');
+  if (res.ok) { document.getElementById('dtext').value = ''; btn.textContent = 'Disparado ✓'; }
+  else { btn.textContent = data.error ? data.error.slice(0, 40) : 'Erro'; }
+  setTimeout(() => { btn.textContent = 'Disparar'; }, 2200);
+  refresh();
+};
+document.getElementById('dtext').onkeydown = e => { if (e.key === 'Enter') document.getElementById('dgo').click(); };
 
 function render() { renderBoard(); renderLists(); renderStats(); renderTeam(); renderModal(); if (!docsLoaded) loadDocs(); }
 refresh(); setInterval(refresh, 2000);

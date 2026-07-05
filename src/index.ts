@@ -9,11 +9,14 @@ import { startMarketingLeadWorker } from "./workers/marketing-lead-worker.js";
 import { startMarketingWorker } from "./workers/marketing-worker.js";
 import { startOpsWorker } from "./workers/ops-worker.js";
 import { startScheduler } from "./schedule/scheduler.js";
+import { startReminders } from "./approvals/reminders.js";
 import { routeModel } from "./models/router.js";
 import { initTelemetry } from "./observability/otel.js";
 import { startDashboard, type InboundHandler } from "./web/server.js";
 import { queue } from "./queue/index.js";
 import { track, initBoard, sweepStaleCards } from "./board/board.js";
+import { opsSpecialistName } from "./agents/ops-specialist.js";
+import type { OpsDiscipline } from "./queue/types.js";
 import { config } from "./config.js";
 
 /**
@@ -60,6 +63,9 @@ async function main() {
   // Rotinas agendadas (cron): o time trabalha proativamente (schedules.json).
   startScheduler(app.client);
 
+  // Lembretes de pendência humana (aprovações/perguntas paradas ganham cutucada).
+  startReminders(app.client);
+
   // Webhooks de entrada (GitHub/Linear) → posta no canal padrão e aciona o Tech Lead.
   const handleInbound: InboundHandler = async (source, task) => {
     const channel = config.slack.defaultChannel;
@@ -86,7 +92,31 @@ async function main() {
     });
   };
 
-  startDashboard(config.dashboard.port, handleInbound);
+  // Nova demanda PELO PAINEL: âncora no canal padrão + squad certo (sem menção no Slack).
+  const handleDemand = async (squad: "produto" | "marketing" | OpsDiscipline, text: string) => {
+    const channel = config.slack.defaultChannel;
+    if (!channel) return { ok: false as const, error: "Defina SLACK_DEFAULT_CHANNEL para disparar pelo painel." };
+    const posted = await app.client.chat.postMessage({
+      channel,
+      text: `:desktop_computer: Demanda criada pelo painel: *${text.slice(0, 120)}*`,
+    });
+    const threadTs = String(posted.ts);
+    const base = { channel, threadTs, threadKey: `${channel}:${threadTs}` };
+    const title = text.slice(0, 80);
+    if (squad === "produto") {
+      track(`${base.threadKey}:techlead`, { title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" }, "demanda criada pelo painel");
+      await queue.enqueue("techlead-task", { ...base, ticket: { title }, instructions: text });
+    } else if (squad === "marketing") {
+      track(`${base.threadKey}:marketing-lead`, { title, agent: "Malu (Head de Marketing)", squad: "marketing", column: "fila" }, "demanda criada pelo painel");
+      await queue.enqueue("marketing-task", { ...base, brief: { title }, instructions: text });
+    } else {
+      track(`${base.threadKey}:ops-${squad}`, { title, agent: opsSpecialistName(squad), squad: "operacoes", column: "fila" }, "demanda criada pelo painel");
+      await queue.enqueue("ops-task", { ...base, discipline: squad, title, instructions: text });
+    }
+    return { ok: true as const };
+  };
+
+  startDashboard(config.dashboard.port, handleInbound, handleDemand);
 
   await app.start();
   console.log(
