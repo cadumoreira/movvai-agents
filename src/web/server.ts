@@ -327,16 +327,24 @@ const PAGE = `<!doctype html>
   a { color: var(--brand); text-decoration: none; }
   /* Chat da thread (conversa com o time — funciona sem Slack) */
   .chat { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
-  .chat h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 700; }
-  .chatlog { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
-  .msg { max-width: 82%; padding: 8px 11px; border-radius: 12px; font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; }
-  .msg .who { display: block; font-size: 10px; font-weight: 700; opacity: .7; margin-bottom: 2px; }
-  .msg.agent { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
-  .msg.sys { align-self: center; background: transparent; color: var(--ink-3); font-size: 12px; max-width: 100%; text-align: center; padding: 2px; }
-  .msg.human { align-self: flex-end; background: var(--brand); color: #fff; }
-  .chatbox { display: flex; gap: 8px; margin-top: 10px; }
-  .chatbox input { flex: 1; padding: 8px 11px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; }
-  .chatbox input:focus { outline: none; border-color: var(--brand); }
+  .chat h4 { margin: 0 0 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: 700; }
+  .chatlog { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px; }
+  .msgrow { display: flex; gap: 8px; align-items: flex-end; max-width: 100%; }
+  .msgrow.agent { justify-content: flex-start; }
+  .msgrow.human { justify-content: flex-end; }
+  .msgrow .avatar { flex: none; box-shadow: 0 1px 2px rgba(41,45,52,.12); }
+  .msg { max-width: 78%; padding: 9px 13px; border-radius: 14px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; box-shadow: 0 1px 2px rgba(41,45,52,.05); }
+  .msg .who { display: block; font-size: 11px; font-weight: 700; color: var(--brand); margin-bottom: 3px; }
+  .msg strong { font-weight: 700; }
+  .msg em { font-style: italic; opacity: .92; }
+  .msg.agent { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 5px; }
+  .msg.human { background: var(--brand); color: #fff; border-bottom-right-radius: 5px; }
+  .msg.human .who { color: rgba(255,255,255,.85); }
+  .msg.human a { color: #fff; text-decoration: underline; }
+  .msg.sys { align-self: center; background: var(--bg); border: 1px solid var(--border); color: var(--ink-3); font-size: 11.5px; max-width: 92%; text-align: center; padding: 5px 12px; border-radius: 999px; box-shadow: none; }
+  .chatbox { display: flex; gap: 8px; margin-top: 12px; }
+  .chatbox input { flex: 1; padding: 9px 13px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; }
+  .chatbox input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(123,104,238,.15); }
   a:hover { text-decoration: underline; }
   /* ── Board ──────────────────────────────────────────────────────────── */
   .toolbar { display: flex; gap: 8px; align-items: center; margin: 16px 0 4px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; }
@@ -548,6 +556,22 @@ function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;',
 function linkify(s) {
   return escapeHtml(s).replace(/https?:\\/\\/[^\\s<]+/g, u => '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>');
 }
+// Emoji shortcodes do Slack → emoji de verdade (as mensagens dos agentes usam esse formato).
+const EMOJI = { desktop_computer:'🖥️', dart:'🎯', question:'❓', art:'🎨', mega:'📣', email:'✉️', 'e-mail':'✉️', briefcase:'💼', wave:'👋', mag:'🔍', memo:'📝', hourglass:'⏳', hourglass_flowing_sand:'⏳', white_check_mark:'✅', heavy_check_mark:'✔️', warning:'⚠️', inbox_tray:'📥', alarm_clock:'⏰', triangular_ruler:'📐', package:'📦', bulb:'💡', rocket:'🚀', pushpin:'📌', speech_balloon:'💬', calendar:'📅', chart_with_upwards_trend:'📈', x:'❌', pencil2:'✏️', tada:'🎉', sparkles:'✨', eyes:'👀', robot_face:'🤖', bell:'🔔' };
+// Renderiza mrkdwn do Slack (emoji + *negrito* + _itálico_ + ~riscado~ + links) com escape seguro.
+function mrkdwn(s) {
+  let h = escapeHtml(s);
+  h = h.replace(/https?:\\/\\/[^\\s<]+/g, u => '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>');
+  h = h.replace(/:([a-z0-9_+-]+):/g, (m, n) => EMOJI[n] || m);
+  // Títulos Markdown (# / ## / ###) viram linha em negrito (exige espaço → não pega #hex/#hashtag).
+  h = h.replace(/^#{1,3}\\s+(.+)$/gm, '<strong>$1</strong>');
+  // Negrito Markdown (**x**) antes do negrito Slack (*x*), senão os asteriscos sobram.
+  h = h.replace(/\\*\\*([^*<\\n]+?)\\*\\*/g, '<strong>$1</strong>');
+  h = h.replace(/(^|[\\s(>])\\*([^*<\\n]+?)\\*(?=[\\s.,;:!?)<]|$)/g, '$1<strong>$2</strong>');
+  h = h.replace(/(^|[\\s(>])_([^_<\\n]+?)_(?=[\\s.,;:!?)<]|$)/g, '$1<em>$2</em>');
+  h = h.replace(/(^|[\\s(>])~([^~<\\n]+?)~(?=[\\s.,;:!?)<]|$)/g, '$1<del>$2</del>');
+  return h;
+}
 function threadKeyOf(cardKey) { const i = cardKey.lastIndexOf(':'); return i === -1 ? cardKey : cardKey.slice(0, i); }
 function cardApprovals(c) {
   const tk = threadKeyOf(c.key);
@@ -602,7 +626,7 @@ function approvalWidget(a, compact) {
   const box = document.createElement('div'); box.className = 'kactions';
   if (!compact) {
     const txt = document.createElement('div'); txt.className = 'muted'; txt.style.width = '100%';
-    txt.innerHTML = linkify(a.text); box.append(txt);
+    txt.innerHTML = mrkdwn(a.text); box.append(txt);
   }
   const yes = document.createElement('button'); yes.className = 'approve'; yes.textContent = 'Aprovar';
   const no = document.createElement('button'); no.className = 'reject'; no.textContent = 'Recusar';
@@ -761,7 +785,7 @@ function renderModal() {
   const tl = document.createElement('ul'); tl.className = 'timeline';
   for (const n of c.notes) {
     const li = document.createElement('li');
-    li.innerHTML = linkify(n.text) + '<span class="muted">' + new Date(n.time).toLocaleTimeString() + '</span>';
+    li.innerHTML = mrkdwn(n.text) + '<span class="muted">' + new Date(n.time).toLocaleTimeString() + '</span>';
     tl.append(li);
   }
   if (!c.notes.length) tl.innerHTML = '<li class="empty">Sem registros.</li>';
@@ -775,12 +799,16 @@ function renderModal() {
   const log = document.createElement('div'); log.className = 'chatlog';
   const msgs = (state.conversation && state.conversation.threadKey === tk) ? state.conversation.messages : [];
   for (const m of msgs) {
-    const el = document.createElement('div');
     const kind = m.human ? 'human' : (m.from === 'sistema' ? 'sys' : 'agent');
-    el.className = 'msg ' + kind;
-    if (kind !== 'sys') el.innerHTML = '<span class="who">' + escapeHtml(m.human ? 'Você' : m.from) + '</span>' + linkify(m.text);
-    else el.innerHTML = linkify(m.text);
-    log.append(el);
+    if (kind === 'sys') {
+      const el = document.createElement('div'); el.className = 'msg sys'; el.innerHTML = mrkdwn(m.text); log.append(el); continue;
+    }
+    const row = document.createElement('div'); row.className = 'msgrow ' + kind;
+    if (kind === 'agent') row.append(avatarEl(m.from, 26));
+    const el = document.createElement('div'); el.className = 'msg ' + kind;
+    el.innerHTML = '<span class="who">' + escapeHtml(m.human ? 'Você' : m.from) + '</span>' + mrkdwn(m.text);
+    row.append(el);
+    log.append(row);
   }
   if (!msgs.length) { const e = document.createElement('div'); e.className = 'msg sys'; e.textContent = 'Sem mensagens ainda — fale com o time aqui.'; log.append(e); }
   chat.append(log);
@@ -857,7 +885,7 @@ function renderLists() {
   ap.innerHTML = state.approvals.length ? '' : '<div class="empty">Nada pendente.</div>';
   for (const a of state.approvals) {
     const el = document.createElement('div'); el.className = 'card';
-    el.innerHTML = '<div>' + linkify(a.text) + '</div><div class="muted">' + new Date(a.createdAt).toLocaleString() + '</div>';
+    el.innerHTML = '<div>' + mrkdwn(a.text) + '</div><div class="muted">' + new Date(a.createdAt).toLocaleString() + '</div>';
     el.append(approvalWidget(a, true));
     ap.append(el);
   }
