@@ -23,6 +23,8 @@ export const config = {
     qa: optional("QA_MODEL", "anthropic:claude-sonnet-4-6"),
     // Squad de marketing (Head + especialistas). Roteado por custo como os demais.
     marketing: optional("MARKETING_MODEL", "anthropic:claude-sonnet-4-6"),
+    // Squad de operações (Igor/Lia/Otto): texto humano, não exige o topo.
+    ops: optional("OPS_MODEL", "anthropic:claude-sonnet-4-6"),
     // Modelo barato para tarefas simples (roteamento de custo por tier).
     cheap: optional("CHEAP_MODEL", "anthropic:claude-haiku-4-5"),
     gatewayBaseUrl: optional("MODEL_GATEWAY_BASE_URL"),

@@ -10,6 +10,7 @@ import { answerQuestion } from "../approvals/questions.js";
 import { track, listBoard } from "../board/board.js";
 import { resolveAgentMention } from "./routing.js";
 import { specialistName } from "../agents/marketing-specialist.js";
+import { opsSpecialistName } from "../agents/ops-specialist.js";
 import { queue } from "../queue/index.js";
 
 const { App } = bolt;
@@ -59,11 +60,12 @@ export function createSlackApp(
       return;
     }
 
-    // 2) Mensagem endereçada a alguém do squad de marketing ("Sofia, troca o tom...")
+    // 2) Mensagem endereçada a alguém dos squads ("Sofia, troca o tom..." / "Lia, responde...")
     //    vai DIRETO para a pessoa certa, com o contexto da frente existente na thread.
     const routed = resolveAgentMention(userText);
     if (routed && routed.kind !== "pm") {
-      const suffix = routed.kind === "lead" ? "marketing-lead" : `mkt-${routed.discipline}`;
+      const suffix =
+        routed.kind === "lead" ? "marketing-lead" : routed.kind === "ops" ? `ops-${routed.discipline}` : `mkt-${routed.discipline}`;
       const cardKey = `${threadKey}:${suffix}`;
       const existing = listBoard().find((c) => c.key === cardKey);
       const title = existing?.title ?? userText.slice(0, 80);
@@ -76,6 +78,13 @@ export function createSlackApp(
       if (routed.kind === "lead") {
         track(cardKey, { title, agent: "Malu (Head de Marketing)", squad: "marketing", column: "fila" }, "follow-up na thread");
         await queue.enqueue("marketing-task", { channel, threadTs, threadKey, brief: { title }, instructions });
+      } else if (routed.kind === "ops") {
+        track(
+          cardKey,
+          { title, agent: opsSpecialistName(routed.discipline), squad: "operacoes", column: "fila" },
+          "follow-up na thread",
+        );
+        await queue.enqueue("ops-task", { channel, threadTs, threadKey, discipline: routed.discipline, title, instructions });
       } else {
         track(
           cardKey,

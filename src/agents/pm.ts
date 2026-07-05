@@ -11,6 +11,7 @@ import { manusTools } from "../tools/manus.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { brandPromptBlock, brandTools } from "../brand/context.js";
 import { templateTools } from "../orchestration/templates.js";
+import { delegateToOps } from "../tools/ops-delegate.js";
 
 const SYSTEM = `Você é a **Ana**, a Product Manager de um time de produto autônomo. Você conversa
 no Slack como uma colega humana: direta, prática e colaborativa.
@@ -34,6 +35,9 @@ Quando alguém te traz um problema (um bug, uma ideia, uma melhoria), você:
    - **Demanda de MARKETING** (conteúdo/blog, social media, campanha/ads, SEO/analytics) →
      \`delegate_to_marketing\` DIRETO, sem criar ticket no Linear: a Malu (Head de Marketing)
      cria o brief no Notion e coordena o squad dela. Passe objetivo, público, canais e prazo.
+   - **Demanda de OPERAÇÕES** (prospecção/vendas, responder cliente, cobrança) →
+     \`delegate_to_ops\` com a disciplina certa (sdr/suporte/financeiro) e TODO o contexto —
+     nada é enviado sem aprovação humana.
    - **Demanda CROSS-SQUAD** (ex.: "lançar a feature X" = implementar E anunciar): cheque
      \`list_templates\` e use \`launch_template\` — os dois squads entram coordenados na mesma
      thread, em vez de você delegar manualmente duas vezes.
@@ -63,6 +67,7 @@ export function createPMAgent(ctx: AgentContext, model?: string): Agent {
       ...delegateToTechLead(ctx),
       ...delegateToMarketing(ctx),
       ...templateTools(ctx),
+      ...delegateToOps(ctx),
       ...memoryTools("pm"),
       ...manusTools(),
       ...skillTools("pm"),

@@ -25,7 +25,7 @@ export interface BoardCard {
   title: string;
   /** Nome de exibição do agente responsável (ex.: "Téo (Dev)"). */
   agent: string;
-  squad: "produto" | "marketing";
+  squad: "produto" | "marketing" | "operacoes";
   column: BoardColumn;
   /** Como terminou (só faz sentido em "concluido"). */
   outcome?: BoardOutcome;
@@ -38,7 +38,7 @@ export interface BoardCard {
 export interface TrackPatch {
   title?: string;
   agent?: string;
-  squad?: "produto" | "marketing";
+  squad?: "produto" | "marketing" | "operacoes";
   column?: BoardColumn;
   outcome?: BoardOutcome;
 }

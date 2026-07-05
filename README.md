@@ -91,6 +91,13 @@ Você (Slack) ─"bug no reset de senha"─▶ Ana (PM)
   p/ SIEM) registrando quem aprovou, PRs abertos e tickets criados — tagueado por `ORG_ID`.
 - **Billing por consumo:** mede custo/tokens de cada execução (agentes + conselho) **por organização**,
   persiste em JSONL (`BILLING_LOG_PATH`) e mostra os totais no painel (`/api/billing`). Base para cobrança.
+- **Squad de OPERAÇÕES (Igor, Lia, Otto):** o dia a dia comercial/administrativo — **Igor (SDR)**
+  pesquisa o prospect na web e escreve cold e-mail personalizado; **Lia (Suporte)** responde
+  clientes com fatos só do manual da marca; **Otto (Financeiro)** segue a régua de cobrança.
+  **Nenhum e-mail sai sem sua aprovação** (`request_send_approval`, conteúdo completo na prévia;
+  aprovado + Resend → envia; sem Resend → texto aprovado na thread). Recusa vira lição, como no
+  marketing. Delegue pela Ana (`delegate_to_ops`) ou direto: "*Lia, responde esse cliente...*".
+  Terceiro squad no board (teal, paleta tripla validada) com filtro próprio no painel.
 - **Orquestração CROSS-SQUAD:** templates de demanda (`templates/*.json`, lidos ao vivo) fazem
   UM pedido disparar os dois squads coordenados **na mesma thread** — "lançar a feature X" =
   Rui/Téo implementam E a Malu prepara o anúncio, lado a lado no board; o portão de aprovação é o

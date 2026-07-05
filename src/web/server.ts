@@ -207,6 +207,7 @@ const PAGE = `<!doctype html>
     --brand-dark: #6C5CE0;
     --produto: #2563EB;
     --marketing: #DB2777;
+    --operacoes: #0D9488;
     --col-fila: #98A1AC;
     --col-execucao: #4194F6;
     --col-aprovacao: #E8A33D;
@@ -284,6 +285,7 @@ const PAGE = `<!doctype html>
   .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 9px; border-radius: 99px; border: 1px solid transparent; color: var(--ink-2); background: #F0F1F3; }
   .tag.produto { color: var(--produto); background: rgba(37, 99, 235, 0.09); }
   .tag.marketing { color: var(--marketing); background: rgba(219, 39, 119, 0.09); }
+  .tag.operacoes { color: var(--operacoes); background: rgba(13, 148, 136, 0.09); }
   .tag.ok { color: var(--ok); background: rgba(39, 174, 96, 0.10); }
   .tag.falha { color: var(--err); background: rgba(224, 54, 44, 0.09); }
   .tag.recusado { color: var(--warn); background: rgba(217, 119, 6, 0.10); }
@@ -363,6 +365,7 @@ const PAGE = `<!doctype html>
         <button class="chip active" data-squad="todos">Todos</button>
         <button class="chip" data-squad="produto">Produto</button>
         <button class="chip" data-squad="marketing">Marketing</button>
+        <button class="chip" data-squad="operacoes">Operações</button>
       </div>
       <div id="board" class="kanban"></div>
     </section>
