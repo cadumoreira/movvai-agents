@@ -16,7 +16,7 @@ import { PanelMessenger } from "../src/messaging/messenger.js";
 import { dispatchMention } from "../src/connectors/dispatch.js";
 import { listPending, resolvePending } from "../src/approvals/registry.js";
 import { askQuestion, resetQuestions, listQuestions } from "../src/approvals/questions.js";
-import { listBoard, resetBoard } from "../src/board/board.js";
+import { listBoard, resetBoard, track } from "../src/board/board.js";
 import { queue } from "../src/queue/index.js";
 import { InMemoryThreadMemory } from "../src/memory/thread-memory.js";
 
@@ -120,15 +120,29 @@ test("dispatchMention: nome de agente roteia direto (enfileira o job certo)", as
   assert.ok(listBoard().some((c) => c.key === "painel:x:mkt-social"));
 });
 
-test("dispatchMention: conversa normal (PM) NÃO cria card no board", async () => {
+test("dispatchMention: DEMANDA NOVA pelo chat (thread sem cards) cria o card da Ana", async () => {
   const r = await dispatchMention(
-    "olá, tudo bem?",
-    { channel: "painel", threadTs: "z", threadKey: "painel:z" },
+    "preciso de uma landing page nova",
+    { channel: "painel", threadTs: "nova", threadKey: "painel:nova" },
     deps(),
   );
   assert.equal(r, "pm");
-  // Conversa não é uma frente: nenhum card :pm deve aparecer no board.
-  assert.ok(!listBoard().some((c) => c.key === "painel:z:pm"), "conversa não deve virar card");
+  assert.ok(listBoard().some((c) => c.key === "painel:nova:pm"), "demanda nova deve criar o card da Ana");
+});
+
+test("dispatchMention: follow-up em thread que já tem card NÃO cria card novo", async () => {
+  // Simula uma frente já existente na thread (ex.: Malu já foi acionada).
+  track("painel:existe:marketing-lead", { title: "Campanha", agent: "Malu (Head de Marketing)", squad: "marketing", column: "execucao" }, "em curso");
+  const antes = listBoard().filter((c) => c.key.startsWith("painel:existe:")).length;
+  const r = await dispatchMention(
+    "obrigado, ficou ótimo",
+    { channel: "painel", threadTs: "existe", threadKey: "painel:existe" },
+    deps(),
+  );
+  assert.equal(r, "pm");
+  const depois = listBoard().filter((c) => c.key.startsWith("painel:existe:")).length;
+  assert.equal(depois, antes, "follow-up não deve criar card (sem :pm)");
+  assert.ok(!listBoard().some((c) => c.key === "painel:existe:pm"), "não deve existir card :pm");
 });
 
 test("dispatchMention: responde uma pergunta pendente da thread", async () => {

@@ -84,17 +84,24 @@ export async function dispatchMention(userText: string, thread: ThreadRef, deps:
   }
 
   // 4) Fluxo normal: Ana (PM), com a memória da thread.
-  //    NÃO cria card aqui — conversar não é uma "frente" no board. O board só ganha
-  //    card quando há TRABALHO delegado: se a Ana delegar, as ferramentas de delegação
-  //    e os workers criam os cards das frentes (dev/techlead/marketing/ops). Assim,
-  //    bate-papo e respostas não viram cards que piscam direto para "Concluído".
+  //    Cria card SÓ para uma DEMANDA NOVA (thread ainda sem nenhuma frente). Follow-up e
+  //    bate-papo numa thread que já tem cards NÃO criam card — evita "toda conversa vira
+  //    card". Se a Ana delegar, as ferramentas/workers criam os cards das frentes; o card
+  //    da Ana registra a triagem.
+  const novaDemanda = !listBoard().some((c) => c.key.startsWith(`${threadKey}:`));
+  const cardKey = `${threadKey}:pm`;
   try {
     const agent = deps.agentFactory({ channel, threadTs, threadKey, messenger: deps.messenger }, text);
+    if (novaDemanda) {
+      track(cardKey, { title: text.slice(0, 80), agent: agent.name, squad: "produto", column: "execucao" }, "recebi a demanda — triando");
+    }
     await deps.memory.append(threadKey, { role: "user", content: text });
     const { text: reply, newMessages } = await runAgent(agent, await deps.memory.get(threadKey));
     await deps.memory.append(threadKey, ...(newMessages as ModelMessage[]));
+    if (novaDemanda) track(cardKey, { column: "concluido", outcome: "ok" }, "respondi/deleguei na thread");
     await deps.messenger.post({ channel, threadTs }, reply || "(sem resposta)", agent.name);
   } catch (err) {
+    if (novaDemanda) track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao processar a demanda");
     console.error("Erro ao processar mensagem:", err);
     await deps.messenger.post(
       { channel, threadTs },
