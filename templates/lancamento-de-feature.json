@@ -1,0 +1,14 @@
+{
+  "name": "Lançamento de feature",
+  "description": "Produto implementa a feature E marketing prepara o anúncio, coordenados na mesma thread. A publicação do anúncio só sai com aprovação humana — o portão sincroniza os dois lados.",
+  "steps": [
+    {
+      "target": "produto",
+      "instructions": "Implemente a feature a seguir. Ao abrir o PR, deixe claro na thread quando estiver mergeável — o marketing está preparando o anúncio em paralelo nesta mesma thread.\n\nDemanda: {demanda}"
+    },
+    {
+      "target": "marketing",
+      "instructions": "Prepare o PACOTE DE ANÚNCIO da feature a seguir (em paralelo, o time de produto está implementando nesta mesma thread). Monte o brief e delegue: artigo de anúncio (conteúdo) e posts de social. IMPORTANTE: os entregáveis devem ficar prontos mas NÃO publicados — a publicação só acontece após a aprovação humana, que será dada quando a feature estiver no ar.\n\nDemanda: {demanda}"
+    }
+  ]
+}

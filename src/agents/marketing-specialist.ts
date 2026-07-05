@@ -15,6 +15,8 @@ import { learningTools, recordLesson } from "../learn/lessons.js";
 import { webTools } from "../tools/web.js";
 import { teamStatsTools } from "../digest/digest.js";
 import { askQuestion } from "../approvals/questions.js";
+import { queue } from "../queue/index.js";
+import { track } from "../board/board.js";
 import { createMarketingReviewerAgent, parseReviewVerdict } from "./marketing-reviewer.js";
 import { runAgent } from "../agent-runtime/run.js";
 import type { Approver } from "../approvals/gate.js";
@@ -92,6 +94,9 @@ ${p.craft}
    Se recusado pelo humano, pergunte o que ajustar em vez de insistir.
 6. Precisa de criativo? Gere um rascunho com \`generate_image\` (se disponível) ANTES de pedir
    aprovação, e inclua a URL no material.
+7. **Artigo aprovado rende mais:** se for um artigo de blog e \`spawn_derivatives\` estiver
+   disponível, ofereça/derive thread de X, carrossel de IG e newsletter a partir dele — cada
+   derivado vira uma frente própria com sua aprovação.
 
 ## Como se comportar
 - Português brasileiro, tom de colega, objetivo. O entregável é o produto — capriche NELE.
@@ -198,6 +203,66 @@ function publishApprovalTool(
   };
 }
 
+/** Formatos de derivação: 1 artigo aprovado vira o pacote completo. */
+const DERIVATIVE_SPECS: Record<string, { discipline: MarketingDiscipline; brief: string }> = {
+  "thread-x": {
+    discipline: "social",
+    brief: "Transforme o artigo abaixo numa THREAD para o X (5-7 posts, 1/ 2/...): gancho forte no primeiro, uma ideia por post, CTA no último.",
+  },
+  "carrossel-ig": {
+    discipline: "social",
+    brief: "Transforme o artigo abaixo num CARROSSEL de Instagram (6-8 slides): título por slide + texto curto + descrição do visual de cada um.",
+  },
+  newsletter: {
+    discipline: "conteudo",
+    brief: "Transforme o artigo abaixo numa EDIÇÃO DE NEWSLETTER: assunto de e-mail (2 opções), abertura pessoal, resumo dos pontos e CTA.",
+  },
+};
+
+/** Derivação pós-aprovação (Caio): artigo vira thread/carrossel/newsletter em jobs paralelos. */
+function derivativeTools(ctx: MarketingSpecialistContext, gate: PublishGate): ToolSet {
+  return {
+    spawn_derivatives: tool({
+      description:
+        "REAPROVEITAMENTO: transforma o artigo APROVADO em derivados (thread para X, carrossel de IG, " +
+        "newsletter) — cada um vira uma frente própria na mesma thread, com sua própria aprovação. " +
+        "Só funciona após a aprovação humana do artigo.",
+      inputSchema: z.object({
+        article_title: z.string().describe("Título do artigo aprovado."),
+        article_markdown: z.string().describe("O artigo aprovado COMPLETO (é o insumo dos derivados)."),
+        formats: z
+          .array(z.enum(["thread-x", "carrossel-ig", "newsletter"]))
+          .min(1)
+          .describe("Quais derivados gerar."),
+      }),
+      execute: async ({ article_title, article_markdown, formats }) => {
+        if (!gate.approved) {
+          return { ok: false, error: "Derivação bloqueada: o artigo precisa ser aprovado primeiro." };
+        }
+        if (!ctx.thread) return { ok: false, error: "Sem thread do Slack — derivação indisponível neste contexto." };
+        const base = { channel: ctx.thread.channel, threadTs: ctx.thread.threadTs, threadKey: ctx.thread.threadKey };
+        for (const format of formats) {
+          const spec = DERIVATIVE_SPECS[format];
+          const title = `${format}: ${article_title.slice(0, 50)}`;
+          // Mesma chave que o worker usará — o card da frente acumula os derivados.
+          track(
+            `${ctx.thread.threadKey}:mkt-${spec.discipline}`,
+            { title, agent: specialistName(spec.discipline), squad: "marketing", column: "fila" },
+            `derivado do artigo aprovado (${format})`,
+          );
+          await queue.enqueue("marketing-work", {
+            ...base,
+            discipline: spec.discipline,
+            brief: { title },
+            instructions: `${spec.brief}\n\n--- ARTIGO APROVADO ---\n\n${article_markdown}`,
+          });
+        }
+        return { ok: true, spawned: formats, note: "Derivados em produção na mesma thread — cada um pedirá aprovação." };
+      },
+    }),
+  };
+}
+
 export function createMarketingSpecialistAgent(
   discipline: MarketingDiscipline,
   ctx: MarketingSpecialistContext,
@@ -219,6 +284,7 @@ export function createMarketingSpecialistAgent(
       ...(discipline !== "seo" ? imageTools(persona.id) : {}),
       ...(discipline === "seo" ? { ...analyticsTools(), ...teamStatsTools() } : {}),
       ...(discipline === "seo" || discipline === "conteudo" ? webTools() : {}),
+      ...(discipline === "conteudo" ? derivativeTools(ctx, gate) : {}),
       ...learningTools(persona.id),
       ...memoryTools(persona.id),
       ...skillTools(persona.id),

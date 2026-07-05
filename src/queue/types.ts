@@ -51,11 +51,21 @@ export interface MarketingWorkRequested {
   instructions: string;
 }
 
+/** Tarefa genérica da Delivery (ex.: compilar changelog) — sem PR específico. */
+export interface DeliveryTaskRequested {
+  channel: string;
+  threadTs: string;
+  threadKey: string;
+  title: string;
+  instructions: string;
+}
+
 export interface JobMap {
   "techlead-task": DevTaskRequested;
   "dev-task": DevTaskRequested;
   "qa-review": QaReviewRequested;
   "delivery-summary": DeliverySummaryRequested;
+  "delivery-task": DeliveryTaskRequested;
   "marketing-task": MarketingTaskRequested;
   "marketing-work": MarketingWorkRequested;
 }

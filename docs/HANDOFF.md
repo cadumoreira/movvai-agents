@@ -66,7 +66,7 @@
 - **E2E harness**: `try:marketing` roda demanda→Malu→Sofia→Vera→aprovação→entregável sem Slack
   (terminal + painel); provider `mock:` no gateway permite dry-run do encanamento sem chave/custo.
   AUTO_APPROVE=off deixa a decisão para o painel.
-- **Qualidade**: 95 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
+- **Qualidade**: 101 testes (Node test runner), CI no GitHub Actions, harness de eval (scaffold).
 - Docs: `PESQUISA-ARQUITETURA.md`, `ARQUITETURA.md`, `DECISAO-LINGUAGEM.md`.
 
 ## Como rodar (resumo)
@@ -79,7 +79,7 @@ npm run dev                                       # time completo no Slack + pai
 npm run demo:board                                # kanban demo (sem chaves) em :3000
 npm run try:marketing -- "peça pro Instagram"     # E2E marketing sem Slack (chave real)
 # sem chave nenhuma (dry-run do encanamento): MARKETING_MODEL=mock:marketing CHEAP_MODEL=mock:marketing npm run try:marketing
-npm test                                          # 95 testes
+npm test                                          # 101 testes
 ```
 
 ## Pendências (backlog priorizado)
@@ -88,6 +88,14 @@ npm test                                          # 95 testes
 3. **MCP no perímetro** / **A2A** (interoperabilidade).
 4. **GitLab**, **conselho modo debate**, mais papéis (Suporte/CS, Security, Financeiro).
 5. **RAG/indexação do codebase**, **Next.js** (upgrade do painel), identidade Slack por agente.
+
+## Orquestração cross-squad (feito)
+- Templates (src/orchestration, templates/*.json ao vivo): Ana dispara produto+marketing na
+  MESMA thread (list/launch_template); exemplos: lancamento-de-feature, pacote-de-conteudo.
+- spawn_derivatives (Caio, pós-aprovação): artigo → thread-x / carrossel-ig / newsletter, cada
+  um como frente própria com aprovação própria.
+- Changelog: job delivery-task + target "delivery" no scheduler; Dani ganhou list_merged_prs
+  (Octokit search) + Notion; rotina de exemplo quinzenal.
 
 ## Aprendizado & informação (feito)
 - Recusa no portão de publicação → entrevista automática na thread → lição gravada em
