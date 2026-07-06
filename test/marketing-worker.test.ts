@@ -72,6 +72,27 @@ test("worker: especialista que pergunta em texto segura a frente (não conclui) 
   assert.equal(finished.deliverable?.kind, "notion", "fecha ok apontando pro entregável real");
 });
 
+test("worker: estoura o teto ainda perguntando → FALHA (não finge concluído)", async () => {
+  const threadKey = "painel:mw-cap";
+  const cardKey = `${threadKey}:mkt-conteudo`;
+  const alwaysAsk = {
+    run: (async () => ({ text: "e agora, qual o tom?", newMessages: textTurn("e agora, qual o tom?") })) as never,
+    createAgent: (() => ({}) as never) as never,
+  };
+  const done = runMarketingWork(taskFor(threadKey, "produza"), new PanelMessenger(), alwaysAsk);
+  // Responde sempre que houver pergunta pendente; o teto de rodadas encerra sozinho.
+  for (let i = 0; i < 40; i++) {
+    const card = listBoard().find((c) => c.key === cardKey);
+    if (card?.column === "concluido") break;
+    if (listQuestions().some((q) => q.threadKey === threadKey)) answerQuestion(threadKey, "sei lá", "painel");
+    await new Promise((r) => setTimeout(r, 15));
+  }
+  await done;
+  const c = listBoard().find((x) => x.key === cardKey)!;
+  assert.equal(c.column, "concluido");
+  assert.equal(c.outcome, "falha", "estourar rounds ainda perguntando é falha honesta, não ok");
+});
+
 test("worker: entrega direta fecha ok com deliverable, sem segurar humano", async () => {
   const threadKey = "painel:mw-2";
   const cardKey = `${threadKey}:mkt-conteudo`;

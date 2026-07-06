@@ -58,6 +58,11 @@ export async function runSubtask(
   const post = (text: string) => messenger.post({ channel: job.channel, threadTs: job.threadTs }, text, agentName);
   const { cardKey, parentKey } = job;
 
+  // Idempotência: um job reentregue pela fila (retry após crash) de um card JÁ concluído
+  // não deve reabrir a folha (deixaria o filho em "execucao" com o pai já fechado por rollup).
+  const existing = listBoard().find((c) => c.key === cardKey);
+  if (existing?.column === "concluido") return;
+
   try {
     track(
       cardKey,

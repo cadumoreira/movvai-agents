@@ -116,6 +116,7 @@ export async function runMarketingWork(
 
     let history: ModelMessage[] = [{ role: "user", content: initial }];
     const usedAll = new Set<string>();
+    let unresolved = false;
 
     for (let round = 0; ; round++) {
       const { text, newMessages } = await run(specialist, history);
@@ -123,23 +124,34 @@ export async function runMarketingWork(
       if (text) await post(text);
       history = [...history, ...newMessages];
 
-      if (round < MAX_INTERVIEW_ROUNDS && endedNeedingHuman(text, newMessages)) {
+      const needs = endedNeedingHuman(text, newMessages);
+      if (needs && round < MAX_INTERVIEW_ROUNDS) {
         track(cardKey, { column: "aprovacao" }, "aguardando suas respostas");
         const answer = await askQuestion(task.threadKey, text, specialistName(task.discipline));
         track(cardKey, { column: "execucao" }, "resposta recebida — continuando");
         history.push({ role: "user", content: answer });
         continue;
       }
+      // Quebrou ainda precisando do humano (estourou o teto de rodadas) → não entregou.
+      unresolved = needs;
       break;
     }
 
-    // Entrega honesta: só fecha ok apontando para o que REALMENTE saiu.
-    const deliverable: Deliverable = usedAll.has("notion_create_page")
-      ? { kind: "notion", summary: "entregável registrado no Notion" }
-      : usedAll.has("request_publish_approval")
-        ? { kind: "aprovacao", summary: "conteúdo aprovado para publicação" }
-        : { kind: "thread", summary: "entregue na thread — Notion não configurado" };
-    track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
+    // Entrega honesta: se encerrou ainda perguntando, é FALHA — não finge "concluído".
+    if (unresolved) {
+      track(
+        cardKey,
+        { column: "concluido", outcome: "falha" },
+        `encerrou ainda perguntando após ${MAX_INTERVIEW_ROUNDS} rodadas — sem entrega`,
+      );
+    } else {
+      const deliverable: Deliverable = usedAll.has("notion_create_page")
+        ? { kind: "notion", summary: "entregável registrado no Notion" }
+        : usedAll.has("request_publish_approval")
+          ? { kind: "aprovacao", summary: "conteúdo aprovado para publicação" }
+          : { kind: "thread", summary: "entregue na thread — Notion não configurado" };
+      track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
+    }
   } catch (err) {
     track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao produzir o entregável");
     console.error("Erro no worker de marketing:", err);

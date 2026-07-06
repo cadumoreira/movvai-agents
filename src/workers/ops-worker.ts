@@ -116,6 +116,7 @@ export async function runOpsTask(
 
     let history: ModelMessage[] = [{ role: "user", content: initial }];
     const usedAll = new Set<string>();
+    let unresolved = false;
 
     for (let round = 0; ; round++) {
       const { text, newMessages } = await run(specialist, history);
@@ -124,20 +125,32 @@ export async function runOpsTask(
       history = [...history, ...newMessages];
 
       // O especialista pediu algo sem ter agido: segura a demanda e espera a resposta na thread.
-      if (round < MAX_INTERVIEW_ROUNDS && endedNeedingHuman(text, newMessages)) {
+      const needs = endedNeedingHuman(text, newMessages);
+      if (needs && round < MAX_INTERVIEW_ROUNDS) {
         track(cardKey, { column: "aprovacao" }, "aguardando suas respostas");
         const answer = await askQuestion(task.threadKey, text, opsSpecialistName(task.discipline));
         track(cardKey, { column: "execucao" }, "resposta recebida — continuando");
         history.push({ role: "user", content: answer });
         continue;
       }
+      // Quebrou ainda precisando do humano (estourou o teto) → não concluiu de verdade.
+      unresolved = needs;
       break;
     }
 
-    const deliverable: Deliverable = usedAll.has("request_send_approval")
-      ? { kind: "envio", summary: "envio aprovado pelo humano" }
-      : { kind: "thread", summary: "concluída na thread (sem envio)" };
-    track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
+    // Entrega honesta: se encerrou ainda perguntando, é FALHA — não finge "concluído".
+    if (unresolved) {
+      track(
+        cardKey,
+        { column: "concluido", outcome: "falha" },
+        `encerrou ainda perguntando após ${MAX_INTERVIEW_ROUNDS} rodadas — sem entrega`,
+      );
+    } else {
+      const deliverable: Deliverable = usedAll.has("request_send_approval")
+        ? { kind: "envio", summary: "envio aprovado pelo humano" }
+        : { kind: "thread", summary: "concluída na thread (sem envio)" };
+      track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
+    }
   } catch (err) {
     track(cardKey, { column: "concluido", outcome: "falha" }, "erro na demanda");
     console.error("Erro no worker de operações:", err);
