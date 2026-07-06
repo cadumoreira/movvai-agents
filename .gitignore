@@ -7,5 +7,5 @@ audit.log
 billing.log
 .DS_Store
 
-# Entregáveis gerados (documentos)
-artifacts/
+# Entregáveis gerados em runtime (documentos). Âncora na raiz para NÃO pegar src/artifacts/.
+/artifacts/

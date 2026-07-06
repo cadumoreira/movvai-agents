@@ -21,10 +21,14 @@ export function documentTools(cardKey: string): ToolSet {
         content_markdown: z.string().describe("Conteúdo completo em Markdown (headings, listas, negrito)."),
       }),
       execute: async ({ filename, title, content_markdown }) => {
-        const html = markdownToWordHtml(title, content_markdown);
-        const saved = saveArtifact(`${filename}.doc`, html);
-        track(cardKey, { deliverable: { kind: "doc", summary: title, url: saved.url } }, `documento gerado: ${saved.filename}`);
-        return { ok: true, url: saved.url, filename: saved.filename };
+        try {
+          const html = markdownToWordHtml(title, content_markdown);
+          const saved = saveArtifact(`${filename}.doc`, html);
+          track(cardKey, { deliverable: { kind: "doc", summary: title, url: saved.url } }, `documento gerado: ${saved.filename}`);
+          return { ok: true, url: saved.url, filename: saved.filename };
+        } catch (err) {
+          return { ok: false, error: `não consegui gravar o documento: ${err instanceof Error ? err.message : String(err)}` };
+        }
       },
     }),
   };

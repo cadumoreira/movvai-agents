@@ -109,8 +109,9 @@ test("worker: documento anexado (create_document) conta como entrega → ok", as
   const cardKey = `${threadKey}:mkt-conteudo`;
   const docDeps = {
     run: (async () => {
+      // simula o create_document: anexa o deliverable E registra a tool-call do ciclo
       track(cardKey, { deliverable: { kind: "doc", summary: "artigo.doc", url: "/artifacts/x" } }, "anexou");
-      return { text: "documento anexado, veja o link", newMessages: textTurn("documento anexado") };
+      return { text: "documento anexado, veja o link", newMessages: toolTurn("create_document") };
     }) as never,
     createAgent: (() => ({}) as never) as never,
   };
