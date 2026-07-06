@@ -2,7 +2,7 @@ import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { join, basename } from "node:path";
 import { listActivity } from "../observability/activity.js";
-import { listBoard, BOARD_COLUMNS, COLUMN_LABELS } from "../board/board.js";
+import { listBoard, boardTree, BOARD_COLUMNS, COLUMN_LABELS } from "../board/board.js";
 import { listPending, resolvePending } from "../approvals/registry.js";
 import { listQuestions, answerQuestion } from "../approvals/questions.js";
 import { listAudit } from "../audit/log.js";
@@ -113,6 +113,10 @@ export function startDashboard(
         columns: BOARD_COLUMNS.map((id) => ({ id, label: COLUMN_LABELS[id] })),
         cards: listBoard(),
       });
+    }
+    if (req.method === "GET" && path === "/api/board/tree") {
+      // Board como árvore (Demanda → Tarefa → Subtarefa), com entregável por card.
+      return json(res, 200, { columns: BOARD_COLUMNS.map((id) => ({ id, label: COLUMN_LABELS[id] })), roots: boardTree() });
     }
     if (req.method === "GET" && path === "/api/activity") {
       return json(res, 200, listActivity());

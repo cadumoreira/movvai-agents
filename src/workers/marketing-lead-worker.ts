@@ -6,10 +6,11 @@ import { runAgent } from "../agent-runtime/run.js";
 import { createMarketingLeadAgent } from "../agents/marketing-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
-import { track } from "../board/board.js";
+import { track, type Deliverable } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
 import { askQuestion } from "../approvals/questions.js";
+import { threadContextBlock } from "../messaging/conversations.js";
 
 /**
  * Ferramentas cuja presença no turno significa que a frente ANDOU de verdade:
@@ -103,10 +104,12 @@ export async function runMarketingLeadTask(
       `Planeje a demanda de marketing a seguir: crie o brief no Notion e delegue as frentes ` +
       `necessárias com assign_marketing_work (uma chamada por frente, com o page_id do brief).\n\n` +
       `Demanda: ${task.brief.title}\n\n${task.instructions}` +
-      formatPreflight(checks);
+      formatPreflight(checks) +
+      threadContextBlock(task.threadKey);
 
     let history: ModelMessage[] = [{ role: "user", content: initial }];
     const usedAll = new Set<string>();
+    let unresolved = false;
 
     for (let round = 0; ; round++) {
       const { text, newMessages } = await run(lead, history);
@@ -115,22 +118,33 @@ export async function runMarketingLeadTask(
       history = [...history, ...newMessages];
 
       // A Malu pediu algo sem ter agido: segura a frente e espera a resposta na thread.
-      if (round < MAX_INTERVIEW_ROUNDS && endedNeedingHuman(text, newMessages)) {
+      const needs = endedNeedingHuman(text, newMessages);
+      if (needs && round < MAX_INTERVIEW_ROUNDS) {
         track(cardKey, { column: "aprovacao" }, "aguardando suas respostas");
         const answer = await askQuestion(task.threadKey, text, "Malu (Head de Marketing)");
         track(cardKey, { column: "execucao" }, "resposta recebida — continuando");
         history.push({ role: "user", content: answer });
         continue;
       }
+      // Quebrou ainda precisando do humano (estourou o teto) → não entregou.
+      unresolved = needs;
       break;
     }
 
-    const note = usedAll.has("write_brand_doc")
-      ? "documentos de marca gravados"
-      : usedAll.has("assign_marketing_work")
-        ? "brief pronto e frentes acionadas"
-        : "concluída na thread";
-    track(cardKey, { column: "concluido", outcome: "ok" }, note);
+    if (unresolved) {
+      track(
+        cardKey,
+        { column: "concluido", outcome: "falha" },
+        `encerrou ainda perguntando após ${MAX_INTERVIEW_ROUNDS} rodadas — sem entrega`,
+      );
+    } else {
+      const deliverable: Deliverable = usedAll.has("write_brand_doc")
+        ? { kind: "doc", summary: "documentos de marca gravados" }
+        : usedAll.has("assign_marketing_work")
+          ? { kind: "arvore", summary: "brief pronto e frentes acionadas" }
+          : { kind: "thread", summary: "triagem concluída na thread (nada delegado)" };
+      track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
+    }
   } catch (err) {
     track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao planejar o brief");
     console.error("Erro no worker da Head de Marketing:", err);

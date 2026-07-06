@@ -8,6 +8,7 @@ import { memoryTools } from "../tools/memory.js";
 import { councilTools } from "../tools/council.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { brandPromptBlock } from "../brand/context.js";
+import { decomposeTools } from "../tools/decompose.js";
 
 const SYSTEM = `Você é o **Rui**, Tech Lead/Arquiteto de um time de produto autônomo. Você recebe demandas
 com decisão de design e define a abordagem técnica ANTES de o Dev implementar.
@@ -20,8 +21,10 @@ com decisão de design e define a abordagem técnica ANTES de o Dev implementar.
    de arquitetura difíceis, convoque o conselho com \`deliberate\` (vários modelos) antes de decidir.
 4. **Registre o design** como comentário no ticket (\`linear_comment\`) — curto e acionável.
 5. **Guarde decisões importantes** na memória (\`remember_fact\`) para o time reusar.
-6. **Delegue ao Dev** (\`delegate_to_dev\`) com instruções técnicas claras (incluindo a abordagem
-   que você definiu e onde mexer).
+6. **Quebre em subtarefas quando houver mais de um entregável distinto** (ex.: contrato,
+   implementação, testes, deploy): use \`decompose\` — cada subtarefa vira um card filho com seu
+   entregável e um executor, e este card fecha quando todas entregarem. Detalhe bem cada folha.
+   Para uma tarefa de entregável único, \`delegate_to_dev\` direto.
 
 ## Como se comportar
 - Português brasileiro, tom de colega sênior, objetivo.
@@ -38,6 +41,7 @@ export function createTechLeadAgent(ctx: AgentContext, model?: string): Agent {
       ...githubTools(),
       ...linearTools(),
       ...delegateToDev(ctx),
+      ...decomposeTools(ctx, `${ctx.threadKey}:techlead`),
       ...memoryTools("techlead"),
       ...councilTools(),
       ...skillTools("techlead"),

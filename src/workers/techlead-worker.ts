@@ -7,6 +7,7 @@ import { config } from "../config.js";
 import { track } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
+import { threadContextBlock } from "../messaging/conversations.js";
 
 /**
  * Worker do Tech Lead: consome "techlead-task", desenha a abordagem (sem sandbox —
@@ -39,7 +40,8 @@ export function startTechLeadWorker(messenger: Messenger): void {
       const initial =
         `Defina a abordagem técnica para a demanda a seguir e delegue ao Dev.${ticketRef}${idRef}\n\n` +
         `${task.instructions}\n\nInvestigue o repositório, registre o design no ticket e chame delegate_to_dev.` +
-        formatPreflight(checks);
+        formatPreflight(checks) +
+        threadContextBlock(task.threadKey);
 
       const { text } = await runAgent(techLead, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "abordagem definida e delegada");

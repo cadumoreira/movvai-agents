@@ -19,6 +19,20 @@ export const COLUMN_LABELS: Record<BoardColumn, string> = {
 
 export type BoardOutcome = "ok" | "falha" | "recusado";
 
+/**
+ * O artefato produzido por um card. Todo card só pode fechar `ok` apontando para algo
+ * concreto — sem isso o board "mente" (ver o caso do brand book fantasma). Quando não há
+ * integração (Notion/GitHub off), `kind: "thread"` registra que a entrega saiu na conversa.
+ */
+export interface Deliverable {
+  /** Tipo do artefato: "pr", "notion", "url", "doc", "thread", "arvore" (decomposição)… */
+  kind: string;
+  /** Resumo de uma linha do que foi entregue. */
+  summary: string;
+  /** Link para o artefato, quando existir. */
+  url?: string;
+}
+
 export interface BoardCard {
   /** Chave estável da frente (ex.: "C01:171234.5:dev"). Reutilizada nas transições. */
   key: string;
@@ -29,6 +43,10 @@ export interface BoardCard {
   column: BoardColumn;
   /** Como terminou (só faz sentido em "concluido"). */
   outcome?: BoardOutcome;
+  /** Card pai na árvore (Demanda → Tarefa → Subtarefa). Ausente = raiz. */
+  parentKey?: string;
+  /** Artefato produzido. Exigido para fechar `ok` (exceto cards-pai, que agregam). */
+  deliverable?: Deliverable;
   /** Última nota de progresso (o histórico completo fica em `notes`). */
   notes: Array<{ time: string; text: string }>;
   createdAt: string;
@@ -41,6 +59,8 @@ export interface TrackPatch {
   squad?: "produto" | "marketing" | "operacoes";
   column?: BoardColumn;
   outcome?: BoardOutcome;
+  parentKey?: string;
+  deliverable?: Deliverable;
 }
 
 /** Máximo de cards retidos; ao estourar, descarta os concluídos mais antigos primeiro. */
@@ -84,6 +104,7 @@ function persist(card: BoardCard): void {
 export function track(key: string, patch: TrackPatch, note?: string): BoardCard {
   const now = new Date().toISOString();
   let card = cards.get(key);
+  const wasConcluido = card?.column === "concluido";
   if (!card) {
     card = {
       key,
@@ -97,12 +118,16 @@ export function track(key: string, patch: TrackPatch, note?: string): BoardCard 
     };
     cards.set(key, card);
     if (patch.outcome) card.outcome = patch.outcome;
+    if (patch.parentKey) card.parentKey = patch.parentKey;
+    if (patch.deliverable) card.deliverable = patch.deliverable;
   } else {
     if (patch.title) card.title = patch.title;
     if (patch.agent) card.agent = patch.agent;
     if (patch.squad) card.squad = patch.squad;
     if (patch.column) card.column = patch.column;
     if (patch.outcome) card.outcome = patch.outcome;
+    if (patch.parentKey) card.parentKey = patch.parentKey;
+    if (patch.deliverable) card.deliverable = patch.deliverable;
     card.updatedAt = now;
   }
   if (note) {
@@ -111,7 +136,48 @@ export function track(key: string, patch: TrackPatch, note?: string): BoardCard 
   }
   persist(card);
   evict();
+  // Rollup: um filho que ACABOU de concluir pode fechar o pai (se todos os irmãos
+  // concluíram). Só dispara na transição para "concluido", não em toques repetidos.
+  if (card.parentKey && card.column === "concluido" && !wasConcluido) {
+    rollupParent(card.parentKey);
+  }
   return card;
+}
+
+/** Filhos diretos de um card. */
+export function childrenOf(parentKey: string): BoardCard[] {
+  return [...cards.values()].filter((c) => c.parentKey === parentKey);
+}
+
+/**
+ * Avalia um card-pai à luz dos filhos: quando TODOS concluíram, fecha o pai — `ok` se
+ * todos ok, senão `falha` (um filho que falha segura/derruba o pai). Enquanto houver
+ * filho em aberto, atualiza a nota de progresso (X/Y) e mantém o pai em atuação.
+ *
+ * Invariante: o orquestrador cria TODOS os filhos antes de qualquer um executar, então
+ * "todos concluídos" nunca é falso-positivo por decomposição parcial.
+ */
+export function rollupParent(parentKey: string): void {
+  const parent = cards.get(parentKey);
+  const kids = childrenOf(parentKey);
+  if (!parent || kids.length === 0) return;
+  if (parent.column === "concluido") return; // já fechado — nada a fazer
+
+  const done = kids.filter((k) => k.column === "concluido");
+  if (done.length < kids.length) {
+    track(parentKey, { column: "execucao" }, `${done.length}/${kids.length} subtarefas concluídas`);
+    return;
+  }
+  const failed = done.filter((k) => k.outcome && k.outcome !== "ok");
+  const outcome: BoardOutcome = failed.length ? "falha" : "ok";
+  const note = failed.length
+    ? `${failed.length}/${kids.length} subtarefas falharam — pai bloqueado`
+    : `todas as ${kids.length} subtarefas entregues`;
+  track(parentKey, {
+    column: "concluido",
+    outcome,
+    deliverable: { kind: "arvore", summary: note },
+  }, note);
 }
 
 /**
@@ -132,6 +198,28 @@ export function sweepStaleCards(maxAgeMs: number, now = Date.now()): BoardCard[]
 /** Todos os cards, mais recentes primeiro (o front agrupa por coluna). */
 export function listBoard(): BoardCard[] {
   return [...cards.values()].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+}
+
+export interface BoardTreeNode extends BoardCard {
+  children: BoardTreeNode[];
+}
+
+/**
+ * Board como árvore (Demanda → Tarefa → Subtarefa), raízes primeiro. Um filho cujo pai
+ * já foi descartado (evict) vira raiz — nada some da visão.
+ */
+export function boardTree(): BoardTreeNode[] {
+  const nodes = new Map<string, BoardTreeNode>();
+  for (const c of cards.values()) nodes.set(c.key, { ...c, children: [] });
+  const roots: BoardTreeNode[] = [];
+  for (const node of nodes.values()) {
+    const parent = node.parentKey ? nodes.get(node.parentKey) : undefined;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+  const byUpdated = (a: BoardCard, b: BoardCard) => (a.updatedAt < b.updatedAt ? 1 : -1);
+  for (const node of nodes.values()) node.children.sort(byUpdated);
+  return roots.sort(byUpdated);
 }
 
 /** Limpa o board (usado em testes). */

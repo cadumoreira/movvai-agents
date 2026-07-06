@@ -9,6 +9,7 @@ import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
+import { threadContextBlock } from "../messaging/conversations.js";
 
 /**
  * Worker do QA: consome jobs "qa-review" (acionados quando o Dev abre um PR), sobe um
@@ -45,7 +46,8 @@ export function startQaWorker(messenger: Messenger): void {
         `Revise o PR "#${job.prNumber}: ${job.title}" (${job.prUrl}). O conteúdo da branch \`${job.branch}\` ` +
         `está disponível no sandbox (use caminhos relativos).\n\nArquivos alterados:\n${fileList || "(não foi possível obter a lista)"}\n\n` +
         `Leia os arquivos relevantes, rode os testes/lint, avalie e registre a revisão com comment_on_pr.` +
-        formatPreflight(checks);
+        formatPreflight(checks) +
+        threadContextBlock(job.threadKey);
 
       const { text } = await runAgent(qa, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "revisão registrada no PR");
