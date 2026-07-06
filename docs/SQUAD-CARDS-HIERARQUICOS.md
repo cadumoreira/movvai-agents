@@ -69,3 +69,33 @@ Demanda: API + deploy AWS
 - Suíte completa verde (`REDIS_URL=""`), typecheck.
 - Teste end-to-end: demanda → árvore de cards com entregáveis → execução → rollup do pai.
 - Rodada mock no app real (fila em processo) mostrando a árvore no board.
+
+## Resultado (o que ficou pronto)
+
+Entregue nas fatias, cada uma com testes e suíte verde (169 testes):
+
+- **Board hierárquico** (`src/board/board.ts`): `parentKey`, `Deliverable`, `boardTree()`,
+  `rollupParent()`. Pai fecha quando os filhos fecham; filho em falha derruba o pai.
+- **Memória compartilhada** (`threadContextBlock` em `src/messaging/conversations.ts`):
+  injetada no prompt de TODOS os workers (marketing-lead/work, ops, dev, techlead, qa).
+- **Pausa durável** nos workers de marketing (lead + especialistas) e ops: o worker segura a
+  frente em "Aguardando humano" quando o modelo pergunta em texto sem agir, e retoma com a
+  resposta — nunca vaza para a PM.
+- **Entrega honesta**: cards fecham `ok` só com um `Deliverable` real; a folha usa
+  `attach_deliverable` (`src/tools/deliverable.ts`) e, sem isso, FALHA em vez de fingir.
+- **Decomposição**: `decompose` (tool do Tech Lead) → `decomposePlan` (orquestração) → cards
+  filhos → `runSubtask` (worker) executa cada folha com o `createExecutorAgent`.
+
+Prova e2e (fila real): a demanda "Criar uma API e fazer deploy na AWS" decompôs em 6 cards
+folha, cada um entregou, e o pai fechou por rollup ("todas as 6 subtarefas entregues").
+
+## Limitações conhecidas / follow-ups
+
+- **Executor da folha é genérico** (memória/web/skills/entregável/pergunta). Subtarefas de
+  CÓDIGO que precisam de sandbox+PR ainda usam o `dev-worker` de tarefa única; ligar
+  decomposição → um `dev-task` por folha (cada uma com seu card) é o próximo passo.
+- **Painel** ainda renderiza colunas planas; o aninhamento visual (filhos sob o pai) usa
+  `/api/board/tree` mas falta o front. Dados já expostos.
+- **DRY**: `toolNamesUsed`/`endedNeedingHuman` estão duplicados por worker (padrão herdado).
+- **Chat vs card**: a conversa agora vive na memória compartilhada e o card é execução, mas
+  uma UI de chat separada do card é uma mudança de produto maior — fica para depois.
