@@ -67,6 +67,24 @@ export function hasConversation(threadKey: string): boolean {
   return threads.has(threadKey);
 }
 
+/**
+ * Bloco de contexto da thread para INJETAR no prompt de um worker — a memória
+ * compartilhada que mata a amnésia entre agentes. É o transcript em TEXTO (sem
+ * tool-calls, seguro para qualquer agente consumir): tudo que a PM, a Head e as
+ * especialistas já disseram, mais as respostas do humano. Vazio quando não há thread.
+ */
+export function threadContextBlock(threadKey: string, opts: { limit?: number } = {}): string {
+  const msgs = getConversation(threadKey);
+  if (!msgs.length) return "";
+  const recent = msgs.slice(-(opts.limit ?? 30));
+  const lines = recent.map((m) => `- ${m.human ? "Humano" : m.from}: ${m.text.replace(/\s+/g, " ").trim().slice(0, 500)}`);
+  return (
+    `\n\n## Contexto da thread (memória compartilhada — o que já foi dito neste fio)\n` +
+    `Leia antes de agir; não repita perguntas já respondidas nem refaça trabalho já feito.\n` +
+    lines.join("\n")
+  );
+}
+
 /** Limpa tudo (uso em teste). */
 export function resetConversations(): void {
   threads.clear();

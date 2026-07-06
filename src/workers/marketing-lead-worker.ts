@@ -6,10 +6,11 @@ import { runAgent } from "../agent-runtime/run.js";
 import { createMarketingLeadAgent } from "../agents/marketing-lead.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
-import { track } from "../board/board.js";
+import { track, type Deliverable } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
 import { askQuestion } from "../approvals/questions.js";
+import { threadContextBlock } from "../messaging/conversations.js";
 
 /**
  * Ferramentas cuja presença no turno significa que a frente ANDOU de verdade:
@@ -103,7 +104,8 @@ export async function runMarketingLeadTask(
       `Planeje a demanda de marketing a seguir: crie o brief no Notion e delegue as frentes ` +
       `necessárias com assign_marketing_work (uma chamada por frente, com o page_id do brief).\n\n` +
       `Demanda: ${task.brief.title}\n\n${task.instructions}` +
-      formatPreflight(checks);
+      formatPreflight(checks) +
+      threadContextBlock(task.threadKey);
 
     let history: ModelMessage[] = [{ role: "user", content: initial }];
     const usedAll = new Set<string>();
@@ -125,12 +127,12 @@ export async function runMarketingLeadTask(
       break;
     }
 
-    const note = usedAll.has("write_brand_doc")
-      ? "documentos de marca gravados"
+    const deliverable: Deliverable = usedAll.has("write_brand_doc")
+      ? { kind: "doc", summary: "documentos de marca gravados" }
       : usedAll.has("assign_marketing_work")
-        ? "brief pronto e frentes acionadas"
-        : "concluída na thread";
-    track(cardKey, { column: "concluido", outcome: "ok" }, note);
+        ? { kind: "arvore", summary: "brief pronto e frentes acionadas" }
+        : { kind: "thread", summary: "triagem concluída na thread (nada delegado)" };
+    track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
   } catch (err) {
     track(cardKey, { column: "concluido", outcome: "falha" }, "erro ao planejar o brief");
     console.error("Erro no worker da Head de Marketing:", err);

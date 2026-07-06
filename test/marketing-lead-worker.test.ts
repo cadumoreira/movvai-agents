@@ -98,7 +98,7 @@ test("worker: pergunta em texto puro segura a frente em 'Aguardando humano' (nã
   const finished = listBoard().find((c) => c.key === cardKey)!;
   assert.equal(finished.column, "concluido");
   assert.equal(finished.outcome, "ok");
-  assert.equal(finished.notes.at(-1)?.text, "brief pronto e frentes acionadas");
+  assert.equal(finished.deliverable?.summary, "brief pronto e frentes acionadas");
   assert.equal(listQuestions().filter((q) => q.threadKey === threadKey).length, 0);
 });
 
@@ -110,7 +110,7 @@ test("worker: demanda que já delega de cara conclui sem segurar o humano", asyn
   const done = listBoard().find((c) => c.key === cardKey)!;
   assert.equal(done.column, "concluido");
   assert.equal(done.outcome, "ok");
-  assert.equal(done.notes.at(-1)?.text, "brief pronto e frentes acionadas");
+  assert.equal(done.deliverable?.summary, "brief pronto e frentes acionadas");
   // Não deve ter segurado o humano em nenhum momento.
   assert.equal(listQuestions().filter((q) => q.threadKey === threadKey).length, 0);
 });

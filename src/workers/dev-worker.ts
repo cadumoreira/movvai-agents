@@ -9,6 +9,7 @@ import { config } from "../config.js";
 import { track } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
+import { threadContextBlock } from "../messaging/conversations.js";
 
 /**
  * Worker do Dev: consome jobs "dev-task", sobe um sandbox efêmero, roda o agente Dev
@@ -58,7 +59,8 @@ export function startDevWorker(messenger: Messenger): void {
         `Implemente a seguinte demanda.${ticketRef}\n\n${task.instructions}\n\n` +
         `O repositório já está disponível no sandbox (use caminhos relativos). Investigue, implemente, rode os testes e, ` +
         `quando estiver pronto e verde, chame request_pr_approval para pedir o OK antes de abrir o PR.` +
-        formatPreflight(checks);
+        formatPreflight(checks) +
+        threadContextBlock(task.threadKey);
 
       const { text } = await runAgent(dev, [{ role: "user", content: initial }]);
       track(cardKey, { column: "concluido", outcome: "ok" }, "frente encerrada");
