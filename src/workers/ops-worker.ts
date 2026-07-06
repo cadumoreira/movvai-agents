@@ -7,10 +7,11 @@ import { type Approver } from "../approvals/gate.js";
 import type { Messenger } from "../messaging/messenger.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
-import { track } from "../board/board.js";
+import { track, type Deliverable } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
 import { askQuestion } from "../approvals/questions.js";
+import { threadContextBlock } from "../messaging/conversations.js";
 
 /**
  * Ferramentas cuja presença no turno significa que a demanda ANDOU de verdade:
@@ -110,7 +111,8 @@ export async function runOpsTask(
     const initial =
       `Trabalhe na demanda a seguir.\n\nDemanda: ${task.title}\n\n${task.instructions}\n\n` +
       `Lembre: request_send_approval ANTES de qualquer envio.` +
-      formatPreflight(checks);
+      formatPreflight(checks) +
+      threadContextBlock(task.threadKey);
 
     let history: ModelMessage[] = [{ role: "user", content: initial }];
     const usedAll = new Set<string>();
@@ -132,8 +134,10 @@ export async function runOpsTask(
       break;
     }
 
-    const note = usedAll.has("request_send_approval") ? "demanda concluída" : "concluída na thread";
-    track(cardKey, { column: "concluido", outcome: "ok" }, note);
+    const deliverable: Deliverable = usedAll.has("request_send_approval")
+      ? { kind: "envio", summary: "envio aprovado pelo humano" }
+      : { kind: "thread", summary: "concluída na thread (sem envio)" };
+    track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
   } catch (err) {
     track(cardKey, { column: "concluido", outcome: "falha" }, "erro na demanda");
     console.error("Erro no worker de operações:", err);
