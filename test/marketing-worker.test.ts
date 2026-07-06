@@ -7,7 +7,7 @@ import type { ModelMessage } from "ai";
 import { until } from "./helpers.js";
 import { runMarketingWork, endedNeedingHuman } from "../src/workers/marketing-worker.js";
 import { PanelMessenger } from "../src/messaging/messenger.js";
-import { listBoard, resetBoard } from "../src/board/board.js";
+import { track, listBoard, resetBoard } from "../src/board/board.js";
 import { answerQuestion, resetQuestions, listQuestions } from "../src/approvals/questions.js";
 
 process.env.AUDIT_LOG_PATH = join(mkdtempSync(join(tmpdir(), "audit-mw-")), "audit.log");
@@ -91,6 +91,34 @@ test("worker: estoura o teto ainda perguntando → FALHA (não finge concluído)
   const c = listBoard().find((x) => x.key === cardKey)!;
   assert.equal(c.column, "concluido");
   assert.equal(c.outcome, "falha", "estourar rounds ainda perguntando é falha honesta, não ok");
+});
+
+test("worker: terminou sem produzir entregável (só texto) → FALHA", async () => {
+  const threadKey = "painel:mw-none";
+  const cardKey = `${threadKey}:mkt-conteudo`;
+  const noProduce = {
+    run: (async () => ({ text: "Beleza, feito!", newMessages: textTurn("Beleza, feito!") })) as never,
+    createAgent: (() => ({}) as never) as never,
+  };
+  await runMarketingWork(taskFor(threadKey, "produza"), new PanelMessenger(), noProduce);
+  assert.equal(listBoard().find((x) => x.key === cardKey)!.outcome, "falha");
+});
+
+test("worker: documento anexado (create_document) conta como entrega → ok", async () => {
+  const threadKey = "painel:mw-doc";
+  const cardKey = `${threadKey}:mkt-conteudo`;
+  const docDeps = {
+    run: (async () => {
+      // simula o create_document: anexa o deliverable E registra a tool-call do ciclo
+      track(cardKey, { deliverable: { kind: "doc", summary: "artigo.doc", url: "/artifacts/x" } }, "anexou");
+      return { text: "documento anexado, veja o link", newMessages: toolTurn("create_document") };
+    }) as never,
+    createAgent: (() => ({}) as never) as never,
+  };
+  await runMarketingWork(taskFor(threadKey, "produza"), new PanelMessenger(), docDeps);
+  const c = listBoard().find((x) => x.key === cardKey)!;
+  assert.equal(c.outcome, "ok");
+  assert.equal(c.deliverable?.kind, "doc");
 });
 
 test("worker: entrega direta fecha ok com deliverable, sem segurar humano", async () => {

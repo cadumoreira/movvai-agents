@@ -14,7 +14,7 @@
     "doctor": "tsx src/scripts/doctor.ts",
     "try:pm": "tsx src/scripts/try-pm.ts",
     "try:dev": "tsx src/scripts/try-dev.ts",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "REDIS_URL= node --import tsx --test test/*.test.ts",
     "eval": "tsx src/eval/run.ts",
     "typecheck": "tsc --noEmit"
   },

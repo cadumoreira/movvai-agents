@@ -7,7 +7,7 @@ import { createMarketingSpecialistAgent, specialistName } from "../agents/market
 import { type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
-import { track, type Deliverable } from "../board/board.js";
+import { track, listBoard, type Deliverable } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
 import { askQuestion } from "../approvals/questions.js";
@@ -137,19 +137,28 @@ export async function runMarketingWork(
       break;
     }
 
-    // Entrega honesta: se encerrou ainda perguntando, é FALHA — não finge "concluído".
+    // Entrega honesta: só fecha ok com um artefato produzido NESTE ciclo — Notion, aprovação
+    // de publicação ou documento gerado (create_document). Checa usedAll (ferramentas deste
+    // turno), NÃO o card.deliverable persistido (que pode ser de um ciclo anterior).
+    const produziu =
+      usedAll.has("notion_create_page") || usedAll.has("request_publish_approval") || usedAll.has("create_document");
     if (unresolved) {
       track(
         cardKey,
         { column: "concluido", outcome: "falha" },
         `encerrou ainda perguntando após ${MAX_INTERVIEW_ROUNDS} rodadas — sem entrega`,
       );
+    } else if (!produziu) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "não produziu entregável neste ciclo (texto na thread não conta)");
     } else {
-      const deliverable: Deliverable = usedAll.has("notion_create_page")
-        ? { kind: "notion", summary: "entregável registrado no Notion" }
-        : usedAll.has("request_publish_approval")
-          ? { kind: "aprovacao", summary: "conteúdo aprovado para publicação" }
-          : { kind: "thread", summary: "entregue na thread — Notion não configurado" };
+      // create_document já anexou o doc (com url) no card neste ciclo — reaproveita.
+      const attached = listBoard().find((c) => c.key === cardKey)?.deliverable;
+      const deliverable: Deliverable =
+        usedAll.has("create_document") && attached
+          ? attached
+          : usedAll.has("notion_create_page")
+            ? { kind: "notion", summary: "entregável registrado no Notion" }
+            : { kind: "aprovacao", summary: "conteúdo aprovado para publicação" };
       track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
     }
   } catch (err) {

@@ -7,6 +7,7 @@ import { notionTools } from "../tools/notion.js";
 import { memoryTools } from "../tools/memory.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { askTools, type AskThread } from "../tools/ask.js";
+import { documentTools } from "../tools/document.js";
 import { publishTools, normalizeForApproval, type PublishGate } from "../tools/publish-tools.js";
 import { imageTools } from "../tools/image.js";
 import { analyticsTools } from "../tools/analytics.js";
@@ -97,8 +98,11 @@ ${p.craft}
 1. **Cheque a memória** (\`recall_memory\`) por tom de voz, personas e decisões da marca.
 2. **Leia o brief** (link/página no Notion, se houver). Se faltar informação ESSENCIAL que você
    não pode assumir com segurança, use \`ask_clarification\` (uma pergunta objetiva) e aguarde.
-3. **Produza o entregável completo** e **registre no Notion** (\`notion_create_page\`): crie como
-   subpágina do brief (passe o parent_page_id quando tiver) ou no espaço padrão do marketing.
+3. **Produza o entregável completo** e **entregue-o como ARQUIVO**, não como texto na conversa:
+   - com Notion: **registre no Notion** (\`notion_create_page\`), subpágina do brief.
+   - sem Notion (ou em dúvida): gere um **documento anexado** com \`create_document\` (vira um
+     .doc baixável, anexado ao card). NUNCA cole o entregável inteiro na thread se passar de um
+     parágrafo — o entregável é o arquivo/página, a thread é só o aviso com o link.
 4. **Peça aprovação** (\`request_publish_approval\`) ANTES de dar o material como aprovado para
    publicação — passe o entregável COMPLETO em \`deliverable_markdown\`. A Vera (revisora) valida
    contra os playbooks antes do humano: se ela pedir ajustes, corrija e peça de novo.
@@ -300,6 +304,7 @@ export function createMarketingSpecialistAgent(
       ...memoryTools(persona.id),
       ...skillTools(persona.id),
       ...brandTools(),
+      ...(cardKey ? documentTools(cardKey) : {}),
       ...(ctx.thread ? askTools(ctx.thread, persona.name, cardKey) : {}),
     },
     maxSteps: 20,
