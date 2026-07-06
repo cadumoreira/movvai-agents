@@ -131,18 +131,25 @@ export async function runMarketingLeadTask(
       break;
     }
 
+    const delegou = usedAll.has("assign_marketing_work") || usedAll.has("write_brand_doc");
     if (unresolved) {
       track(
         cardKey,
         { column: "concluido", outcome: "falha" },
         `encerrou ainda perguntando após ${MAX_INTERVIEW_ROUNDS} rodadas — sem entrega`,
       );
+    } else if (!delegou) {
+      // Honestidade: a Malu SÓ entrega delegando (assign_marketing_work) ou gravando doc de
+      // marca. Se ela só "narrou" que acionou frentes no texto, nada foi feito → FALHA, não ok.
+      track(
+        cardKey,
+        { column: "concluido", outcome: "falha" },
+        "não delegou nem gravou nada — demanda não entregue (texto não conta como delegação)",
+      );
     } else {
       const deliverable: Deliverable = usedAll.has("write_brand_doc")
         ? { kind: "doc", summary: "documentos de marca gravados" }
-        : usedAll.has("assign_marketing_work")
-          ? { kind: "arvore", summary: "brief pronto e frentes acionadas" }
-          : { kind: "thread", summary: "triagem concluída na thread (nada delegado)" };
+        : { kind: "arvore", summary: "brief pronto e frentes acionadas" };
       track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
     }
   } catch (err) {

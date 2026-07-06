@@ -12,6 +12,7 @@ import { config } from "../config.js";
 import { verifyHmacSha256, parseGithubIssue, parseLinearIssue, type InboundTask } from "./webhooks.js";
 import { listDocs, readDoc, writeDoc, type DocRef } from "./docs-api.js";
 import { getConversation } from "../messaging/conversations.js";
+import { getArtifact } from "../artifacts/store.js";
 
 export type InboundHandler = (source: "github" | "linear", task: InboundTask) => Promise<void>;
 export type DemandHandler = (
@@ -86,6 +87,17 @@ export function startDashboard(
     if (req.method === "GET" && path === "/") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(PAGE);
+      return;
+    }
+    // Download de entregáveis gerados (documentos). Id opaco (sem path traversal).
+    if (req.method === "GET" && path.startsWith("/artifacts/")) {
+      const art = getArtifact(path.slice("/artifacts/".length));
+      if (!art) return json(res, 404, { error: "artefato não encontrado" });
+      res.writeHead(200, {
+        "Content-Type": "application/msword",
+        "Content-Disposition": `attachment; filename="${basename(art.filename)}"`,
+      });
+      res.end(art.body);
       return;
     }
     // Assets (criativos gerados e arquivos da marca). basename barra path traversal.

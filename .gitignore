@@ -6,3 +6,6 @@ dist/
 audit.log
 billing.log
 .DS_Store
+
+# Entregáveis gerados (documentos)
+artifacts/

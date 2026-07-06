@@ -7,7 +7,7 @@ import { createMarketingSpecialistAgent, specialistName } from "../agents/market
 import { type Approver } from "../approvals/gate.js";
 import { routeModel } from "../models/router.js";
 import { config } from "../config.js";
-import { track, type Deliverable } from "../board/board.js";
+import { track, listBoard, type Deliverable } from "../board/board.js";
 import { formatPreflight } from "../deps/preflight.js";
 import { preflightOrAbort } from "./support.js";
 import { askQuestion } from "../approvals/questions.js";
@@ -137,19 +137,25 @@ export async function runMarketingWork(
       break;
     }
 
-    // Entrega honesta: se encerrou ainda perguntando, é FALHA — não finge "concluído".
+    // Entrega honesta: só fecha ok com um artefato REAL — Notion, aprovação de publicação, ou
+    // um documento anexado (create_document). Texto solto na thread não conta como entrega.
+    const card = listBoard().find((c) => c.key === cardKey);
+    const produziu = usedAll.has("notion_create_page") || usedAll.has("request_publish_approval") || Boolean(card?.deliverable);
     if (unresolved) {
       track(
         cardKey,
         { column: "concluido", outcome: "falha" },
         `encerrou ainda perguntando após ${MAX_INTERVIEW_ROUNDS} rodadas — sem entrega`,
       );
+    } else if (!produziu) {
+      track(cardKey, { column: "concluido", outcome: "falha" }, "não produziu entregável — nada anexado (texto na thread não conta)");
+    } else if (card?.deliverable) {
+      // Documento anexado via create_document já setou o deliverable — mantém.
+      track(cardKey, { column: "concluido", outcome: "ok" }, `entregável: ${card.deliverable.summary}`);
     } else {
       const deliverable: Deliverable = usedAll.has("notion_create_page")
         ? { kind: "notion", summary: "entregável registrado no Notion" }
-        : usedAll.has("request_publish_approval")
-          ? { kind: "aprovacao", summary: "conteúdo aprovado para publicação" }
-          : { kind: "thread", summary: "entregue na thread — Notion não configurado" };
+        : { kind: "aprovacao", summary: "conteúdo aprovado para publicação" };
       track(cardKey, { column: "concluido", outcome: "ok", deliverable }, `entregável: ${deliverable.summary}`);
     }
   } catch (err) {

@@ -102,6 +102,19 @@ test("worker: pergunta em texto puro segura a frente em 'Aguardando humano' (nã
   assert.equal(listQuestions().filter((q) => q.threadKey === threadKey).length, 0);
 });
 
+test("worker: 'narrou' que delegou sem chamar a tool → FALHA (texto não é delegação)", async () => {
+  const threadKey = "painel:brand-fake";
+  const cardKey = `${threadKey}:marketing-lead`;
+  const narrateSuccess = {
+    run: (async () => ({ text: "Pronto! Acionei 3 frentes.", newMessages: textTurn("Pronto! Acionei 3 frentes.") })) as never,
+    createAgent: (() => ({}) as never) as never,
+  };
+  await runMarketingLeadTask(taskFor(threadKey, "criar brandbook", "..."), new PanelMessenger(), narrateSuccess);
+  const c = listBoard().find((x) => x.key === cardKey)!;
+  assert.equal(c.column, "concluido");
+  assert.equal(c.outcome, "falha", "narrar delegação no texto sem chamar assign_marketing_work é falha honesta");
+});
+
 test("worker: demanda que já delega de cara conclui sem segurar o humano", async () => {
   const threadKey = "painel:campanha-1";
   const cardKey = `${threadKey}:marketing-lead`;

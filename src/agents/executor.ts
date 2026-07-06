@@ -5,6 +5,7 @@ import { memoryTools } from "../tools/memory.js";
 import { webTools } from "../tools/web.js";
 import { skillTools, skillsPromptHint } from "../tools/skills.js";
 import { deliverableTools } from "../tools/deliverable.js";
+import { documentTools } from "../tools/document.js";
 import { askTools } from "../tools/ask.js";
 
 export interface ExecutorSpec {
@@ -51,6 +52,7 @@ export function createExecutorAgent(ctx: AgentContext, spec: ExecutorSpec, model
       ...webTools(),
       ...skillTools("executor"),
       ...deliverableTools(spec.cardKey),
+      ...documentTools(spec.cardKey),
       ...askTools(
         { channel: ctx.channel, threadTs: ctx.threadTs, threadKey: ctx.threadKey, messenger: ctx.messenger },
         spec.agentName,
