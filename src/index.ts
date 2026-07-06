@@ -9,6 +9,7 @@ import { startDevWorker } from "./workers/dev-worker.js";
 import { startQaWorker } from "./workers/qa-worker.js";
 import { startTechLeadWorker } from "./workers/techlead-worker.js";
 import { startDeliveryWorker } from "./workers/delivery-worker.js";
+import { startSubtaskWorker } from "./workers/subtask-worker.js";
 import { startMarketingLeadWorker } from "./workers/marketing-lead-worker.js";
 import { startMarketingWorker } from "./workers/marketing-worker.js";
 import { startOpsWorker } from "./workers/ops-worker.js";
@@ -84,6 +85,7 @@ async function main() {
   startDevWorker(messenger);
   startQaWorker(messenger);
   startDeliveryWorker(messenger);
+  startSubtaskWorker(messenger); // folhas da decomposição (Tech Lead → subtarefas)
 
   // Squad de marketing (Malu coordena; Caio/Sofia/Leo/Nina executam no Notion).
   startMarketingLeadWorker(messenger);

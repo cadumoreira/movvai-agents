@@ -81,4 +81,23 @@ export interface JobMap {
   "marketing-task": MarketingTaskRequested;
   "marketing-work": MarketingWorkRequested;
   "ops-task": OpsTaskRequested;
+  "subtask": SubtaskRequested;
+}
+
+/** Uma folha da decomposição: um card próprio, sob um pai, com entregável esperado. */
+export interface SubtaskRequested {
+  channel: string;
+  threadTs: string;
+  threadKey: string;
+  /** Card pai (a tarefa/demanda) — usado no rollup. */
+  parentKey: string;
+  /** Card desta subtarefa. */
+  cardKey: string;
+  title: string;
+  /** O que precisa SAIR desta subtarefa (vira o Deliverable exigido). */
+  deliverableGoal: string;
+  instructions: string;
+  /** Nome de exibição do executor (default "Téo (Dev)"). */
+  agentName?: string;
+  squad?: "produto" | "marketing" | "operacoes";
 }
