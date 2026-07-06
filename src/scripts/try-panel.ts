@@ -28,7 +28,7 @@ async function main() {
   startMarketingLeadWorker(messenger);
   startMarketingWorker(messenger);
 
-  const handleDemand = async (squad: "produto" | "marketing" | "sdr" | "suporte" | "financeiro", text: string) => {
+  const handleDemand = async (squad: "pm" | "produto" | "marketing" | "sdr" | "suporte" | "financeiro", text: string) => {
     const base = await messenger.openThread(`:desktop_computer: Demanda: *${text.slice(0, 120)}*`);
     if (squad === "marketing") await queue.enqueue("marketing-task", { ...base, brief: { title: text.slice(0, 80) }, instructions: text });
     return { ok: true };

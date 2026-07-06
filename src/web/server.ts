@@ -16,7 +16,7 @@ import { getArtifact } from "../artifacts/store.js";
 
 export type InboundHandler = (source: "github" | "linear", task: InboundTask) => Promise<void>;
 export type DemandHandler = (
-  squad: "produto" | "marketing" | "sdr" | "suporte" | "financeiro",
+  squad: "pm" | "produto" | "marketing" | "sdr" | "suporte" | "financeiro",
   text: string,
 ) => Promise<{ ok: boolean; error?: string }>;
 /** Mensagem do humano no chat de uma thread (mesmo pipeline de uma menção no Slack). */
@@ -180,7 +180,7 @@ export function startDashboard(
       const body = safeParse(await readBody(req));
       const squad = String(body.squad ?? "");
       const text = String(body.text ?? "").trim();
-      if (!text || !["produto", "marketing", "sdr", "suporte", "financeiro"].includes(squad)) {
+      if (!text || !["pm", "produto", "marketing", "sdr", "suporte", "financeiro"].includes(squad)) {
         return json(res, 400, { error: "informe squad válido e texto" });
       }
       const result = await onDemand(squad as Parameters<DemandHandler>[0], text);
@@ -480,6 +480,7 @@ const PAGE = `<!doctype html>
       <div class="demand">
         <input id="dtext" placeholder="Nova demanda… (ex.: campanha de lançamento do plano Pro)" />
         <select id="dsquad">
+          <option value="pm">PM decide (recomendado)</option>
           <option value="marketing">Marketing (Malu)</option>
           <option value="produto">Produto (Rui)</option>
           <option value="sdr">Vendas (Igor)</option>

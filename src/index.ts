@@ -120,11 +120,19 @@ async function main() {
   };
 
   // Nova demanda PELO PAINEL: abre a thread (interna no modo painel, real no Slack) + squad certo.
-  const handleDemand = async (squad: "produto" | "marketing" | OpsDiscipline, text: string) => {
+  const handleDemand = async (squad: "pm" | "produto" | "marketing" | OpsDiscipline, text: string) => {
     const base = await messenger.openThread(`:desktop_computer: Demanda criada pelo painel: *${text.slice(0, 120)}*`);
     if (!base) return { ok: false as const, error: "Sem canal para ancorar: defina SLACK_DEFAULT_CHANNEL ou rode em modo painel." };
     const title = text.slice(0, 80);
-    if (squad === "produto") {
+    if (squad === "pm") {
+      // Sem escolher squad: a Ana (PM) classifica a demanda e delega ao time certo
+      // (Tech Lead p/ técnico → decompõe; Malu p/ marketing; Ops p/ operações).
+      await dispatchMention(
+        text,
+        { channel: base.channel, threadTs: base.threadTs, threadKey: base.threadKey },
+        { messenger, agentFactory, memory, actor: "painel", humanLabel: "você" },
+      );
+    } else if (squad === "produto") {
       track(`${base.threadKey}:techlead`, { title, agent: "Rui (Tech Lead)", squad: "produto", column: "fila" }, "demanda criada pelo painel");
       await queue.enqueue("techlead-task", { ...base, ticket: { title }, instructions: text });
     } else if (squad === "marketing") {
